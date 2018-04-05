@@ -31,6 +31,9 @@ func main() {
 }
 ```
 
+## Documentation
+
+https://godoc.org/github.com/caseymrm/go-statusbar/tray
 
 ## License
 
