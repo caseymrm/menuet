@@ -31,6 +31,8 @@ func main() {
 }
 ```
 
+![Output](https://github.com/caseymrm/go-statusbar/raw/master/static/helloworld.png)
+
 ## Documentation
 
 https://godoc.org/github.com/caseymrm/go-statusbar/tray
