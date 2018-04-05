@@ -2,7 +2,7 @@
 Golang library to create tray apps that live only in OSX's NSStatusBar
 
 ## Installation
-Mack requires OS X.
+go-statusbar requires OS X.
 
 `go get github.com/caseymrm/go-statusbar`
 
