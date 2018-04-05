@@ -82,7 +82,16 @@ func monitorPmSet() {
 	}
 }
 
+func handleClicks(callback chan string) {
+	for pid := range callback {
+		fmt.Printf("PID Clicked %s\n", pid)
+	}
+}
+
 func main() {
 	go monitorPmSet()
+	callback := make(chan string)
+	tray.App().Clicked = callback
+	go handleClicks(callback)
 	tray.App().RunApplication()
 }

@@ -38,6 +38,10 @@ type MenuState struct {
 
 // Application represents the OSX application
 type Application struct {
+	// Clicked receives callbacks of menu items selected
+	// It discards messages if the channel is not ready for them
+	Clicked chan<- string
+
 	currentState *MenuState
 }
 
@@ -57,6 +61,17 @@ func (a *Application) RunApplication() {
 	C.createAndRunApplication()
 }
 
+func (a *Application) clicked(callback string) {
+	if a.Clicked == nil {
+		return
+	}
+	select {
+	case a.Clicked <- callback:
+	default:
+		fmt.Printf("dropped %s click", callback)
+	}
+}
+
 // SetMenuState changes what is shown in the dropdown
 func (a *Application) SetMenuState(state *MenuState) {
 	if reflect.DeepEqual(a.currentState, state) {
@@ -73,8 +88,8 @@ func (a *Application) SetMenuState(state *MenuState) {
 	a.currentState = state
 }
 
-//export ItemClicked
-func ItemClicked(callbackCString *C.char) {
+//export itemClicked
+func itemClicked(callbackCString *C.char) {
 	callback := C.GoString(callbackCString)
-	fmt.Printf("Item Clicked %s\n", callback)
+	App().clicked(callback)
 }

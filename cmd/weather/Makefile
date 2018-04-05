@@ -1,6 +1,6 @@
 BINARY=weather
 SOURCEDIR=.
-SOURCES := $(shell find $(SOURCEDIR) -name '*.go' -o -name '*.c' -o -name '*.m') Makefile
+SOURCES := $(shell find $(SOURCEDIR) -name '*.go') Makefile
 
 run: $(BINARY)
 	./$(BINARY)

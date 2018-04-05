@@ -8,7 +8,7 @@
 
 NSStatusItem *_statusItem;
 
-void ItemClicked(const char *);
+void itemClicked(const char *);
 
 void setMenuState(NSString *title, NSArray *processes) {
   dispatch_async(dispatch_get_main_queue(), ^{
@@ -72,7 +72,7 @@ void createAndRunApplication() {
 
 - (void)press:(id)sender {
   NSString *callback = [sender representedObject];
-  ItemClicked(callback.UTF8String);
+  itemClicked(callback.UTF8String);
 }
 
 @end
