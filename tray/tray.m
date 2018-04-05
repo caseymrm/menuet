@@ -14,30 +14,32 @@ void setMenuState(NSString *title, NSArray *processes) {
   dispatch_async(dispatch_get_main_queue(), ^{
     CantSleepDelegate *delegate = NSApplication.sharedApplication.delegate;
     _statusItem.title = title;
-    NSMenu *menu = [NSMenu new];
-    for (int i = 0; i < processes.count; i++) {
-      NSDictionary *dict = [processes objectAtIndex:i];
-      NSString *text = dict[@"Text"];
-      if ([text isEqualTo:@"---"]) {
-        [menu addItem:[NSMenuItem separatorItem]];
-        continue;
+    if ([processes isKindOfClass:[NSArray class]]) {
+      NSMenu *menu = [NSMenu new];
+      for (int i = 0; i < processes.count; i++) {
+        NSDictionary *dict = [processes objectAtIndex:i];
+        NSString *text = dict[@"Text"];
+        if ([text isEqualTo:@"---"]) {
+          [menu addItem:[NSMenuItem separatorItem]];
+          continue;
+        }
+        NSString *callback = dict[@"Callback"];
+        if (callback == nil || callback.length == 0) {
+          [menu addItemWithTitle:text action:nil keyEquivalent:@""];
+        } else {
+          NSMenuItem *item = [menu addItemWithTitle:text
+                                             action:@selector(press:)
+                                      keyEquivalent:@""];
+          item.target = delegate;
+          item.representedObject = callback;
+        }
       }
-      NSString *callback = dict[@"Callback"];
-      if (callback == nil || callback.length == 0) {
-        [menu addItemWithTitle:text action:nil keyEquivalent:@""];
-      } else {
-        NSMenuItem *item = [menu addItemWithTitle:text
-                                           action:@selector(press:)
-                                    keyEquivalent:@""];
-        item.target = delegate;
-        item.representedObject = callback;
-      }
+      [menu addItem:[NSMenuItem separatorItem]];
+      [menu addItemWithTitle:@"Quit Can't Sleep"
+                      action:@selector(terminate:)
+               keyEquivalent:@""];
+      _statusItem.menu = menu;
     }
-    [menu addItem:[NSMenuItem separatorItem]];
-    [menu addItemWithTitle:@"Quit Can't Sleep"
-                    action:@selector(terminate:)
-             keyEquivalent:@""];
-    _statusItem.menu = menu;
   });
 }
 
