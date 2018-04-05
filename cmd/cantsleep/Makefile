@@ -1,6 +1,6 @@
 BINARY=cantsleep
 SOURCEDIR=.
-SOURCES := $(shell find $(SOURCEDIR) -name '*.go') Makefile
+SOURCES := $(shell find $(SOURCEDIR) -name '*.go')
 
 run: $(BINARY)
 	./$(BINARY)

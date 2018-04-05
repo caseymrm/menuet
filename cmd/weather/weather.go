@@ -2,15 +2,15 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
-	"strconv"
 	"time"
 
 	"github.com/caseymrm/go-statusbar/tray"
 )
 
-func temperature(woeid string) int {
+func temperature(woeid string) (temp, unit, text string) {
 	url := "https://query.yahooapis.com/v1/public/yql?format=json&q=select%20item.condition%20from%20weather.forecast%20where%20woeid%20%3D%20" + woeid
 	resp, err := http.Get(url)
 	if err != nil {
@@ -22,9 +22,13 @@ func temperature(woeid string) int {
 				Channel struct {
 					Item struct {
 						Condition struct {
-							Temp int `json:"temp,string"`
+							Temp string `json:"temp"`
+							Text string `json:"text"`
 						} `json:"condition"`
 					} `json:"item"`
+					Units struct {
+						Temperature string `json:"temperature"`
+					} `json:"units"`
 				} `json:"channel"`
 			} `json:"results"`
 		} `json:"query"`
@@ -34,15 +38,14 @@ func temperature(woeid string) int {
 	if err != nil {
 		log.Fatal(err)
 	}
-	return response.Query.Results.Channel.Item.Condition.Temp
+	return response.Query.Results.Channel.Item.Condition.Temp, response.Query.Results.Channel.Units.Temperature, response.Query.Results.Channel.Item.Condition.Text
 }
 
 func hourlyWeather() {
 	for {
-		laWeather := temperature("2442047")
-		laStr := strconv.Itoa(laWeather)
+		temp, unit, text := temperature("2442047")
 		tray.App().SetMenuState(&tray.MenuState{
-			Title: laStr + "°",
+			Title: fmt.Sprintf("%s°%s and %s", temp, unit, text),
 		})
 		time.Sleep(time.Hour)
 	}
