@@ -40,7 +40,8 @@ type MenuState struct {
 type Application struct {
 	// Clicked receives callbacks of menu items selected
 	// It discards messages if the channel is not ready for them
-	Clicked chan<- string
+	Clicked    chan<- string
+	MenuOpened func() []MenuItem
 
 	currentState *MenuState
 }
@@ -72,6 +73,13 @@ func (a *Application) clicked(callback string) {
 	}
 }
 
+func (a *Application) menuOpened() []MenuItem {
+	if a.MenuOpened == nil {
+		return nil
+	}
+	return a.MenuOpened()
+}
+
 // SetMenuState changes what is shown in the dropdown
 func (a *Application) SetMenuState(state *MenuState) {
 	if reflect.DeepEqual(a.currentState, state) {
@@ -92,4 +100,19 @@ func (a *Application) SetMenuState(state *MenuState) {
 func itemClicked(callbackCString *C.char) {
 	callback := C.GoString(callbackCString)
 	App().clicked(callback)
+}
+
+//export menuOpened
+func menuOpened() *C.char {
+	items := App().menuOpened()
+	if items == nil {
+		return nil
+	}
+	b, err := json.Marshal(items)
+	if err != nil {
+		log.Printf("Marshal: %v", err)
+		return nil
+	}
+	App().currentState.Items = items
+	return C.CString(string(b))
 }
