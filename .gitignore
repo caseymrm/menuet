@@ -4,4 +4,5 @@
 *.dylib
 *.test
 *.out
+*.DS_Store
 cmd/cantsleep/cantsleep

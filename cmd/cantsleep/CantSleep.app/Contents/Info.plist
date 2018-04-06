@@ -6,5 +6,23 @@
   <string>cantsleep</string>
   <key>CFBundleIconFile</key>
   <string>icon.icns</string>
+  <key>CFBundleGetInfoString</key>
+  <string>CantSleep</string>
+  <key>CFBundleIdentifier</key>
+  <string>cantsleep.go-statusbar.caseymrmr.github.com</string>
+  <key>CFBundleName</key>
+  <string>CantSleep</string>
+  <key>CFBundleShortVersionString</key>
+  <string>0.1</string>
+  <key>CFBundleInfoDictionaryVersion</key>
+  <string>6.0</string>
+  <key>CFBundlePackageType</key>
+  <string>APPL</string>
+  <key>IFMajorVersion</key>
+  <integer>0</integer>
+  <key>IFMinorVersion</key>
+  <integer>1</integer>
+  <key>NSHighResolutionCapable</key><true/>
+  <key>NSSupportsAutomaticGraphicsSwitching</key><true/>
 </dict>
 </plist>
