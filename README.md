@@ -31,7 +31,7 @@ func main() {
 }
 ```
 
-![Output](https://github.com/caseymrm/go-statusbar/raw/master/static/helloworld.png)
+![Output](https://github.com/caseymrm/go-statusbar/raw/master/static/helloworld.gif)
 
 ## Documentation
 
