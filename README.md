@@ -39,7 +39,7 @@ func main() {
 
 ## Advanced Features
 
-```
+```go
 package main
 
 import (
