@@ -18,7 +18,7 @@ void setItems(NSArray *processes) {
     [_statusItem.menu removeAllItems];
   } else {
     _statusItem.menu = [NSMenu new];
-    [_statusItem.menu setDelegate: delegate];
+    _statusItem.menu.delegate = delegate;
   }
   for (int i = 0; i < processes.count; i++) {
     NSDictionary *dict = [processes objectAtIndex:i];
@@ -28,17 +28,24 @@ void setItems(NSArray *processes) {
       continue;
     }
     NSString *callback = dict[@"Callback"];
+    NSMenuItem *item;
     if (callback == nil || callback.length == 0) {
-      [_statusItem.menu addItemWithTitle:text action:nil keyEquivalent:@""];
+      item = [_statusItem.menu addItemWithTitle:text action:nil keyEquivalent:@""];
     } else {
-      NSMenuItem *item = [_statusItem.menu addItemWithTitle:text
-                                                     action:@selector(press:)
-                                              keyEquivalent:@""];
+      item = [_statusItem.menu addItemWithTitle:text
+                                         action:@selector(press:)
+                                  keyEquivalent:@""];
       item.target = delegate;
       item.representedObject = callback;
     }
+    NSNumber *state = dict[@"State"];
+    if ([state isEqualTo:[NSNumber numberWithBool:true]]) {
+      item.state = NSOnState;
+    }
   }
-  [_statusItem.menu addItem:[NSMenuItem separatorItem]];
+  if (processes.count > 0) {
+    [_statusItem.menu addItem:[NSMenuItem separatorItem]];
+  }
   [_statusItem.menu addItemWithTitle:@"Quit Can't Sleep"
                               action:@selector(terminate:)
                        keyEquivalent:@""];
@@ -50,6 +57,8 @@ void setMenuState(NSDictionary *state) {
     NSArray *processes = state[@"Items"];
     if ([processes isKindOfClass:[NSArray class]]) {
       setItems(processes);
+    } else {
+      setItems(@[]);
     }
   });
 }

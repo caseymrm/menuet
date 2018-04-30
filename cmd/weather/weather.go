@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/caseymrm/go-statusbar/tray"
@@ -41,16 +42,49 @@ func temperature(woeid string) (temp, unit, text string) {
 	return response.Query.Results.Channel.Item.Condition.Temp, response.Query.Results.Channel.Units.Temperature, response.Query.Results.Channel.Item.Condition.Text
 }
 
+var currentWoeid = "2442047"
+var woeids = map[int]string{
+	2442047: "Los Angeles",
+	2487956: "San Francisco",
+	2459115: "New York",
+}
+
+func setWeather() {
+	temp, unit, text := temperature(currentWoeid)
+	tray.App().SetMenuState(&tray.MenuState{
+		Title: fmt.Sprintf("%s°%s and %s", temp, unit, text),
+	})
+}
+
 func hourlyWeather() {
 	for {
-		temp, unit, text := temperature("2442047")
-		tray.App().SetMenuState(&tray.MenuState{
-			Title: fmt.Sprintf("%s°%s and %s", temp, unit, text),
-		})
+		setWeather()
 		time.Sleep(time.Hour)
 	}
 }
+
+func handleClicks(callback chan string) {
+	for woeid := range callback {
+		currentWoeid = woeid
+		setWeather()
+	}
+}
+
 func main() {
 	go hourlyWeather()
+	trayChannel := make(chan string)
+	tray.App().Clicked = trayChannel
+	tray.App().MenuOpened = func() []tray.MenuItem {
+		items := []tray.MenuItem{}
+		for woeid, name := range woeids {
+			items = append(items, tray.MenuItem{
+				Text:     name,
+				Callback: strconv.Itoa(woeid),
+				State:    strconv.Itoa(woeid) == currentWoeid,
+			})
+		}
+		return items
+	}
+	go handleClicks(trayChannel)
 	tray.App().RunApplication()
 }

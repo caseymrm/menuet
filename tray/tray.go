@@ -28,6 +28,7 @@ import (
 type MenuItem struct {
 	Text     string // "---" is a separator
 	Callback string
+	State    bool // checkmark if true
 }
 
 // MenuState represents the title and drop down,
