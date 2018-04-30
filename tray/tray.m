@@ -46,7 +46,7 @@ void setItems(NSArray *processes) {
   if (processes.count > 0) {
     [_statusItem.menu addItem:[NSMenuItem separatorItem]];
   }
-  [_statusItem.menu addItemWithTitle:@"Quit Can't Sleep"
+  [_statusItem.menu addItemWithTitle:@"Quit"
                               action:@selector(terminate:)
                        keyEquivalent:@""];
 }
