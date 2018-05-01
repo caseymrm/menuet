@@ -9,6 +9,7 @@
 NSStatusItem *_statusItem;
 
 void itemClicked(const char *);
+void alertClicked(int);
 const char *menuOpened();
 
 void setItems(NSArray *processes) {
@@ -30,7 +31,8 @@ void setItems(NSArray *processes) {
     NSString *callback = dict[@"Callback"];
     NSMenuItem *item;
     if (callback == nil || callback.length == 0) {
-      item = [_statusItem.menu addItemWithTitle:text action:nil keyEquivalent:@""];
+      item =
+          [_statusItem.menu addItemWithTitle:text action:nil keyEquivalent:@""];
     } else {
       item = [_statusItem.menu addItemWithTitle:text
                                          action:@selector(press:)
@@ -70,6 +72,26 @@ void setState(const char *jsonString) {
                  options:0
                    error:nil];
   setMenuState(jsonDict);
+}
+
+void showAlert(const char *jsonString) {
+  NSDictionary *jsonDict = [NSJSONSerialization
+      JSONObjectWithData:[[NSString stringWithUTF8String:jsonString]
+                             dataUsingEncoding:NSUTF8StringEncoding]
+                 options:0
+                   error:nil];
+  NSAlert *alert = [NSAlert new];
+  // alert.alertStyle = NSAlertStyle.CriticalAlertStyle;
+  alert.messageText = jsonDict[@"MessageText"];
+  alert.informativeText = jsonDict[@"InformativeText"];
+  NSArray *buttons = jsonDict[@"Buttons"];
+  for (NSString *label in buttons) {
+    [alert addButtonWithTitle:label];
+  }
+  dispatch_async(dispatch_get_main_queue(), ^{
+    NSInteger resp = [alert runModal];
+    alertClicked(resp - 1000);
+  });
 }
 
 void createAndRunApplication() {
