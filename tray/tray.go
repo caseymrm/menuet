@@ -29,6 +29,7 @@ type MenuItem struct {
 	Text     string // "---" is a separator
 	Callback string
 	State    bool // checkmark if true
+	Children []MenuItem
 }
 
 // MenuState represents the title and drop down,

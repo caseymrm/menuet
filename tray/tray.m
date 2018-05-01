@@ -12,7 +12,38 @@ void itemClicked(const char *);
 void alertClicked(int);
 const char *menuOpened();
 
-void setItems(NSArray *processes) {
+void addItemsToMenu(NSMenu *menu, NSArray *items, CantSleepDelegate *delegate) {
+  for (int i = 0; i < items.count; i++) {
+    NSDictionary *dict = [items objectAtIndex:i];
+    NSString *text = dict[@"Text"];
+    if ([text isEqualTo:@"---"]) {
+      [menu addItem:[NSMenuItem separatorItem]];
+      continue;
+    }
+    NSString *callback = dict[@"Callback"];
+    NSMenuItem *item;
+    if (callback == nil || callback.length == 0) {
+      item = [menu addItemWithTitle:text action:nil keyEquivalent:@""];
+    } else {
+      item = [menu addItemWithTitle:text
+                             action:@selector(press:)
+                      keyEquivalent:@""];
+      item.target = delegate;
+      item.representedObject = callback;
+    }
+    NSNumber *state = dict[@"State"];
+    if ([state isEqualTo:[NSNumber numberWithBool:true]]) {
+      item.state = NSOnState;
+    }
+    NSArray *children = dict[@"Children"];
+    if (![children isEqualTo:NSNull.null] && children.count > 0) {
+      item.submenu = [NSMenu new];
+      addItemsToMenu(item.submenu, children, delegate);
+    }
+  }
+}
+
+void setItems(NSArray *items) {
   CantSleepDelegate *delegate =
       (CantSleepDelegate *)NSApplication.sharedApplication.delegate;
   if (_statusItem.menu) {
@@ -21,31 +52,8 @@ void setItems(NSArray *processes) {
     _statusItem.menu = [NSMenu new];
     _statusItem.menu.delegate = delegate;
   }
-  for (int i = 0; i < processes.count; i++) {
-    NSDictionary *dict = [processes objectAtIndex:i];
-    NSString *text = dict[@"Text"];
-    if ([text isEqualTo:@"---"]) {
-      [_statusItem.menu addItem:[NSMenuItem separatorItem]];
-      continue;
-    }
-    NSString *callback = dict[@"Callback"];
-    NSMenuItem *item;
-    if (callback == nil || callback.length == 0) {
-      item =
-          [_statusItem.menu addItemWithTitle:text action:nil keyEquivalent:@""];
-    } else {
-      item = [_statusItem.menu addItemWithTitle:text
-                                         action:@selector(press:)
-                                  keyEquivalent:@""];
-      item.target = delegate;
-      item.representedObject = callback;
-    }
-    NSNumber *state = dict[@"State"];
-    if ([state isEqualTo:[NSNumber numberWithBool:true]]) {
-      item.state = NSOnState;
-    }
-  }
-  if (processes.count > 0) {
+  addItemsToMenu(_statusItem.menu, items, delegate);
+  if (items.count > 0) {
     [_statusItem.menu addItem:[NSMenuItem separatorItem]];
   }
   [_statusItem.menu addItemWithTitle:@"Quit"
@@ -53,25 +61,21 @@ void setItems(NSArray *processes) {
                        keyEquivalent:@""];
 }
 
-void setMenuState(NSDictionary *state) {
-  dispatch_async(dispatch_get_main_queue(), ^{
-    _statusItem.title = state[@"Title"];
-    NSArray *processes = state[@"Items"];
-    if ([processes isKindOfClass:[NSArray class]]) {
-      setItems(processes);
-    } else {
-      setItems(@[]);
-    }
-  });
-}
-
 void setState(const char *jsonString) {
-  NSDictionary *jsonDict = [NSJSONSerialization
+  NSDictionary *state = [NSJSONSerialization
       JSONObjectWithData:[[NSString stringWithUTF8String:jsonString]
                              dataUsingEncoding:NSUTF8StringEncoding]
                  options:0
                    error:nil];
-  setMenuState(jsonDict);
+  dispatch_async(dispatch_get_main_queue(), ^{
+    _statusItem.title = state[@"Title"];
+    NSArray *items = state[@"Items"];
+    if ([items isKindOfClass:[NSArray class]]) {
+      setItems(items);
+    } else {
+      setItems(@[]);
+    }
+  });
 }
 
 void showAlert(const char *jsonString) {
@@ -122,12 +126,12 @@ void createAndRunApplication() {
   if (str == NULL) {
     return;
   }
-  NSArray *processes = [NSJSONSerialization
+  NSArray *items = [NSJSONSerialization
       JSONObjectWithData:[[NSString stringWithUTF8String:str]
                              dataUsingEncoding:NSUTF8StringEncoding]
                  options:0
                    error:nil];
-  setItems(processes);
+  setItems(items);
   free((char *)str);
 }
 @end
