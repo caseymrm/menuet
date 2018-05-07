@@ -21,34 +21,48 @@ void addItemsToMenu(NSMenu *menu, NSArray *items, CantSleepDelegate *delegate) {
       continue;
     }
     NSString *callback = dict[@"Callback"];
-    NSMenuItem *item;
+    NSMenuItem *item = nil;
+    if (i < menu.numberOfItems) {
+      item = [menu itemAtIndex:i];
+    }
+    if (!item) {
+      item = [menu addItemWithTitle:@"" action:nil keyEquivalent:@""];
+    }
+    item.title = text;
     if (callback == nil || callback.length == 0) {
-      item = [menu addItemWithTitle:text action:nil keyEquivalent:@""];
+      item.action = nil;
+      item.target = nil;
+      item.representedObject = nil;
     } else {
-      item = [menu addItemWithTitle:text
-                             action:@selector(press:)
-                      keyEquivalent:@""];
+      item.action = @selector(press:);
       item.target = delegate;
       item.representedObject = callback;
     }
     NSNumber *state = dict[@"State"];
     if ([state isEqualTo:[NSNumber numberWithBool:true]]) {
       item.state = NSOnState;
+    } else {
+      item.state = NSOffState;
     }
     NSArray *children = dict[@"Children"];
     if (![children isEqualTo:NSNull.null] && children.count > 0) {
-      item.submenu = [NSMenu new];
+      if (!item.submenu) {
+        item.submenu = [NSMenu new];
+      }
       addItemsToMenu(item.submenu, children, delegate);
+    } else if (item.submenu) {
+      item.submenu = nil;
     }
+  }
+  while (menu.numberOfItems > items.count) {
+    [menu removeItemAtIndex:menu.numberOfItems - 1];
   }
 }
 
 void setItems(NSArray *items) {
   CantSleepDelegate *delegate =
       (CantSleepDelegate *)NSApplication.sharedApplication.delegate;
-  if (_statusItem.menu) {
-    [_statusItem.menu removeAllItems];
-  } else {
+  if (!_statusItem.menu) {
     _statusItem.menu = [NSMenu new];
     _statusItem.menu.delegate = delegate;
   }
@@ -94,7 +108,7 @@ void showAlert(const char *jsonString) {
   }
   dispatch_async(dispatch_get_main_queue(), ^{
     NSInteger resp = [alert runModal];
-    alertClicked(resp - 1000);
+    alertClicked(resp - NSAlertFirstButtonReturn);
   });
 }
 
