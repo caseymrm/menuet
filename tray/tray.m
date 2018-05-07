@@ -21,6 +21,8 @@ void addItemsToMenu(NSMenu *menu, NSArray *items, CantSleepDelegate *delegate) {
       continue;
     }
     NSString *callback = dict[@"Callback"];
+    NSNumber *state = dict[@"State"];
+    NSArray *children = dict[@"Children"];
     NSMenuItem *item = nil;
     if (i < menu.numberOfItems) {
       item = [menu itemAtIndex:i];
@@ -30,21 +32,23 @@ void addItemsToMenu(NSMenu *menu, NSArray *items, CantSleepDelegate *delegate) {
     }
     item.title = text;
     if (callback == nil || callback.length == 0) {
-      item.action = nil;
-      item.target = nil;
+      if (![children isEqualTo:NSNull.null] && children.count > 0) {
+        item.action = @selector(nop:);
+      } else {
+        item.action = nil;
+      }
+      item.target = delegate;
       item.representedObject = nil;
     } else {
       item.action = @selector(press:);
       item.target = delegate;
       item.representedObject = callback;
     }
-    NSNumber *state = dict[@"State"];
     if ([state isEqualTo:[NSNumber numberWithBool:true]]) {
       item.state = NSOnState;
     } else {
       item.state = NSOffState;
     }
-    NSArray *children = dict[@"Children"];
     if (![children isEqualTo:NSNull.null] && children.count > 0) {
       if (!item.submenu) {
         item.submenu = [NSMenu new];
@@ -133,6 +137,9 @@ void createAndRunApplication() {
 - (void)press:(id)sender {
   NSString *callback = [sender representedObject];
   itemClicked(callback.UTF8String);
+}
+
+- (void)nop:(id)sender {
 }
 
 - (void)menuWillOpen:(NSMenu *)menu {
