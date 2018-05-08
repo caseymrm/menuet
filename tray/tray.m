@@ -31,17 +31,16 @@ void addItemsToMenu(NSMenu *menu, NSArray *items, CantSleepDelegate *delegate) {
       item = [menu addItemWithTitle:@"" action:nil keyEquivalent:@""];
     }
     item.title = text;
+    item.target = delegate;
     if (callback == nil || callback.length == 0) {
       if (![children isEqualTo:NSNull.null] && children.count > 0) {
         item.action = @selector(nop:);
       } else {
         item.action = nil;
       }
-      item.target = delegate;
       item.representedObject = nil;
     } else {
       item.action = @selector(press:);
-      item.target = delegate;
       item.representedObject = callback;
     }
     if ([state isEqualTo:[NSNumber numberWithBool:true]]) {
@@ -70,13 +69,14 @@ void setItems(NSArray *items) {
     _statusItem.menu = [NSMenu new];
     _statusItem.menu.delegate = delegate;
   }
+  items = [items arrayByAddingObjectsFromArray:@[
+    @{@"Text" : @"---"},
+    @{@"Text" : @"Quit"},
+  ]];
   addItemsToMenu(_statusItem.menu, items, delegate);
-  if (items.count > 0) {
-    [_statusItem.menu addItem:[NSMenuItem separatorItem]];
-  }
-  [_statusItem.menu addItemWithTitle:@"Quit"
-                              action:@selector(terminate:)
-                       keyEquivalent:@""];
+  NSMenuItem *quitItem = [_statusItem.menu itemAtIndex:items.count - 1];
+  quitItem.target = nil;
+  quitItem.action = @selector(terminate:);
 }
 
 void setState(const char *jsonString) {
