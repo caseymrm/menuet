@@ -10,6 +10,9 @@ import (
 )
 
 func (a *Application) getStartupPath() string {
+	if a.Label == "" {
+		log.Fatal("Need to set a Label for the app")
+	}
 	u, err := user.Current()
 	if err != nil {
 		log.Printf("user.Current: %v", err)
