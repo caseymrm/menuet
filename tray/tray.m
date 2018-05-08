@@ -99,6 +99,7 @@ void setState(const char *jsonString) {
                    error:nil];
   dispatch_async(dispatch_get_main_queue(), ^{
     _statusItem.button.title = state[@"Title"];
+    _statusItem.button.image = [NSImage imageNamed:state[@"Image"]];
     NSArray *items = state[@"Items"];
     if ([items isKindOfClass:[NSArray class]]) {
       setItems(items);

@@ -35,6 +35,8 @@ type MenuItem struct {
 // MenuState represents the title and drop down,
 type MenuState struct {
 	Title string
+	// This is the name of an image in the Resources directory
+	Image string
 	Items []MenuItem
 }
 
