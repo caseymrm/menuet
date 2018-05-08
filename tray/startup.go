@@ -86,7 +86,6 @@ var launchdString = `
      <key>Program</key><string>{{.Executable}}</string>
      <key>StandardOutPath</key><string>/tmp/{{.Label}}-out.log</string>
      <key>StandardErrorPath</key><string>/tmp/{{.Label}}-err.log</string>
-     <key>KeepAlive</key><true/>
      <key>RunAtLoad</key><true/>
    </dict>
 </plist>
