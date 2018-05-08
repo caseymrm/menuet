@@ -40,6 +40,9 @@ type MenuState struct {
 
 // Application represents the OSX application
 type Application struct {
+	Name  string
+	Label string
+
 	// Clicked receives callbacks of menu items selected
 	// It discards messages if the channel is not ready for them
 	Clicked    chan<- string
@@ -65,29 +68,15 @@ func (a *Application) RunApplication() {
 	C.createAndRunApplication()
 }
 
-func (a *Application) clicked(callback string) {
-	if a.Clicked == nil {
-		return
-	}
-	select {
-	case a.Clicked <- callback:
-	default:
-		fmt.Printf("dropped %s click", callback)
-	}
-}
-
-func (a *Application) menuOpened() []MenuItem {
-	if a.MenuOpened == nil {
-		return nil
-	}
-	return a.MenuOpened()
-}
-
 // SetMenuState changes what is shown in the dropdown
 func (a *Application) SetMenuState(state *MenuState) {
 	if reflect.DeepEqual(a.currentState, state) {
 		return
 	}
+	a.sendState(state)
+}
+
+func (a *Application) sendState(state *MenuState) {
 	b, err := json.Marshal(state)
 	if err != nil {
 		log.Printf("Marshal: %v", err)
@@ -127,6 +116,24 @@ func (a *Application) Alert(messageText, informativeText string, buttons ...stri
 	return response
 }
 
+func (a *Application) clicked(callback string) {
+	if a.Clicked == nil {
+		return
+	}
+	select {
+	case a.Clicked <- callback:
+	default:
+		fmt.Printf("dropped %s click", callback)
+	}
+}
+
+func (a *Application) menuOpened() []MenuItem {
+	if a.MenuOpened == nil {
+		return nil
+	}
+	return a.MenuOpened()
+}
+
 //export itemClicked
 func itemClicked(callbackCString *C.char) {
 	callback := C.GoString(callbackCString)
@@ -156,4 +163,20 @@ func menuOpened() *C.char {
 	}
 	App().currentState.Items = items
 	return C.CString(string(b))
+}
+
+//export runningAtStartup
+func runningAtStartup() bool {
+	return App().runningAtStartup()
+}
+
+//export toggleStartup
+func toggleStartup() {
+	a := App()
+	if a.runningAtStartup() {
+		a.removeStartupItem()
+	} else {
+		a.addStartupItem()
+	}
+	a.sendState(a.currentState)
 }

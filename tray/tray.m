@@ -11,6 +11,8 @@ NSStatusItem *_statusItem;
 void itemClicked(const char *);
 void alertClicked(int);
 const char *menuOpened();
+bool runningAtStartup();
+void toggleStartup();
 
 void addItemsToMenu(NSMenu *menu, NSArray *items, CantSleepDelegate *delegate) {
   for (int i = 0; i < items.count; i++) {
@@ -71,12 +73,22 @@ void setItems(NSArray *items) {
   }
   items = [items arrayByAddingObjectsFromArray:@[
     @{@"Text" : @"---"},
+    @{@"Text" : @"Run at start up"},
     @{@"Text" : @"Quit"},
   ]];
   addItemsToMenu(_statusItem.menu, items, delegate);
-  NSMenuItem *quitItem = [_statusItem.menu itemAtIndex:items.count - 1];
-  quitItem.target = nil;
-  quitItem.action = @selector(terminate:);
+
+  NSMenuItem *item = [_statusItem.menu itemAtIndex:items.count - 2];
+  item.action = @selector(toggleStartup:);
+  if (runningAtStartup()) {
+    item.state = NSOnState;
+  } else {
+    item.state = NSOffState;
+  }
+
+  item = [_statusItem.menu itemAtIndex:items.count - 1];
+  item.target = nil;
+  item.action = @selector(terminate:);
 }
 
 void setState(const char *jsonString) {
@@ -137,6 +149,10 @@ void createAndRunApplication() {
 - (void)press:(id)sender {
   NSString *callback = [sender representedObject];
   itemClicked(callback.UTF8String);
+}
+
+- (void)toggleStartup:(id)sender {
+  toggleStartup();
 }
 
 - (void)nop:(id)sender {
