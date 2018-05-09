@@ -32,8 +32,8 @@ void addItemsToMenu(NSMenu *menu, NSArray *items, CantSleepDelegate *delegate) {
     NSString *callback = dict[@"Callback"];
     NSNumber *state = dict[@"State"];
     NSArray *children = dict[@"Children"];
-    if (!item) {
-      item = [menu addItemWithTitle:@"" action:nil keyEquivalent:@""];
+    if (!item || item.isSeparatorItem) {
+      item = [menu insertItemWithTitle:@"" action:nil keyEquivalent:@"" atIndex:i];
     }
     NSMutableDictionary *attributes = [NSMutableDictionary new];
     if (fontSize > 0) {
