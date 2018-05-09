@@ -26,7 +26,8 @@ import (
 
 // MenuItem represents one item in the dropdown
 type MenuItem struct {
-	Text     string // "---" is a separator
+	Text     string // "---" is a separator, everything else ignored
+	FontSize int
 	Callback string
 	State    bool // checkmark if true
 	Children []MenuItem

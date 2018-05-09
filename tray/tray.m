@@ -16,23 +16,33 @@ void toggleStartup();
 
 void addItemsToMenu(NSMenu *menu, NSArray *items, CantSleepDelegate *delegate) {
   for (int i = 0; i < items.count; i++) {
-    NSDictionary *dict = [items objectAtIndex:i];
-    NSString *text = dict[@"Text"];
-    if ([text isEqualTo:@"---"]) {
-      [menu addItem:[NSMenuItem separatorItem]];
-      continue;
-    }
-    NSString *callback = dict[@"Callback"];
-    NSNumber *state = dict[@"State"];
-    NSArray *children = dict[@"Children"];
     NSMenuItem *item = nil;
     if (i < menu.numberOfItems) {
       item = [menu itemAtIndex:i];
     }
+    NSDictionary *dict = [items objectAtIndex:i];
+    NSString *text = dict[@"Text"];
+    if ([text isEqualTo:@"---"]) {
+      if (!item || !item.isSeparatorItem) {
+        [menu insertItem:[NSMenuItem separatorItem] atIndex:i];
+      }
+      continue;
+    }
+    NSNumber *fontSize = dict[@"FontSize"];
+    NSString *callback = dict[@"Callback"];
+    NSNumber *state = dict[@"State"];
+    NSArray *children = dict[@"Children"];
     if (!item) {
       item = [menu addItemWithTitle:@"" action:nil keyEquivalent:@""];
     }
-    item.title = text;
+    NSMutableDictionary *attributes = [NSMutableDictionary new];
+    if (fontSize > 0) {
+      attributes[NSFontAttributeName] =
+          [NSFont systemFontOfSize:fontSize.floatValue];
+    }
+    item.attributedTitle =
+        [[NSMutableAttributedString alloc] initWithString:text
+                                               attributes:attributes];
     item.target = delegate;
     if (callback == nil || callback.length == 0) {
       if (![children isEqualTo:NSNull.null] && children.count > 0) {
@@ -73,7 +83,7 @@ void setItems(NSArray *items) {
   }
   items = [items arrayByAddingObjectsFromArray:@[
     @{@"Text" : @"---"},
-    @{@"Text" : @"Run at start up"},
+    @{@"Text" : @"Start at Login"},
     @{@"Text" : @"Quit"},
   ]];
   addItemsToMenu(_statusItem.menu, items, delegate);
