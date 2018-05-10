@@ -109,7 +109,14 @@ void setState(const char *jsonString) {
                    error:nil];
   dispatch_async(dispatch_get_main_queue(), ^{
     _statusItem.button.title = state[@"Title"];
-    _statusItem.button.image = [NSImage imageNamed:state[@"Image"]];
+    NSImage *image = nil;
+    NSString *imageName = state[@"Image"];
+    if ([imageName isKindOfClass:[NSString class]] && imageName.length > 0) {
+      image = [NSImage imageNamed:imageName];
+      // TODO: Make template an option?
+      [image setTemplate:YES];
+    }
+    _statusItem.button.image = image;
     NSArray *items = state[@"Items"];
     if ([items isKindOfClass:[NSArray class]]) {
       setItems(items);
