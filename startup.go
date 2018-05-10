@@ -22,6 +22,10 @@ func (a *Application) getStartupPath() string {
 }
 
 func (a *Application) runningAtStartup() bool {
+	if a.Label == "" {
+		log.Println("Warning: no application Label set")
+		return false
+	}
 	_, err := os.Stat(a.getStartupPath())
 	if err == nil {
 		return true
