@@ -1,4 +1,4 @@
-# menuet
+# Menuet
 Golang library to create menubar apps- programs that live only in OSX's NSStatusBar
 
 ## Installation
@@ -9,6 +9,10 @@ menuet requires OS X.
 ## Documentation
 
 https://godoc.org/github.com/caseymrm/menuet
+
+## Apps built with Menuet
+
+* [Why Awake?](https://github.com/caseymrm/whyawake) - shows why your Mac can't sleep, and lets you force it awake
 
 ## Hello World
 
