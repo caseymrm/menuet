@@ -1,4 +1,4 @@
-package tray
+package menuet
 
 /*
 #cgo CFLAGS: -x objective-c
@@ -6,8 +6,8 @@ package tray
 
 #import <Cocoa/Cocoa.h>
 
-#ifndef TRAY_H
-#import "tray.h"
+#ifndef MENUET_H
+#import "menuet.h"
 #endif
 
 void setState(const char *jsonString);

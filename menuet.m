@@ -1,6 +1,6 @@
 #import <Cocoa/Cocoa.h>
 
-#import "tray.h"
+#import "menuet.h"
 
 @interface CantSleepDelegate : NSObject <NSApplicationDelegate, NSMenuDelegate>
 

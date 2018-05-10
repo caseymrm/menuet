@@ -3,12 +3,12 @@ package main
 import (
 	"time"
 
-	"github.com/caseymrm/menuet/tray"
+	"github.com/caseymrm/menuet"
 )
 
 func helloClock() {
 	for {
-		tray.App().SetMenuState(&tray.MenuState{
+		menuet.App().SetMenuState(&menuet.MenuState{
 			Title: "Hello World " + time.Now().Format(":05"),
 		})
 		time.Sleep(time.Second)
@@ -16,5 +16,5 @@ func helloClock() {
 }
 func main() {
 	go helloClock()
-	tray.App().RunApplication()
+	menuet.App().RunApplication()
 }

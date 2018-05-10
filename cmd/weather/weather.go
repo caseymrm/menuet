@@ -7,8 +7,6 @@ import (
 	"net/http"
 	"strconv"
 	"time"
-
-	"github.com/caseymrm/menuet/tray"
 )
 
 func temperature(woeid string) (temp, unit, text string) {
@@ -51,7 +49,7 @@ var woeids = map[int]string{
 
 func setWeather() {
 	temp, unit, text := temperature(currentWoeid)
-	tray.App().SetMenuState(&tray.MenuState{
+	menuet.App().SetMenuState(&menuet.MenuState{
 		Title: fmt.Sprintf("%s°%s and %s", temp, unit, text),
 	})
 }
@@ -72,12 +70,12 @@ func handleClicks(callback chan string) {
 
 func main() {
 	go hourlyWeather()
-	trayChannel := make(chan string)
-	tray.App().Clicked = trayChannel
-	tray.App().MenuOpened = func() []tray.MenuItem {
-		items := []tray.MenuItem{}
+	menuetChannel := make(chan string)
+	menuet.App().Clicked = menuetChannel
+	menuet.App().MenuOpened = func() []menuet.MenuItem {
+		items := []menuet.MenuItem{}
 		for woeid, name := range woeids {
-			items = append(items, tray.MenuItem{
+			items = append(items, menuet.MenuItem{
 				Text:     name,
 				Callback: strconv.Itoa(woeid),
 				State:    strconv.Itoa(woeid) == currentWoeid,
@@ -85,6 +83,6 @@ func main() {
 		}
 		return items
 	}
-	go handleClicks(trayChannel)
-	tray.App().RunApplication()
+	go handleClicks(menuetChannel)
+	menuet.App().RunApplication()
 }
