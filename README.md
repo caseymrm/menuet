@@ -114,9 +114,9 @@ func handleClicks(callback chan string) {
 
 func main() {
 	go hourlyWeather()
-	menuetChannel := make(chan string)
+	clickChannel := make(chan string)
 	menuet.App().Label = "com.github.caseymrm.menuet.weather"
-	menuet.App().Clicked = menuetChannel
+	menuet.App().Clicked = clickChannel
 	menuet.App().MenuOpened = func() []menuet.MenuItem {
 		items := []menuet.MenuItem{}
 		for woeid, name := range woeids {
@@ -128,7 +128,7 @@ func main() {
 		}
 		return items
 	}
-	go handleClicks(menuetChannel)
+	go handleClicks(clickChannel)
 	menuet.App().RunApplication()
 }
 ```
