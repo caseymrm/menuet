@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"strconv"
 	"time"
+
+	"github.com/caseymrm/menuet"
 )
 
 func temperature(woeid string) (temp, unit, text string) {
@@ -71,6 +73,7 @@ func handleClicks(callback chan string) {
 func main() {
 	go hourlyWeather()
 	menuetChannel := make(chan string)
+	menuet.App().Label = "com.github.caseymrm.menuet.weather"
 	menuet.App().Clicked = menuetChannel
 	menuet.App().MenuOpened = func() []menuet.MenuItem {
 		items := []menuet.MenuItem{}
