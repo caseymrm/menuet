@@ -3,7 +3,7 @@ package main
 import (
 	"time"
 
-	"github.com/caseymrm/go-statusbar/tray"
+	"github.com/caseymrm/menuet/tray"
 )
 
 func helloClock() {

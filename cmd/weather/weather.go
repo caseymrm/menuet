@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/caseymrm/go-statusbar/tray"
+	"github.com/caseymrm/menuet/tray"
 )
 
 func temperature(woeid string) (temp, unit, text string) {

@@ -1,14 +1,14 @@
-# go-statusbar
-Golang library to create tray apps that live only in OSX's NSStatusBar
+# menuet
+Golang library to create menubar apps- programs that live only in OSX's NSStatusBar
 
 ## Installation
-go-statusbar requires OS X.
+menuet requires OS X.
 
-`go get github.com/caseymrm/go-statusbar`
+`go get github.com/caseymrm/menuet`
 
 ## Documentation
 
-https://godoc.org/github.com/caseymrm/go-statusbar/tray
+https://godoc.org/github.com/caseymrm/menuet/tray
 
 ## Hello World
 
@@ -18,7 +18,7 @@ package main
 import (
 	"time"
 
-	"github.com/caseymrm/go-statusbar/tray"
+	"github.com/caseymrm/menuet/tray"
 )
 
 func helloClock() {
@@ -35,7 +35,7 @@ func main() {
 }
 ```
 
-![Output](https://github.com/caseymrm/go-statusbar/raw/master/static/helloworld.gif)
+![Output](https://github.com/caseymrm/menuet/raw/master/static/helloworld.gif)
 
 ## Advanced Features
 
@@ -50,7 +50,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/caseymrm/go-statusbar/tray"
+	"github.com/caseymrm/menuet/tray"
 )
 
 func temperature(woeid string) (temp, unit, text string) {
@@ -132,7 +132,7 @@ func main() {
 }
 ```
 
-![Output](https://github.com/caseymrm/go-statusbar/raw/master/static/weather.png)
+![Output](https://github.com/caseymrm/menuet/raw/master/static/weather.png)
 
 ## License
 
