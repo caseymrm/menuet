@@ -21,13 +21,14 @@ void addItemsToMenu(NSMenu *menu, NSArray *items, CantSleepDelegate *delegate) {
       item = [menu itemAtIndex:i];
     }
     NSDictionary *dict = [items objectAtIndex:i];
-    NSString *text = dict[@"Text"];
-    if ([text isEqualTo:@"---"]) {
+    NSString *type = dict[@"Type"];
+    if ([type isEqualTo:@"separator"]) {
       if (!item || !item.isSeparatorItem) {
         [menu insertItem:[NSMenuItem separatorItem] atIndex:i];
       }
       continue;
     }
+    NSString *text = dict[@"Text"];
     NSNumber *fontSize = dict[@"FontSize"];
     NSString *callback = dict[@"Callback"];
     NSNumber *state = dict[@"State"];
@@ -82,7 +83,7 @@ void setItems(NSArray *items) {
     _statusItem.menu.delegate = delegate;
   }
   items = [items arrayByAddingObjectsFromArray:@[
-    @{@"Text" : @"---"},
+    @{@"Type" : @"separator"},
     @{@"Text" : @"Start at Login"},
     @{@"Text" : @"Quit"},
   ]];

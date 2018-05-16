@@ -24,9 +24,21 @@ import (
 	"unsafe"
 )
 
+type ItemType string
+
+const (
+	// Regular is a normal item with text and optional callback
+	Regular ItemType = ""
+	// Separator is a horizontal line
+	Separator = "separator"
+	// TODO: StartAtLogin, Quit
+)
+
 // MenuItem represents one item in the dropdown
 type MenuItem struct {
-	Text     string // "---" is a separator, everything else ignored
+	Type ItemType
+	// These fields only used for Regular item type:
+	Text     string
 	FontSize int
 	Callback string
 	State    bool // checkmark if true
