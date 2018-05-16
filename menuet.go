@@ -24,6 +24,7 @@ import (
 	"unsafe"
 )
 
+// ItemType represents what type of menu item this is
 type ItemType string
 
 const (
