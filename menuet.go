@@ -21,6 +21,7 @@ import (
 	"log"
 	"reflect"
 	"sync"
+	"time"
 	"unsafe"
 )
 
@@ -64,8 +65,11 @@ type Application struct {
 	Clicked    chan<- string
 	MenuOpened func() []MenuItem
 
-	currentState *MenuState
-	alertChannel chan int
+	alertChannel       chan int
+	currentState       *MenuState
+	nextState          *MenuState
+	pendingStateChange bool
+	debounceMutex      sync.Mutex
 }
 
 var instance *Application
@@ -89,11 +93,28 @@ func (a *Application) SetMenuState(state *MenuState) {
 	if reflect.DeepEqual(a.currentState, state) {
 		return
 	}
-	a.sendState(state)
+	go a.sendState(state)
 }
 
 func (a *Application) sendState(state *MenuState) {
-	b, err := json.Marshal(state)
+	a.debounceMutex.Lock()
+	a.nextState = state
+	if a.pendingStateChange {
+		a.debounceMutex.Unlock()
+		return
+	}
+	a.pendingStateChange = true
+	a.debounceMutex.Unlock()
+	time.Sleep(100 * time.Millisecond)
+	a.debounceMutex.Lock()
+	a.pendingStateChange = false
+	if reflect.DeepEqual(a.currentState, a.nextState) {
+		a.debounceMutex.Unlock()
+		return
+	}
+	a.currentState = a.nextState
+	a.debounceMutex.Unlock()
+	b, err := json.Marshal(a.currentState)
 	if err != nil {
 		log.Printf("Marshal: %v", err)
 		return
@@ -101,7 +122,6 @@ func (a *Application) sendState(state *MenuState) {
 	cstr := C.CString(string(b))
 	C.setState(cstr)
 	C.free(unsafe.Pointer(cstr))
-	a.currentState = state
 }
 
 // Alert shows an alert, and returns the index of the button pressed, or -1 if none
@@ -194,5 +214,5 @@ func toggleStartup() {
 	} else {
 		a.addStartupItem()
 	}
-	a.sendState(a.currentState)
+	go a.sendState(a.currentState)
 }
