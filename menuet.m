@@ -115,7 +115,7 @@ void setState(const char *jsonString) {
         initWithString:state[@"Title"]
             attributes:@{
               NSFontAttributeName :
-                  [NSFont monospacedDigitSystemFontOfSize:0 weight:0]
+                  [NSFont monospacedDigitSystemFontOfSize:14 weight:NSFontWeightRegular]
             }];
     NSImage *image = nil;
     NSString *imageName = state[@"Image"];
