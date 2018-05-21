@@ -6,7 +6,7 @@ package menuet
 
 #import <Cocoa/Cocoa.h>
 
-#ifndef MENUET_H
+#ifndef __MENUET_H_H__
 #import "menuet.h"
 #endif
 
