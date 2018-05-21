@@ -40,11 +40,12 @@ const (
 type MenuItem struct {
 	Type ItemType
 	// These fields only used for Regular item type:
-	Text     string
-	FontSize int
-	Callback string
-	State    bool // checkmark if true
-	Children []MenuItem
+	Text       string
+	FontSize   int
+	FontWeight int
+	Callback   string
+	State      bool // checkmark if true
+	Children   []MenuItem
 }
 
 // MenuState represents the title and drop down,

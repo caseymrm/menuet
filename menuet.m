@@ -30,17 +30,19 @@ void addItemsToMenu(NSMenu *menu, NSArray *items, CantSleepDelegate *delegate) {
     }
     NSString *text = dict[@"Text"];
     NSNumber *fontSize = dict[@"FontSize"];
+    NSNumber *fontWeight = dict[@"FontWeight"];
     NSString *callback = dict[@"Callback"];
     NSNumber *state = dict[@"State"];
     NSArray *children = dict[@"Children"];
     if (!item || item.isSeparatorItem) {
-      item = [menu insertItemWithTitle:@"" action:nil keyEquivalent:@"" atIndex:i];
+      item =
+          [menu insertItemWithTitle:@"" action:nil keyEquivalent:@"" atIndex:i];
     }
     NSMutableDictionary *attributes = [NSMutableDictionary new];
-    if (fontSize > 0) {
-      attributes[NSFontAttributeName] =
-          [NSFont systemFontOfSize:fontSize.floatValue];
-    }
+    float size = fontSize.floatValue;
+    float weight = fontWeight.floatValue;
+    attributes[NSFontAttributeName] =
+        [NSFont monospacedDigitSystemFontOfSize:size weight:weight];
     item.attributedTitle =
         [[NSMutableAttributedString alloc] initWithString:text
                                                attributes:attributes];
@@ -109,7 +111,12 @@ void setState(const char *jsonString) {
                  options:0
                    error:nil];
   dispatch_async(dispatch_get_main_queue(), ^{
-    _statusItem.button.title = state[@"Title"];
+    _statusItem.button.attributedTitle = [[NSAttributedString alloc]
+        initWithString:state[@"Title"]
+            attributes:@{
+              NSFontAttributeName :
+                  [NSFont monospacedDigitSystemFontOfSize:0 weight:0]
+            }];
     NSImage *image = nil;
     NSString *imageName = state[@"Image"];
     if ([imageName isKindOfClass:[NSString class]] && imageName.length > 0) {
