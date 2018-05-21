@@ -40,7 +40,13 @@ void addItemsToMenu(NSMenu *menu, NSArray *items, CantSleepDelegate *delegate) {
     }
     NSMutableDictionary *attributes = [NSMutableDictionary new];
     float size = fontSize.floatValue;
+    if (fontSize == 0) {
+      size = 14;
+    }
     float weight = fontWeight.floatValue;
+    if (fontWeight == 0) {
+      weight = NSFontWeightRegular;
+    }
     attributes[NSFontAttributeName] =
         [NSFont monospacedDigitSystemFontOfSize:size weight:weight];
     item.attributedTitle =
