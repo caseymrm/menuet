@@ -17,7 +17,7 @@ import (
 	"unsafe"
 )
 
-// UserDefaults represents stored defaults
+// UserDefaults represents values stored in NSUserDefaults
 type UserDefaults struct {
 	strings map[string]string
 	ints    map[string]int
