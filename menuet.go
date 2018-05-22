@@ -125,34 +125,6 @@ func (a *Application) sendState(state *MenuState) {
 	C.free(unsafe.Pointer(cstr))
 }
 
-// Alert shows an alert, and returns the index of the button pressed, or -1 if none
-func (a *Application) Alert(messageText, informativeText string, buttons ...string) int {
-	if a.alertChannel != nil {
-		log.Printf("Alert message already showing")
-		return -1
-	}
-	b, err := json.Marshal(struct {
-		MessageText     string
-		InformativeText string
-		Buttons         []string
-	}{
-		messageText,
-		informativeText,
-		buttons,
-	})
-	if err != nil {
-		log.Printf("Marshal: %v", err)
-		return -1
-	}
-	cstr := C.CString(string(b))
-	C.showAlert(cstr)
-	C.free(unsafe.Pointer(cstr))
-	a.alertChannel = make(chan int)
-	response := <-a.alertChannel
-	a.alertChannel = nil
-	return response
-}
-
 func (a *Application) clicked(callback string) {
 	if a.Clicked == nil {
 		return
@@ -175,16 +147,6 @@ func (a *Application) menuOpened() []MenuItem {
 func itemClicked(callbackCString *C.char) {
 	callback := C.GoString(callbackCString)
 	App().clicked(callback)
-}
-
-//export alertClicked
-func alertClicked(button int) {
-	app := App()
-	if app.alertChannel == nil {
-		log.Printf("Alert message double clicked?")
-		return
-	}
-	app.alertChannel <- button
 }
 
 //export menuOpened
