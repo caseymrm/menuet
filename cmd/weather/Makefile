@@ -1,4 +1,4 @@
-BINARY=weather
+BINARY=Weather.app/Contents/MacOS/weather
 SOURCEDIR=. ../..
 SOURCES := $(shell find $(SOURCEDIR) -name '*.go' -o -name '*.m' -o -name '*.h') Makefile
 

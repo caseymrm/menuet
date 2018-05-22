@@ -83,6 +83,11 @@ func handleClicks(callback chan string) {
 	for woeid := range callback {
 		menuet.Defaults().SetString("loc", woeid)
 		setWeather()
+		num, err := strconv.Atoi(woeid)
+		if err != nil {
+			log.Printf("Atoi: %v", err)
+		}
+		menuet.App().Notification("Location changed", "Did you move?", "Now showing weather for "+woeids[num])
 	}
 }
 
