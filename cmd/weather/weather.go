@@ -66,15 +66,25 @@ func hourlyWeather() {
 func handleClicks(callback chan string) {
 	for woeid := range callback {
 		currentWoeid = woeid
+		menuet.App().UserDefaults().SetString("loc", woeid)
 		setWeather()
 	}
 }
 
 func main() {
+	// Load the location from last time
+	woeid := menuet.App().UserDefaults().String("loc")
+	if woeid != "" {
+		currentWoeid = woeid
+	}
+
+	// Start the hourly check, and set the first value
 	go hourlyWeather()
-	clickChannel := make(chan string)
+
+	// Configure the application
 	menuet.App().Label = "com.github.caseymrm.menuet.weather"
-	menuet.App().Clicked = clickChannel
+
+	// Hook up the on-click to populate the menu
 	menuet.App().MenuOpened = func() []menuet.MenuItem {
 		items := []menuet.MenuItem{}
 		for woeid, name := range woeids {
@@ -86,6 +96,12 @@ func main() {
 		}
 		return items
 	}
+
+	// Set up the click channel
+	clickChannel := make(chan string)
+	menuet.App().Clicked = clickChannel
 	go handleClicks(clickChannel)
+
+	// Run the app (does not return)
 	menuet.App().RunApplication()
 }

@@ -71,6 +71,7 @@ type Application struct {
 	nextState          *MenuState
 	pendingStateChange bool
 	debounceMutex      sync.Mutex
+	defaults           *UserDefaults
 }
 
 var instance *Application
@@ -79,7 +80,9 @@ var appOnce sync.Once
 // App returns the application singleton
 func App() *Application {
 	appOnce.Do(func() {
-		instance = &Application{}
+		instance = &Application{
+			defaults: &UserDefaults{},
+		}
 	})
 	return instance
 }
@@ -123,6 +126,10 @@ func (a *Application) sendState(state *MenuState) {
 	cstr := C.CString(string(b))
 	C.setState(cstr)
 	C.free(unsafe.Pointer(cstr))
+}
+
+func (a *Application) UserDefaults() *UserDefaults {
+	return a.defaults
 }
 
 // Alert shows an alert, and returns the index of the button pressed, or -1 if none
