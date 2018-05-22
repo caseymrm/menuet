@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"sort"
 	"strconv"
 	"time"
 
@@ -52,7 +53,23 @@ func setWeather() {
 	temp, unit, text := temperature(menuet.Defaults().String("loc"))
 	menuet.App().SetMenuState(&menuet.MenuState{
 		Title: fmt.Sprintf("%s°%s and %s", temp, unit, text),
+		Items: menuItems(),
 	})
+}
+
+func menuItems() []menuet.MenuItem {
+	items := []menuet.MenuItem{}
+	for woeid, name := range woeids {
+		items = append(items, menuet.MenuItem{
+			Text:     name,
+			Callback: strconv.Itoa(woeid),
+			State:    strconv.Itoa(woeid) == menuet.Defaults().String("loc"),
+		})
+	}
+	sort.Slice(items, func(i, j int) bool {
+		return items[i].Callback < items[j].Callback
+	})
+	return items
 }
 
 func hourlyWeather() {
@@ -83,17 +100,7 @@ func main() {
 	menuet.App().Label = "com.github.caseymrm.menuet.weather"
 
 	// Hook up the on-click to populate the menu
-	menuet.App().MenuOpened = func() []menuet.MenuItem {
-		items := []menuet.MenuItem{}
-		for woeid, name := range woeids {
-			items = append(items, menuet.MenuItem{
-				Text:     name,
-				Callback: strconv.Itoa(woeid),
-				State:    strconv.Itoa(woeid) == menuet.Defaults().String("loc"),
-			})
-		}
-		return items
-	}
+	menuet.App().MenuOpened = menuItems
 
 	// Set up the click channel
 	clickChannel := make(chan string)
