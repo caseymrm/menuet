@@ -42,7 +42,6 @@ func temperature(woeid string) (temp, unit, text string) {
 	return response.Query.Results.Channel.Item.Condition.Temp, response.Query.Results.Channel.Units.Temperature, response.Query.Results.Channel.Item.Condition.Text
 }
 
-var currentWoeid = "2442047"
 var woeids = map[int]string{
 	2442047: "Los Angeles",
 	2487956: "San Francisco",
@@ -50,7 +49,7 @@ var woeids = map[int]string{
 }
 
 func setWeather() {
-	temp, unit, text := temperature(currentWoeid)
+	temp, unit, text := temperature(menuet.Defaults().String("loc"))
 	menuet.App().SetMenuState(&menuet.MenuState{
 		Title: fmt.Sprintf("%s°%s and %s", temp, unit, text),
 	})
@@ -65,17 +64,16 @@ func hourlyWeather() {
 
 func handleClicks(callback chan string) {
 	for woeid := range callback {
-		currentWoeid = woeid
-		menuet.App().UserDefaults().SetString("loc", woeid)
+		menuet.Defaults().SetString("loc", woeid)
 		setWeather()
 	}
 }
 
 func main() {
 	// Load the location from last time
-	woeid := menuet.App().UserDefaults().String("loc")
-	if woeid != "" {
-		currentWoeid = woeid
+	woeid := menuet.Defaults().String("loc")
+	if woeid == "" {
+		menuet.Defaults().SetString("loc", "2442047")
 	}
 
 	// Start the hourly check, and set the first value
@@ -91,7 +89,7 @@ func main() {
 			items = append(items, menuet.MenuItem{
 				Text:     name,
 				Callback: strconv.Itoa(woeid),
-				State:    strconv.Itoa(woeid) == currentWoeid,
+				State:    strconv.Itoa(woeid) == menuet.Defaults().String("loc"),
 			})
 		}
 		return items
