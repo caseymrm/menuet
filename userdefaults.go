@@ -21,6 +21,7 @@ import (
 type UserDefaults struct {
 	strings map[string]string
 	ints    map[string]int
+	bools   map[string]bool
 }
 
 var defaultsInstance *UserDefaults
@@ -32,6 +33,7 @@ func Defaults() *UserDefaults {
 		defaultsInstance = &UserDefaults{
 			strings: make(map[string]string),
 			ints:    make(map[string]int),
+			bools:   make(map[string]bool),
 		}
 	})
 	return defaultsInstance
@@ -78,4 +80,24 @@ func (u *UserDefaults) Integer(key string) int {
 	value := C.getInteger(ckey)
 	C.free(unsafe.Pointer(ckey))
 	return int(value)
+}
+
+// SetBoolean sets a boolean default
+func (u *UserDefaults) SetBoolean(key string, value bool) {
+	ckey := C.CString(string(key))
+	C.setBoolean(ckey, C._Bool(value))
+	C.free(unsafe.Pointer(ckey))
+	u.bools[key] = value
+}
+
+// Boolean gets a boolean default, 0 if not set
+func (u *UserDefaults) Boolean(key string) bool {
+	val, ok := u.bools[key]
+	if ok {
+		return val
+	}
+	ckey := C.CString(string(key))
+	value := C.getBoolean(ckey)
+	C.free(unsafe.Pointer(ckey))
+	return bool(value)
 }

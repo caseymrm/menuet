@@ -26,3 +26,15 @@ long getInteger(const char *key) {
   NSInteger value = [NSUserDefaults.standardUserDefaults integerForKey:keyStr];
   return value;
 }
+
+void setBoolean(const char* key, bool value) {
+  NSString *keyStr = [NSString stringWithUTF8String:key];
+  [NSUserDefaults.standardUserDefaults setBool:value forKey:keyStr];
+  [NSUserDefaults.standardUserDefaults synchronize];
+}
+
+bool getBoolean(const char *key) {
+  NSString *keyStr = [NSString stringWithUTF8String:key];
+  NSInteger value = [NSUserDefaults.standardUserDefaults boolForKey:keyStr];
+  return value;
+}
