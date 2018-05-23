@@ -20,21 +20,20 @@ import (
 	"unsafe"
 )
 
+// Alert represents an NSAlert
+type Alert struct {
+	MessageText     string
+	InformativeText string
+	Buttons         []string
+}
+
 // Alert shows an alert, and returns the index of the button pressed, or -1 if none
-func (a *Application) Alert(messageText, informativeText string, buttons ...string) int {
+func (a *Application) Alert(alert Alert) int {
 	if a.alertChannel != nil {
 		log.Printf("Alert message already showing")
 		return -1
 	}
-	b, err := json.Marshal(struct {
-		MessageText     string
-		InformativeText string
-		Buttons         []string
-	}{
-		messageText,
-		informativeText,
-		buttons,
-	})
+	b, err := json.Marshal(alert)
 	if err != nil {
 		log.Printf("Marshal: %v", err)
 		return -1
