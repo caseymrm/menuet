@@ -20,17 +20,16 @@ import (
 	"unsafe"
 )
 
+// Notification represents an NSUserNotification
+type Notification struct {
+	Title    string
+	Subtitle string
+	Message  string
+}
+
 // Notification shows a notification to the user. Note that you have to be part of a proper application bundle for them to show up.
-func (a *Application) Notification(title, subtitle, message string) {
-	b, err := json.Marshal(struct {
-		Title    string
-		Subtitle string
-		Message  string
-	}{
-		title,
-		subtitle,
-		message,
-	})
+func (a *Application) Notification(notification Notification) {
+	b, err := json.Marshal(notification)
 	if err != nil {
 		log.Printf("Marshal: %v", err)
 		return

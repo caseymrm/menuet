@@ -87,7 +87,11 @@ func handleClicks(callback chan string) {
 		if err != nil {
 			log.Printf("Atoi: %v", err)
 		}
-		menuet.App().Notification("Location changed", "Did you move?", "Now showing weather for "+woeids[num])
+		menuet.App().Notification(menuet.Notification{
+			Title:    "Location changed",
+			Subtitle: "Did you move?",
+			Message:  "Now showing weather for " + woeids[num],
+		})
 	}
 }
 
