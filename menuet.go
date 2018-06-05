@@ -72,7 +72,7 @@ type Application struct {
 		Repo    string // For example "caseymrm/menuet"
 	}
 
-	alertChannel       chan int
+	alertChannel       chan AlertClicked
 	currentState       *MenuState
 	nextState          *MenuState
 	pendingStateChange bool

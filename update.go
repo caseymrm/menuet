@@ -37,7 +37,7 @@ func (a *Application) checkForUpdates() {
 			InformativeText: fmt.Sprintf("Looks like %s of %s is now available- you're running %s", release.TagName, a.Name, a.AutoUpdate.Version),
 			Buttons:         []string{"Update now", "Remind me later"},
 		})
-		if button == 0 {
+		if button.Button == 0 {
 			err := updateApp(release)
 			if err != nil {
 				log.Printf("Unable to update app: %v", err)

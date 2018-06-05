@@ -2,7 +2,7 @@
 
 #import "alert.h"
 
-void alertClicked(int);
+void alertClicked(int, const char *);
 
 void showAlert(const char *jsonString) {
   NSDictionary *jsonDict = [NSJSONSerialization
@@ -11,15 +11,49 @@ void showAlert(const char *jsonString) {
                  options:0
                    error:nil];
   NSAlert *alert = [NSAlert new];
-  // alert.alertStyle = NSAlertStyle.CriticalAlertStyle;
   alert.messageText = jsonDict[@"MessageText"];
   alert.informativeText = jsonDict[@"InformativeText"];
   NSArray *buttons = jsonDict[@"Buttons"];
-  for (NSString *label in buttons) {
-    [alert addButtonWithTitle:label];
+  if (![buttons isEqualTo:NSNull.null] && buttons.count > 0) {
+    for (NSString *label in buttons) {
+      [alert addButtonWithTitle:label];
+    }
+  }
+  NSView *accessoryView;
+  NSArray *inputs = jsonDict[@"Inputs"];
+  BOOL first = false;
+  if (![inputs isEqualTo:NSNull.null] && inputs.count > 0) {
+    int y = 30 * inputs.count;
+    accessoryView = [[NSView alloc] initWithFrame:NSMakeRect(0, 0, 200, y)];
+    for (NSString *input in inputs) {
+      y -= 30;
+      NSTextField *textfield =
+          [[NSTextField alloc] initWithFrame:NSMakeRect(0, y, 200, 25)];
+      [textfield setPlaceholderString:input];
+      [accessoryView addSubview:textfield];
+      if (!first) {
+        [alert.window setInitialFirstResponder:textfield];
+        first = true;
+      }
+    }
+    [alert setAccessoryView:accessoryView];
   }
   dispatch_async(dispatch_get_main_queue(), ^{
+    [NSApp activateIgnoringOtherApps:YES];
     NSInteger resp = [alert runModal];
-    alertClicked(resp - NSAlertFirstButtonReturn);
+    NSMutableArray *values = [NSMutableArray new];
+    if (accessoryView) {
+      for (NSView *subview in accessoryView.subviews) {
+        if (![subview isKindOfClass:[NSTextField class]]) {
+          continue;
+        }
+        [values addObject:((NSTextField *)subview).stringValue];
+      }
+    }
+    NSData *jsonData =
+        [NSJSONSerialization dataWithJSONObject:values options:0 error:nil];
+    NSString *jsonString =
+        [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
+    alertClicked(resp - NSAlertFirstButtonReturn, jsonString.UTF8String);
   });
 }
