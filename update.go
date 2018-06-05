@@ -13,10 +13,10 @@ import (
 	"path/filepath"
 	"strings"
 	"syscall"
+	"time"
 )
 
-// Release represents one release of the software, currently a GitHub release
-type Release struct {
+type release struct {
 	TagName string `json:"tag_name"`
 	Assets  []struct {
 		Name        string `json:"name"`
@@ -24,15 +24,29 @@ type Release struct {
 	} `json:"assets"`
 }
 
-var calledCheckForRestart bool
-
-// CheckForRestart should be called on startup, it is responsible for killing the parent process during a restart
-func CheckForRestart() {
-	if calledCheckForRestart {
-		log.Printf("calledCheckForRestart should only be called once")
-		return
+func (a *Application) checkForUpdates() {
+	checkForRestart()
+	ticker := time.NewTicker(24 * time.Hour)
+	for ; true; <-ticker.C {
+		release := checkForNewRelease(a.AutoUpdate.Repo, a.AutoUpdate.Version)
+		if release == nil {
+			continue
+		}
+		button := a.Alert(Alert{
+			MessageText:     fmt.Sprintf("New version of %s available", a.Name),
+			InformativeText: fmt.Sprintf("Looks like %s of %s is now available- you're running %s", release.TagName, a.Name, a.AutoUpdate.Version),
+			Buttons:         []string{"Update now", "Remind me later"},
+		})
+		if button == 0 {
+			err := updateApp(release)
+			if err != nil {
+				log.Printf("Unable to update app: %v", err)
+			}
+		}
 	}
-	calledCheckForRestart = true
+}
+
+func checkForRestart() {
 	restarting := false
 	for _, arg := range os.Args {
 		if arg == "-restarting" {
@@ -41,7 +55,6 @@ func CheckForRestart() {
 		}
 	}
 	if !restarting {
-		log.Printf("%d: not a restart", os.Getpid())
 		return
 	}
 	ppid := syscall.Getppid()
@@ -49,12 +62,7 @@ func CheckForRestart() {
 	syscall.Kill(ppid, syscall.SIGTERM)
 }
 
-// CheckForNewRelease returns the newest release if this one is out of date
-func CheckForNewRelease(githubProject, currentVersion string) *Release {
-	if !calledCheckForRestart {
-		log.Printf("Skipping CheckForNewRelease because CheckForRestart is not being called first")
-		return nil
-	}
+func checkForNewRelease(githubProject, currentVersion string) *release {
 	if currentVersion == "" {
 		log.Printf("Not checking updates for dev version")
 		return nil
@@ -67,21 +75,19 @@ func CheckForNewRelease(githubProject, currentVersion string) *Release {
 	return getReleaseToUpdateTo(releases, currentVersion)
 }
 
-// UpdateApp downloads and replaces the current app bundle with the new one
-func UpdateApp(release *Release) error {
-	if !calledCheckForRestart {
-		return fmt.Errorf("Skipping UpdateApp because CheckForRestart is not being called first")
-	}
+func updateApp(release *release) error {
 	name, url := downloadURL(release)
 	dir, err := ioutil.TempDir("", "menuetupdater")
 	if err != nil {
 		return fmt.Errorf("Not updating, couldn't get tempdir: %v", err)
 	}
 	defer os.RemoveAll(dir)
+	log.Printf("Downloading archive...")
 	archivefile, err := downloadArchive(dir, name, url)
 	if err != nil {
 		return err
 	}
+	log.Printf("Unzipping bundle...")
 	newAppPath, err := unzipBundle(archivefile)
 	if err != nil {
 		return err
@@ -93,10 +99,12 @@ func replaceExecutableAndRestart(newAppPath string) error {
 	currentExecutable, currentAppPath := appPath()
 	backupAppPath := currentAppPath + ".updating"
 	log.Printf("Updating app (%s to %s)", currentAppPath, newAppPath)
+	log.Printf("Move %s to %s", currentAppPath, backupAppPath)
 	err := os.Rename(currentAppPath, backupAppPath)
 	if err != nil {
 		return err
 	}
+	log.Printf("Move %s to %s", newAppPath, currentAppPath)
 	err = os.Rename(newAppPath, currentAppPath)
 	if err != nil {
 		err := os.Rename(backupAppPath, currentAppPath)
@@ -105,10 +113,12 @@ func replaceExecutableAndRestart(newAppPath string) error {
 		}
 		return fmt.Errorf("os.Rename move (rollled back): %v", err)
 	}
+	log.Printf("Removing")
 	err = os.RemoveAll(backupAppPath)
 	if err != nil {
 		return err
 	}
+	log.Printf("Executing")
 	cmd := exec.Command(currentExecutable, "-restarting")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
@@ -131,13 +141,13 @@ func appPath() (string, string) {
 	return currentPath, strings.Join(d[0:len(d)-3], string(os.PathSeparator))
 }
 
-func getReleasesFromGitHub(project string) ([]Release, error) {
+func getReleasesFromGitHub(project string) ([]release, error) {
 	url := fmt.Sprintf("https://api.github.com/repos/%s/releases", project)
 	resp, err := http.Get(url)
 	if err != nil {
 		return nil, err
 	}
-	releases := make([]Release, 0)
+	releases := make([]release, 0)
 	dec := json.NewDecoder(resp.Body)
 	err = dec.Decode(&releases)
 	if err != nil {
@@ -149,7 +159,7 @@ func getReleasesFromGitHub(project string) ([]Release, error) {
 	return releases, nil
 }
 
-func downloadURL(release *Release) (string, string) {
+func downloadURL(release *release) (string, string) {
 	name := ""
 	url := ""
 	for _, asset := range release.Assets {
@@ -221,7 +231,7 @@ func unzipBundle(filename string) (string, error) {
 	return bundle, nil
 }
 
-func getReleaseToUpdateTo(releases []Release, currentVersion string) *Release {
+func getReleaseToUpdateTo(releases []release, currentVersion string) *release {
 	if len(releases) == 0 {
 		log.Printf("No github releases found")
 		return nil

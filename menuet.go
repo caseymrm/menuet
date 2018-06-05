@@ -66,6 +66,12 @@ type Application struct {
 	Clicked    chan<- string
 	MenuOpened func() []MenuItem
 
+	// If Version and Repo are set, checks for updates every day
+	AutoUpdate struct {
+		Version string
+		Repo    string // For example "caseymrm/menuet"
+	}
+
 	alertChannel       chan int
 	currentState       *MenuState
 	nextState          *MenuState
@@ -86,6 +92,9 @@ func App() *Application {
 
 // RunApplication does not return
 func (a *Application) RunApplication() {
+	if a.AutoUpdate.Version != "" && a.AutoUpdate.Repo != "" {
+		go a.checkForUpdates()
+	}
 	C.createAndRunApplication()
 }
 
