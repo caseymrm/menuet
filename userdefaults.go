@@ -13,6 +13,7 @@ package menuet
 */
 import "C"
 import (
+	"encoding/json"
 	"sync"
 	"unsafe"
 )
@@ -100,4 +101,20 @@ func (u *UserDefaults) Boolean(key string) bool {
 	value := C.getBoolean(ckey)
 	C.free(unsafe.Pointer(ckey))
 	return bool(value)
+}
+
+// Marshal marshals an object into JSON and stores it in user defaults, see json.Marshal docs
+func (u *UserDefaults) Marshal(key string, v interface{}) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	u.SetString(key, string(b))
+	return nil
+}
+
+// Unmarshal unmarshals an object from JSON that was stored in user defaults, see json.Unmarshal docs
+func (u *UserDefaults) Unmarshal(key string, v interface{}) error {
+	b := u.String(key)
+	return json.Unmarshal([]byte(b), v)
 }
