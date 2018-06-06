@@ -62,7 +62,7 @@ func (u *UserDefaults) String(key string) string {
 	return value
 }
 
-// SetInteger sets a integer default
+// SetInteger sets an integer default
 func (u *UserDefaults) SetInteger(key string, value int) {
 	ckey := C.CString(string(key))
 	C.setInteger(ckey, C.long(value))
@@ -70,7 +70,7 @@ func (u *UserDefaults) SetInteger(key string, value int) {
 	u.ints[key] = value
 }
 
-// Integer gets a integer default, 0 if not set
+// Integer gets an integer default, 0 if not set
 func (u *UserDefaults) Integer(key string) int {
 	val, ok := u.ints[key]
 	if ok {
