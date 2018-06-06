@@ -21,8 +21,9 @@ void showAlert(const char *jsonString) {
   }
   NSView *accessoryView;
   NSArray *inputs = jsonDict[@"Inputs"];
-  BOOL first = false;
-  if (![inputs isEqualTo:NSNull.null] && inputs.count > 0) {
+  BOOL hasInputs = ![inputs isEqualTo:NSNull.null] && inputs.count > 0;
+  if (hasInputs) {
+    BOOL first = false;
     int y = 30 * inputs.count;
     accessoryView = [[NSView alloc] initWithFrame:NSMakeRect(0, 0, 200, y)];
     for (NSString *input in inputs) {
@@ -42,7 +43,7 @@ void showAlert(const char *jsonString) {
     [NSApp activateIgnoringOtherApps:YES];
     NSInteger resp = [alert runModal];
     NSMutableArray *values = [NSMutableArray new];
-    if (accessoryView) {
+    if (hasInputs) {
       for (NSView *subview in accessoryView.subviews) {
         if (![subview isKindOfClass:[NSTextField class]]) {
           continue;
