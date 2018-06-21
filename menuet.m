@@ -42,12 +42,8 @@ void addItemsToMenu(NSMenu *menu, NSArray *items, CantSleepDelegate *delegate) {
     if (fontSize == 0) {
       size = 14;
     }
-    float weight = fontWeight.floatValue;
-    if (fontWeight == 0) {
-      weight = NSFontWeightRegular;
-    }
     attributes[NSFontAttributeName] =
-        [NSFont monospacedDigitSystemFontOfSize:size weight:weight];
+        [NSFont monospacedDigitSystemFontOfSize:size weight:fontWeight.floatValue];
     item.attributedTitle =
         [[NSMutableAttributedString alloc] initWithString:text
                                                attributes:attributes];

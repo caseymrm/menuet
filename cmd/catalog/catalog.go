@@ -127,6 +127,53 @@ func menuItems() []menuet.MenuItem {
 			Text:     "Send Notification",
 			Children: notifs,
 		},
+		menuet.MenuItem{
+			Text: "Menu Items",
+			Children: []menuet.MenuItem{
+				{
+					Text: "Just text",
+				},
+				{
+					Text:     "Text and Callback",
+					Callback: "Text and Callback",
+				},
+				{
+					Text:     "Text, Callback, and FontSize 12",
+					Callback: "Text, Callback, and FontSize 12",
+					FontSize: 12,
+				},
+				{
+					Text:     "Text, Callback, and FontSize 16",
+					Callback: "Text, Callback, and FontSize 16",
+					FontSize: 16,
+				},
+				{
+					Text:       "Text, Callback, and WeightBold",
+					Callback:   "Text, Callback, and WeightBold",
+					FontWeight: menuet.WeightBold,
+				},
+				{
+					Text:       "Text, Callback, and WeightThin",
+					Callback:   "Text, Callback, and WeightThin",
+					FontWeight: menuet.WeightThin,
+				},
+				{
+					Text:     "Text, Callback, State true",
+					Callback: "Text, Callback, State true",
+					State:    true,
+				},
+
+				/*
+									Text       string
+					FontSize   int
+					FontWeight int
+					Callback   string
+					State      bool // checkmark if true
+					Children   []MenuItem
+
+				*/
+			},
+		},
 	}
 }
 
