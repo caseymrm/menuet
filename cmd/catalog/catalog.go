@@ -131,47 +131,137 @@ func menuItems() []menuet.MenuItem {
 			Text: "Menu Items",
 			Children: []menuet.MenuItem{
 				{
-					Text: "Just text",
+					Text: "Text no callback",
 				},
 				{
-					Text:     "Text and Callback",
-					Callback: "Text and Callback",
+					Text:     "Text with Callback",
+					Callback: "Text with Callback",
 				},
 				{
-					Text:     "Text, Callback, and FontSize 12",
-					Callback: "Text, Callback, and FontSize 12",
-					FontSize: 12,
+					Text: "FontSizes",
+					Children: []menuet.MenuItem{
+						{
+							Text:     "FontSize 2",
+							Callback: "FontSize 2",
+							FontSize: 2,
+						},
+						{
+							Text:     "FontSize 4",
+							Callback: "FontSize 4",
+							FontSize: 4,
+						},
+						{
+							Text:     "FontSize 6",
+							Callback: "FontSize 6",
+							FontSize: 6,
+						},
+						{
+							Text:     "FontSize 8",
+							Callback: "FontSize 8",
+							FontSize: 8,
+						},
+						{
+							Text:     "FontSize 10",
+							Callback: "FontSize 10",
+							FontSize: 10,
+						},
+						{
+							Text:     "FontSize 12",
+							Callback: "FontSize 12",
+							FontSize: 12,
+						},
+						{
+							Text:     "FontSize 14",
+							Callback: "FontSize 14",
+							FontSize: 14,
+						},
+						{
+							Text:     "FontSize 16",
+							Callback: "FontSize 16",
+							FontSize: 16,
+						},
+						{
+							Text:     "FontSize 18",
+							Callback: "FontSize 18",
+							FontSize: 18,
+						},
+						{
+							Text:     "FontSize 20",
+							Callback: "FontSize 20",
+							FontSize: 20,
+						},
+						{
+							Text:     "FontSize 22",
+							Callback: "FontSize 22",
+							FontSize: 22,
+						},
+						{
+							Text:     "FontSize 24",
+							Callback: "FontSize 24",
+							FontSize: 24,
+						},
+						{
+							Text:     "FontSize 26",
+							Callback: "FontSize 26",
+							FontSize: 26,
+						},
+					},
 				},
 				{
-					Text:     "Text, Callback, and FontSize 16",
-					Callback: "Text, Callback, and FontSize 16",
-					FontSize: 16,
+					Text: "FontWeights",
+					Children: []menuet.MenuItem{
+						{
+							Text:       "WeightUltraLight",
+							FontWeight: menuet.WeightUltraLight,
+							Callback:   "WeightUltraLight",
+						},
+						{
+							Text:       "WeightThin",
+							FontWeight: menuet.WeightThin,
+							Callback:   "WeightThin",
+						},
+						{
+							Text:       "WeightLight",
+							FontWeight: menuet.WeightLight,
+							Callback:   "WeightLight",
+						},
+						{
+							Text:       "WeightRegular",
+							FontWeight: menuet.WeightRegular,
+							Callback:   "WeightRegular",
+						},
+						{
+							Text:       "WeightMedium",
+							FontWeight: menuet.WeightMedium,
+							Callback:   "WeightMedium",
+						},
+						{
+							Text:       "WeightSemibold",
+							FontWeight: menuet.WeightSemibold,
+							Callback:   "WeightSemibold",
+						},
+						{
+							Text:       "WeightBold",
+							FontWeight: menuet.WeightBold,
+							Callback:   "WeightBold",
+						},
+						{
+							Text:       "WeightHeavy",
+							FontWeight: menuet.WeightHeavy,
+							Callback:   "WeightHeavy",
+						},
+						{
+							Text:       "WeightBlack",
+							FontWeight: menuet.WeightBlack,
+							Callback:   "WeightBlack",
+						},
+					},
 				},
 				{
-					Text:       "Text, Callback, and WeightBold",
-					Callback:   "Text, Callback, and WeightBold",
-					FontWeight: menuet.WeightBold,
-				},
-				{
-					Text:       "Text, Callback, and WeightThin",
-					Callback:   "Text, Callback, and WeightThin",
-					FontWeight: menuet.WeightThin,
-				},
-				{
-					Text:     "Text, Callback, State true",
-					Callback: "Text, Callback, State true",
+					Text:     "State = true",
+					Callback: "State = true",
 					State:    true,
 				},
-
-				/*
-									Text       string
-					FontSize   int
-					FontWeight int
-					Callback   string
-					State      bool // checkmark if true
-					Children   []MenuItem
-
-				*/
 			},
 		},
 	}
