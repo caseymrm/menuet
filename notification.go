@@ -39,8 +39,16 @@ type Notification struct {
 	RemoveFromNotificationCenter bool
 }
 
+func runningInAppBundle() bool {
+	_, bundlePath := appPath()
+	return bundlePath != ""
+}
+
 // Notification shows a notification to the user. Note that you have to be part of a proper application bundle for them to show up.
 func (a *Application) Notification(notification Notification) {
+	if !runningInAppBundle() {
+		log.Printf("Warning: notifications won't show up unless running inside an application bundle")
+	}
 	b, err := json.Marshal(notification)
 	if err != nil {
 		log.Printf("Marshal: %v", err)

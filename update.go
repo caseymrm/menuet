@@ -97,6 +97,12 @@ func updateApp(release *release) error {
 
 func replaceExecutableAndRestart(newAppPath string) error {
 	currentExecutable, currentAppPath := appPath()
+	if currentExecutable == "" {
+		log.Fatalf("Cannot update app, can't find executable")
+	}
+	if currentAppPath == "" {
+		log.Fatalf("Cannot update app, not running in Mac app bundle (%s doesn't have /Contents/MacOS)", currentExecutable)
+	}
 	backupAppPath := currentAppPath + ".updating"
 	log.Printf("Updating app (%s to %s)", currentAppPath, newAppPath)
 	log.Printf("Move %s to %s", currentAppPath, backupAppPath)
@@ -136,7 +142,7 @@ func appPath() (string, string) {
 	}
 	d := strings.Split(currentPath, string(os.PathSeparator))
 	if len(d) < 5 || d[len(d)-2] != "MacOS" || d[len(d)-3] != "Contents" {
-		log.Fatalf("Cannot update app, not running in Mac app bundle (%s doesn't have /Contents/MacOS)", currentPath)
+		return currentPath, ""
 	}
 	return currentPath, strings.Join(d[0:len(d)-3], string(os.PathSeparator))
 }
