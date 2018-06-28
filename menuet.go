@@ -161,7 +161,7 @@ func (a *Application) clicked(callback string) {
 	if a.Clicked == nil {
 		return
 	}
-	a.Clicked(callback)
+	go a.Clicked(callback)
 }
 
 func (a *Application) menuOpened() []MenuItem {
