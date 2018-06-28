@@ -125,36 +125,34 @@ func hourlyWeather() {
 	}
 }
 
-func handleClicks(callback chan string) {
-	for woeid := range callback {
-		if woeid == "prompt" {
-			response := menuet.App().Alert(menuet.Alert{
-				MessageText: "Where would you like to display the weather for?",
-				Inputs:      []string{"Location"},
-				Buttons:     []string{"Search", "Cancel"},
-			})
-			if response.Button == 0 && len(response.Inputs) == 1 && response.Inputs[0] != "" {
-				newName, newWoeid := location(response.Inputs[0])
-				if newWoeid != "" && newName != "" {
-					menuet.Defaults().SetString("loc", newWoeid)
-					menuet.Defaults().SetString("name", newName)
-					setWeather()
-				}
-			}
-			continue
-		}
-		menuet.Defaults().SetString("loc", woeid)
-		setWeather()
-		num, err := strconv.Atoi(woeid)
-		if err != nil {
-			log.Printf("Atoi: %v", err)
-		}
-		menuet.App().Notification(menuet.Notification{
-			Title:    "Location changed",
-			Subtitle: "Did you move?",
-			Message:  "Now showing weather for " + woeids[num],
+func handleClick(woeid string) {
+	if woeid == "prompt" {
+		response := menuet.App().Alert(menuet.Alert{
+			MessageText: "Where would you like to display the weather for?",
+			Inputs:      []string{"Location"},
+			Buttons:     []string{"Search", "Cancel"},
 		})
+		if response.Button == 0 && len(response.Inputs) == 1 && response.Inputs[0] != "" {
+			newName, newWoeid := location(response.Inputs[0])
+			if newWoeid != "" && newName != "" {
+				menuet.Defaults().SetString("loc", newWoeid)
+				menuet.Defaults().SetString("name", newName)
+				setWeather()
+			}
+		}
+		return
 	}
+	menuet.Defaults().SetString("loc", woeid)
+	setWeather()
+	num, err := strconv.Atoi(woeid)
+	if err != nil {
+		log.Printf("Atoi: %v", err)
+	}
+	menuet.App().Notification(menuet.Notification{
+		Title:    "Location changed",
+		Subtitle: "Did you move?",
+		Message:  "Now showing weather for " + woeids[num],
+	})
 }
 
 func main() {
@@ -173,10 +171,8 @@ func main() {
 	// Hook up the on-click to populate the menu
 	menuet.App().MenuOpened = menuItems
 
-	// Set up the click channel
-	clickChannel := make(chan string)
-	menuet.App().Clicked = clickChannel
-	go handleClicks(clickChannel)
+	// Set up the click handler
+	menuet.App().Clicked = handleClick
 
 	// Run the app (does not return)
 	menuet.App().RunApplication()

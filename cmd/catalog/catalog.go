@@ -267,24 +267,22 @@ func menuItems() []menuet.MenuItem {
 	}
 }
 
-func handleClicks(callback chan string) {
-	for click := range callback {
-		var index int
-		var kind string
-		n, err := fmt.Sscan(click, &kind, &index)
-		if err != nil {
-			log.Printf("Sscanf error: %v", err)
-			continue
-		}
-		if n != 2 {
-			continue
-		}
-		switch kind {
-		case "notif":
-			menuet.App().Notification(notificationsCatalog[index])
-		case "alert":
-			menuet.App().Alert(alertsCatalog[index])
-		}
+func handleClick(click string) {
+	var index int
+	var kind string
+	n, err := fmt.Sscan(click, &kind, &index)
+	if err != nil {
+		log.Printf("Sscanf error: %v", err)
+		return
+	}
+	if n != 2 {
+		return
+	}
+	switch kind {
+	case "notif":
+		menuet.App().Notification(notificationsCatalog[index])
+	case "alert":
+		menuet.App().Alert(alertsCatalog[index])
 	}
 }
 
@@ -294,10 +292,6 @@ func main() {
 		Items: menuItems(),
 	})
 	menuet.App().Label = "com.github.caseymrm.menuet.catalog"
-
-	clickChannel := make(chan string)
-	menuet.App().Clicked = clickChannel
-	go handleClicks(clickChannel)
-
+	menuet.App().Clicked = handleClick
 	menuet.App().RunApplication()
 }

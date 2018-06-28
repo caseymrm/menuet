@@ -17,7 +17,6 @@ void createAndRunApplication();
 import "C"
 import (
 	"encoding/json"
-	"fmt"
 	"log"
 	"reflect"
 	"sync"
@@ -85,9 +84,9 @@ type Application struct {
 	Name  string
 	Label string
 
-	// Clicked receives callbacks of menu items selected
-	// It discards messages if the channel is not ready for them
-	Clicked    chan<- string
+	// Clicked is called with the callback string of a menu item that is selected
+	Clicked func(string)
+	// If set, will be called to refresh menu items when clicked
 	MenuOpened func() []MenuItem
 
 	// If Version and Repo are set, checks for updates every day
@@ -162,11 +161,7 @@ func (a *Application) clicked(callback string) {
 	if a.Clicked == nil {
 		return
 	}
-	select {
-	case a.Clicked <- callback:
-	default:
-		fmt.Printf("dropped %s click", callback)
-	}
+	a.Clicked(callback)
 }
 
 func (a *Application) menuOpened() []MenuItem {

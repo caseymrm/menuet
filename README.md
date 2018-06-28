@@ -1,6 +1,10 @@
 # Menuet
 Golang library to create menubar apps- programs that live only in OSX's NSStatusBar
 
+## Development Status
+
+Under active development. API still changing rapidly.
+
 ## Installation
 menuet requires OS X.
 
@@ -109,18 +113,16 @@ func hourlyWeather() {
 	}
 }
 
-func handleClicks(callback chan string) {
-	for woeid := range callback {
-		currentWoeid = woeid
-		setWeather()
-	}
+func handleClick(woeid string) {
+	currentWoeid = woeid
+	setWeather()
 }
 
 func main() {
 	go hourlyWeather()
 	clickChannel := make(chan string)
 	menuet.App().Label = "com.github.caseymrm.menuet.weather"
-	menuet.App().Clicked = clickChannel
+	menuet.App().Clicked = handleClick
 	menuet.App().MenuOpened = func() []menuet.MenuItem {
 		items := []menuet.MenuItem{}
 		for woeid, name := range woeids {
@@ -132,7 +134,6 @@ func main() {
 		}
 		return items
 	}
-	go handleClicks(clickChannel)
 	menuet.App().RunApplication()
 }
 ```
