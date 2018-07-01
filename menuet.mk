@@ -2,31 +2,48 @@
 # To use it, create a Makefile in your applications directory, set the name of the app, and include this file. 
 # For example:
 #
-#   BINARY=Weather.app/Contents/MacOS/weather
+#   APP=Hello World
 #   include $(GOPATH)/src/github.com/caseymrm/menuet/menuet.mk
+#
+# Optional features:
+# 
+# To set your CFBundleIdentifier, set IDENTIFIER:
+#
+#   IDENTIFIER=whyawake.caseymrm.github.com
+#
+# To monitor other directories for source changes, set LIBDIRS:
+#
+#   LIBDIR= ../go-pmset ../go-caffeinate
+#
+# To sign your app, set IDENTITY:
+#
+#   IDENTITY=Developer ID Application: Hello World LLC (AP2AFA8XAX)
+
 
 ifndef APP
   $(error APP variable must be defined, e.g. APP=Hello World)
 endif
 
-SOURCEDIRS=$(abspath $(dir $(MAKEFILE_LIST)))
-SOURCES := $(shell find $(SOURCEDIRS) -name '*.go' -o -name '*.m' -o -name '*.h' -o -name '*.mk' -o -name Makefile)
-
 space :=
 space +=
-ESCAPED_APP=$(subst $(space),\$(space),$(APP))
-EXECUTABLE=$(subst $(space),,$(APP))
-BINARY=$(ESCAPED_APP).app/Contents/MacOS/$(EXECUTABLE)
-PLIST=$(ESCAPED_APP).app/Contents/Info.plist
+ESCAPED_APP = $(subst $(space),\$(space),$(APP))
+EXECUTABLE = $(subst $(space),,$(APP))
+BINARY = $(ESCAPED_APP).app/Contents/MacOS/$(EXECUTABLE)
+PLIST = $(ESCAPED_APP).app/Contents/Info.plist
 
 run: $(BINARY) $(PLIST)
 	./$(BINARY)
+
+SOURCEDIRS = $(abspath $(dir $(MAKEFILE_LIST)))
+SOURCES := $(shell find $(SOURCEDIRS) $(LIBDIRS) -name '*.go' -o -name '*.m' -o -name '*.h' -o -name '*.c' -o -name '*.mk' -o -name Makefile)
 
 $(BINARY): $(SOURCES)
 	go build -o $(BINARY)
 
 clean:
 	rm -f $(BINARY) $(PLIST)
+
+IDENTIFIER ?= $(EXECUTABLE).menuet.caseymrm.github.com
 
 $(PLIST):
 	echo "Generating plist..."
@@ -41,7 +58,7 @@ $(PLIST):
 	@echo '  <key>CFBundleGetInfoString</key>' >> $(PLIST)
 	@echo '  <string>$(APP)</string>' >> $(PLIST)
 	@echo '  <key>CFBundleIdentifier</key>' >> $(PLIST)
-	@echo '  <string>$(EXECUTABLE).menuet.caseymrm.github.com</string>' >> $(PLIST)
+	@echo '  <string>$(IDENTIFIER)</string>' >> $(PLIST)
 	@echo '  <key>CFBundleName</key>' >> $(PLIST)
 	@echo '  <string>$(APP)</string>' >> $(PLIST)
 	@echo '  <key>CFBundleShortVersionString</key>' >> $(PLIST)
@@ -58,3 +75,9 @@ $(PLIST):
 	@echo '  <key>NSSupportsAutomaticGraphicsSwitching</key><true/>' >> $(PLIST)
 	@echo '</dict>' >> $(PLIST)
 	@echo '</plist>' >> $(PLIST)
+
+sign: $(BINARY) $(PLIST)
+	ifndef IDENTITY
+	  $(error IDENTITY variable must be defined, e.g. IDENTITY=Developer ID Application: Hello World LLC (AP2AFA8XAX))
+	endif
+	codesign -f -s "$(IDENTITY)" $(ESCAPED_APP).app --deep
