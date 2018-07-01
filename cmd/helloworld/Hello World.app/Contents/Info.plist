@@ -3,13 +3,13 @@
 <plist version="1.0">
 <dict>
   <key>CFBundleExecutable</key>
-  <string>HelloWorld</string>
+  <string>helloworld</string>
   <key>CFBundleIconFile</key>
   <string>icon</string>
   <key>CFBundleGetInfoString</key>
   <string>Hello World</string>
   <key>CFBundleIdentifier</key>
-  <string>HelloWorld.menuet.caseymrm.github.com</string>
+  <string>helloworld.menuet.caseymrm.github.com</string>
   <key>CFBundleName</key>
   <string>Hello World</string>
   <key>CFBundleShortVersionString</key>

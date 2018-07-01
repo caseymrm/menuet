@@ -3,13 +3,13 @@
 <plist version="1.0">
 <dict>
   <key>CFBundleExecutable</key>
-  <string>Weather</string>
+  <string>weather</string>
   <key>CFBundleIconFile</key>
   <string>icon</string>
   <key>CFBundleGetInfoString</key>
   <string>Weather</string>
   <key>CFBundleIdentifier</key>
-  <string>Weather.menuet.caseymrm.github.com</string>
+  <string>weather.menuet.caseymrm.github.com</string>
   <key>CFBundleName</key>
   <string>Weather</string>
   <key>CFBundleShortVersionString</key>

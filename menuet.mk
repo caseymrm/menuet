@@ -27,7 +27,7 @@ endif
 space :=
 space +=
 ESCAPED_APP = $(subst $(space),\$(space),$(APP))
-EXECUTABLE = $(subst $(space),,$(APP))
+EXECUTABLE := $(shell echo $(subst $(space),,$(APP)) | tr '[:upper:]' '[:lower:]')
 BINARY = $(ESCAPED_APP).app/Contents/MacOS/$(EXECUTABLE)
 PLIST = $(ESCAPED_APP).app/Contents/Info.plist
 
