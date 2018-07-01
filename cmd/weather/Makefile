@@ -1,3 +1,3 @@
-BINARY=Weather.app/Contents/MacOS/weather
+APP=Weather
 
 include ../../menuet.mk

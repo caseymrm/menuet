@@ -1,3 +1,3 @@
-BINARY=helloworld
+APP=Hello World
 
 include ../../menuet.mk
