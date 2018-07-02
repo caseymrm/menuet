@@ -8,17 +8,18 @@
 # Optional features:
 # 
 # To set your CFBundleIdentifier, set IDENTIFIER:
-#
 #   IDENTIFIER=whyawake.caseymrm.github.com
 #
 # To monitor other directories for source changes, set LIBDIRS:
-#
 #   LIBDIR= ../go-pmset ../go-caffeinate
 #
 # To sign your app, set IDENTITY:
-#
 #   IDENTITY=Developer ID Application: Hello World LLC (AP2AFA8XAX)
-
+#
+# To release your app, put a Github access token in GITHUB_ACCESS_TOKEN (https://github.com/settings/tokens/new).
+# You may wish to use an environment variable to avoid checking it in:
+#   REPO=caseymrm/menuet
+#   export GITHUB_ACCESS_TOKEN="asdfasdfasdf..."
 
 ifndef APP
   $(error APP variable must be defined, e.g. APP=Hello World)
@@ -40,8 +41,19 @@ SOURCES := $(shell find $(SOURCEDIRS) $(LIBDIRS) -name '*.go' -o -name '*.m' -o 
 $(BINARY): $(SOURCES)
 	go build -o $(BINARY)
 
+ZIPFILE = $(ESCAPED_APP).zip
+
+$(ZIPFILE): sign $(BINARY) $(PLIST)
+	zip -r $(ZIPFILE) $(ESCAPED_APP).app
+
 clean:
-	rm -f $(BINARY) $(PLIST)
+	rm -f $(BINARY) $(PLIST) $(ZIPFILE)
+
+.PHONY: release
+release:
+	echo $(GITHUB_ACCESS_TOKEN)
+	echo $(REPO)
+	curl https://api.github.com/repos/$(REPO)/releases?access_token=$(GITHUB_ACCESS_TOKEN)
 
 IDENTIFIER ?= $(EXECUTABLE).menuet.caseymrm.github.com
 
@@ -76,8 +88,6 @@ $(PLIST):
 	@echo '</dict>' >> $(PLIST)
 	@echo '</plist>' >> $(PLIST)
 
+.PHONY: sign
 sign: $(BINARY) $(PLIST)
-	ifndef IDENTITY
-	  $(error IDENTITY variable must be defined, e.g. IDENTITY=Developer ID Application: Hello World LLC (AP2AFA8XAX))
-	endif
 	codesign -f -s "$(IDENTITY)" $(ESCAPED_APP).app --deep
