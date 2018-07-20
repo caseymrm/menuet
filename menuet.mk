@@ -50,10 +50,16 @@ clean:
 	rm -f $(BINARY) $(PLIST) $(ZIPFILE)
 
 .PHONY: release
-release:
-	echo $(GITHUB_ACCESS_TOKEN)
-	echo $(REPO)
-	curl https://api.github.com/repos/$(REPO)/releases?access_token=$(GITHUB_ACCESS_TOKEN)
+release: $(ZIPFILE)
+	curl -s -H "Authorization: token $(GITHUB_ACCESS_TOKEN)" https://api.github.com/repos/$(REPO)/releases | grep name\"
+	@read -p "Version (tag_name)? " VERSION; \
+	echo version $${VERSION}; \
+	read -p "Name (name)? " NAME; \
+	echo name $${NAME}; \
+	read -p "Description (body)? " BODY; \
+	echo body $${BODY}; \
+	# TODO: WIP
+	curl -H "Authorization: token $(GITHUB_ACCESS_TOKEN)" --data '{"tag_name":"$${VERSION}"}' https://api.github.com/repos/$(REPO)/releases
 
 IDENTIFIER ?= $(EXECUTABLE).menuet.caseymrm.github.com
 
