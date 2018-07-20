@@ -49,6 +49,13 @@ $(ZIPFILE): sign $(BINARY) $(PLIST)
 clean:
 	rm -f $(BINARY) $(PLIST) $(ZIPFILE)
 
+.PHONY: zip
+zip: $(ZIPFILE)
+
+.PHONY: releases
+releases:
+	@curl -s -H "Authorization: token $(GITHUB_ACCESS_TOKEN)" https://api.github.com/repos/$(REPO)/releases
+
 .PHONY: release
 release: $(ZIPFILE)
 	curl -s -H "Authorization: token $(GITHUB_ACCESS_TOKEN)" https://api.github.com/repos/$(REPO)/releases | grep name\"
@@ -59,7 +66,7 @@ release: $(ZIPFILE)
 	read -p "Description (body)? " BODY; \
 	echo body $${BODY}; \
 	# TODO: WIP
-	curl -H "Authorization: token $(GITHUB_ACCESS_TOKEN)" --data '{"tag_name":"$${VERSION}"}' https://api.github.com/repos/$(REPO)/releases
+	echo curl -H "Authorization: token $(GITHUB_ACCESS_TOKEN)" --data '{"tag_name":"$${VERSION}"}' https://api.github.com/repos/$(REPO)/releases
 
 IDENTIFIER ?= $(EXECUTABLE).menuet.caseymrm.github.com
 
