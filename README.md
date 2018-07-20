@@ -17,6 +17,7 @@ https://godoc.org/github.com/caseymrm/menuet
 ## Apps built with Menuet
 
 * [Why Awake?](https://github.com/caseymrm/whyawake) - shows why your Mac can't sleep, and lets you force it awake
+* [Not a Fan](https://github.com/caseymrm/notafan) - shows your Mac's temperature and fan speed, notifies you when your CPU is being throttled due to excessive heat
 
 ## Hello World
 
