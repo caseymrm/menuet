@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 
 	"github.com/caseymrm/menuet"
 )
@@ -90,181 +89,203 @@ var notificationsCatalog = []menuet.Notification{
 	},
 }
 
-func menuItems() []menuet.MenuItem {
-	alerts := make([]menuet.MenuItem, 0, len(alertsCatalog))
-	for ind, alert := range alertsCatalog {
-		text := alert.MessageText
-		if text == "" {
-			text = alert.InformativeText
-		}
-		alerts = append(alerts, menuet.MenuItem{
-			Text:     text,
-			Callback: fmt.Sprintf("alert %d", ind),
-		})
-	}
-
-	notifs := make([]menuet.MenuItem, 0, len(notificationsCatalog))
-	for ind, notif := range notificationsCatalog {
-		text := notif.Title
-		if text == "" {
-			text = notif.Subtitle
-		}
-		if text == "" {
-			text = notif.Message
-		}
-		notifs = append(notifs, menuet.MenuItem{
-			Text:     text,
-			Callback: fmt.Sprintf("notif %d", ind),
-		})
-	}
-
-	return []menuet.MenuItem{
-		menuet.MenuItem{
-			Text:     "Show Alert",
-			Children: alerts,
-		},
-		menuet.MenuItem{
-			Text:     "Send Notification",
-			Children: notifs,
-		},
-		menuet.MenuItem{
-			Text: "Menu Items",
-			Children: []menuet.MenuItem{
-				{
-					Text: "Text no callback",
-				},
-				{
-					Text:     "Text with Callback",
-					Callback: "Text with Callback",
-				},
-				{
-					Text: "FontSizes",
-					Children: []menuet.MenuItem{
-						{
-							Text:     "FontSize 2",
-							Callback: "FontSize 2",
-							FontSize: 2,
-						},
-						{
-							Text:     "FontSize 4",
-							Callback: "FontSize 4",
-							FontSize: 4,
-						},
-						{
-							Text:     "FontSize 6",
-							Callback: "FontSize 6",
-							FontSize: 6,
-						},
-						{
-							Text:     "FontSize 8",
-							Callback: "FontSize 8",
-							FontSize: 8,
-						},
-						{
-							Text:     "FontSize 10",
-							Callback: "FontSize 10",
-							FontSize: 10,
-						},
-						{
-							Text:     "FontSize 12",
-							Callback: "FontSize 12",
-							FontSize: 12,
-						},
-						{
-							Text:     "FontSize 14",
-							Callback: "FontSize 14",
-							FontSize: 14,
-						},
-						{
-							Text:     "FontSize 16",
-							Callback: "FontSize 16",
-							FontSize: 16,
-						},
-						{
-							Text:     "FontSize 18",
-							Callback: "FontSize 18",
-							FontSize: 18,
-						},
-						{
-							Text:     "FontSize 20",
-							Callback: "FontSize 20",
-							FontSize: 20,
-						},
-						{
-							Text:     "FontSize 22",
-							Callback: "FontSize 22",
-							FontSize: 22,
-						},
-						{
-							Text:     "FontSize 24",
-							Callback: "FontSize 24",
-							FontSize: 24,
-						},
-						{
-							Text:     "FontSize 26",
-							Callback: "FontSize 26",
-							FontSize: 26,
-						},
-					},
-				},
-				{
-					Text: "FontWeights",
-					Children: []menuet.MenuItem{
-						{
-							Text:       "WeightUltraLight",
-							FontWeight: menuet.WeightUltraLight,
-							Callback:   "WeightUltraLight",
-						},
-						{
-							Text:       "WeightThin",
-							FontWeight: menuet.WeightThin,
-							Callback:   "WeightThin",
-						},
-						{
-							Text:       "WeightLight",
-							FontWeight: menuet.WeightLight,
-							Callback:   "WeightLight",
-						},
-						{
-							Text:       "WeightRegular",
-							FontWeight: menuet.WeightRegular,
-							Callback:   "WeightRegular",
-						},
-						{
-							Text:       "WeightMedium",
-							FontWeight: menuet.WeightMedium,
-							Callback:   "WeightMedium",
-						},
-						{
-							Text:       "WeightSemibold",
-							FontWeight: menuet.WeightSemibold,
-							Callback:   "WeightSemibold",
-						},
-						{
-							Text:       "WeightBold",
-							FontWeight: menuet.WeightBold,
-							Callback:   "WeightBold",
-						},
-						{
-							Text:       "WeightHeavy",
-							FontWeight: menuet.WeightHeavy,
-							Callback:   "WeightHeavy",
-						},
-						{
-							Text:       "WeightBlack",
-							FontWeight: menuet.WeightBlack,
-							Callback:   "WeightBlack",
-						},
-					},
-				},
-				{
-					Text:     "State = true",
-					Callback: "State = true",
-					State:    true,
-				},
+func menuItems(key string) []menuet.MenuItem {
+	switch key {
+	case "":
+		return []menuet.MenuItem{
+			menuet.MenuItem{
+				Text:     "Show Alert",
+				Key:      "alerts",
+				Children: true,
 			},
-		},
+			menuet.MenuItem{
+				Text:     "Send Notification",
+				Key:      "notifs",
+				Children: true,
+			},
+			menuet.MenuItem{
+				Text:     "Menu Items",
+				Key:      "items",
+				Children: true,
+			},
+		}
+	case "alerts":
+		alerts := make([]menuet.MenuItem, 0, len(alertsCatalog))
+		for ind, alert := range alertsCatalog {
+			text := alert.MessageText
+			if text == "" {
+				text = alert.InformativeText
+			}
+			alerts = append(alerts, menuet.MenuItem{
+				Text: text,
+				Key:  fmt.Sprintf("alert %d", ind),
+			})
+		}
+		return alerts
+	case "notifs":
+		notifs := make([]menuet.MenuItem, 0, len(notificationsCatalog))
+		for ind, notif := range notificationsCatalog {
+			text := notif.Title
+			if text == "" {
+				text = notif.Subtitle
+			}
+			if text == "" {
+				text = notif.Message
+			}
+			notifs = append(notifs, menuet.MenuItem{
+				Text: text,
+				Key:  fmt.Sprintf("notif %d", ind),
+			})
+		}
+		return notifs
+	case "items":
+		return []menuet.MenuItem{
+			{
+				Text: "Text no key",
+			},
+			{
+				Text: "Text with key",
+				Key:  "Text with key",
+			},
+			{
+				Text:     "Text with key, disabled",
+				Key:      "Text with key, disabled",
+				Disabled: true,
+			},
+			{
+				Text:     "FontSizes",
+				Key:      "fontsizes",
+				Children: true,
+			},
+			{
+				Text:     "FontWeights",
+				Key:      "fontweights",
+				Children: true,
+			},
+			{
+				Text:  "State = true",
+				Key:   "State = true",
+				State: true,
+			},
+		}
+	case "fontsizes":
+		return []menuet.MenuItem{
+			{
+				Text:     "FontSize 2",
+				Key:      "FontSize 2",
+				FontSize: 2,
+			},
+			{
+				Text:     "FontSize 4",
+				Key:      "FontSize 4",
+				FontSize: 4,
+			},
+			{
+				Text:     "FontSize 6",
+				Key:      "FontSize 6",
+				FontSize: 6,
+			},
+			{
+				Text:     "FontSize 8",
+				Key:      "FontSize 8",
+				FontSize: 8,
+			},
+			{
+				Text:     "FontSize 10",
+				Key:      "FontSize 10",
+				FontSize: 10,
+			},
+			{
+				Text:     "FontSize 12",
+				Key:      "FontSize 12",
+				FontSize: 12,
+			},
+			{
+				Text:     "FontSize 14",
+				Key:      "FontSize 14",
+				FontSize: 14,
+			},
+			{
+				Text:     "FontSize 16",
+				Key:      "FontSize 16",
+				FontSize: 16,
+			},
+			{
+				Text:     "FontSize 18",
+				Key:      "FontSize 18",
+				FontSize: 18,
+			},
+			{
+				Text:     "FontSize 20",
+				Key:      "FontSize 20",
+				FontSize: 20,
+			},
+			{
+				Text:     "FontSize 22",
+				Key:      "FontSize 22",
+				FontSize: 22,
+			},
+			{
+				Text:     "FontSize 24",
+				Key:      "FontSize 24",
+				FontSize: 24,
+			},
+			{
+				Text:     "FontSize 26",
+				Key:      "FontSize 26",
+				FontSize: 26,
+			},
+		}
+	case "fontweights":
+		return []menuet.MenuItem{
+			{
+				Text:       "WeightUltraLight",
+				FontWeight: menuet.WeightUltraLight,
+				Key:        "WeightUltraLight",
+			},
+			{
+				Text:       "WeightThin",
+				FontWeight: menuet.WeightThin,
+				Key:        "WeightThin",
+			},
+			{
+				Text:       "WeightLight",
+				FontWeight: menuet.WeightLight,
+				Key:        "WeightLight",
+			},
+			{
+				Text:       "WeightRegular",
+				FontWeight: menuet.WeightRegular,
+				Key:        "WeightRegular",
+			},
+			{
+				Text:       "WeightMedium",
+				FontWeight: menuet.WeightMedium,
+				Key:        "WeightMedium",
+			},
+			{
+				Text:       "WeightSemibold",
+				FontWeight: menuet.WeightSemibold,
+				Key:        "WeightSemibold",
+			},
+			{
+				Text:       "WeightBold",
+				FontWeight: menuet.WeightBold,
+				Key:        "WeightBold",
+			},
+			{
+				Text:       "WeightHeavy",
+				FontWeight: menuet.WeightHeavy,
+				Key:        "WeightHeavy",
+			},
+			{
+				Text:       "WeightBlack",
+				FontWeight: menuet.WeightBlack,
+				Key:        "WeightBlack",
+			},
+		}
 	}
+	return nil
 }
 
 func handleClick(click string) {
@@ -272,7 +293,6 @@ func handleClick(click string) {
 	var kind string
 	n, err := fmt.Sscan(click, &kind, &index)
 	if err != nil {
-		log.Printf("Sscanf error: %v", err)
 		return
 	}
 	if n != 2 {
@@ -289,9 +309,9 @@ func handleClick(click string) {
 func main() {
 	menuet.App().SetMenuState(&menuet.MenuState{
 		Title: "Catalog",
-		Items: menuItems(),
 	})
 	menuet.App().Label = "com.github.caseymrm.menuet.catalog"
 	menuet.App().Clicked = handleClick
+	menuet.App().MenuOpened = menuItems
 	menuet.App().RunApplication()
 }

@@ -2,40 +2,51 @@
 
 #import "menuet.h"
 
-@interface CantSleepDelegate : NSObject <NSApplicationDelegate, NSMenuDelegate>
-
-@end
-
-NSStatusItem *_statusItem;
-
 void itemClicked(const char *);
-const char *menuOpened();
+const char *menuOpened(const char *);
 bool runningAtStartup();
 void toggleStartup();
 
-void addItemsToMenu(NSMenu *menu, NSArray *items, CantSleepDelegate *delegate) {
+@interface MenuetMenu : NSMenu <NSMenuDelegate>
+
+@property(nonatomic, copy) NSString *key;
+@property(nonatomic, assign) BOOL root;
+
+@end
+
+@implementation MenuetMenu
+- (id)init {
+  self = [super init];
+  if (self) {
+    self.delegate = self;
+  }
+  return self;
+}
+
+- (void)populate:(NSArray *)items {
   for (int i = 0; i < items.count; i++) {
     NSMenuItem *item = nil;
-    if (i < menu.numberOfItems) {
-      item = [menu itemAtIndex:i];
+    if (i < self.numberOfItems) {
+      item = [self itemAtIndex:i];
     }
     NSDictionary *dict = [items objectAtIndex:i];
     NSString *type = dict[@"Type"];
     if ([type isEqualTo:@"separator"]) {
       if (!item || !item.isSeparatorItem) {
-        [menu insertItem:[NSMenuItem separatorItem] atIndex:i];
+        [self insertItem:[NSMenuItem separatorItem] atIndex:i];
       }
       continue;
     }
+    NSString *key = dict[@"Key"];
     NSString *text = dict[@"Text"];
     NSNumber *fontSize = dict[@"FontSize"];
     NSNumber *fontWeight = dict[@"FontWeight"];
-    NSString *callback = dict[@"Callback"];
-    NSNumber *state = dict[@"State"];
-    NSArray *children = dict[@"Children"];
+    BOOL state = [dict[@"State"] boolValue];
+    BOOL children = [dict[@"Children"] boolValue];
+    BOOL disabled = [dict[@"Disabled"] boolValue];
     if (!item || item.isSeparatorItem) {
       item =
-          [menu insertItemWithTitle:@"" action:nil keyEquivalent:@"" atIndex:i];
+          [self insertItemWithTitle:@"" action:nil keyEquivalent:@"" atIndex:i];
     }
     NSMutableDictionary *attributes = [NSMutableDictionary new];
     float size = fontSize.floatValue;
@@ -43,67 +54,91 @@ void addItemsToMenu(NSMenu *menu, NSArray *items, CantSleepDelegate *delegate) {
       size = 14;
     }
     attributes[NSFontAttributeName] =
-        [NSFont monospacedDigitSystemFontOfSize:size weight:fontWeight.floatValue];
+        [NSFont monospacedDigitSystemFontOfSize:size
+                                         weight:fontWeight.floatValue];
     item.attributedTitle =
         [[NSMutableAttributedString alloc] initWithString:text
                                                attributes:attributes];
-    item.target = delegate;
-    if (callback == nil || callback.length == 0) {
-      if (![children isEqualTo:NSNull.null] && children.count > 0) {
-        item.action = @selector(nop:);
-      } else {
-        item.action = nil;
-      }
-      item.representedObject = nil;
-    } else {
+    item.target = self;
+    if (key.length > 0 && !disabled) {
       item.action = @selector(press:);
-      item.representedObject = callback;
+      item.representedObject = key;
+    } else {
+      item.action = nil;
+      item.representedObject = nil;
     }
-    if ([state isEqualTo:[NSNumber numberWithBool:true]]) {
+    if (state) {
       item.state = NSOnState;
     } else {
       item.state = NSOffState;
     }
-    if (![children isEqualTo:NSNull.null] && children.count > 0) {
+    if (children) {
       if (!item.submenu) {
-        item.submenu = [NSMenu new];
+        item.submenu = [MenuetMenu new];
       }
-      addItemsToMenu(item.submenu, children, delegate);
+      MenuetMenu *menu = (MenuetMenu *)item.submenu;
+      menu.key = key;
     } else if (item.submenu) {
       item.submenu = nil;
     }
   }
-  while (menu.numberOfItems > items.count) {
-    [menu removeItemAtIndex:menu.numberOfItems - 1];
+  while (self.numberOfItems > items.count) {
+    [self removeItemAtIndex:self.numberOfItems - 1];
   }
 }
 
-void setItems(NSArray *items) {
-  CantSleepDelegate *delegate =
-      (CantSleepDelegate *)NSApplication.sharedApplication.delegate;
-  if (!_statusItem.menu) {
-    _statusItem.menu = [NSMenu new];
-    _statusItem.menu.delegate = delegate;
+// The documentation says not to make changes here, but it seems to work.
+// submenuAction does not appear to be called, and menuNeedsUpdate is only
+// called once per tracking session.
+- (void)menuWillOpen:(MenuetMenu *)menu {
+  const char *str = menuOpened(self.key.UTF8String);
+  NSArray *items = @[];
+  if (str != NULL) {
+    items = [NSJSONSerialization
+        JSONObjectWithData:[[NSString stringWithUTF8String:str]
+                               dataUsingEncoding:NSUTF8StringEncoding]
+                   options:0
+                     error:nil];
+    free((char *)str);
   }
-  items = [items arrayByAddingObjectsFromArray:@[
-    @{@"Type" : @"separator"},
-    @{@"Text" : @"Start at Login"},
-    @{@"Text" : @"Quit"},
-  ]];
-  addItemsToMenu(_statusItem.menu, items, delegate);
-
-  NSMenuItem *item = [_statusItem.menu itemAtIndex:items.count - 2];
-  item.action = @selector(toggleStartup:);
-  if (runningAtStartup()) {
-    item.state = NSOnState;
-  } else {
-    item.state = NSOffState;
+  if (self.root) {
+    items = [items arrayByAddingObjectsFromArray:@[
+      @{@"Type" : @"separator"},
+      @{@"Text" : @"Start at Login"},
+      @{@"Text" : @"Quit"},
+    ]];
   }
-
-  item = [_statusItem.menu itemAtIndex:items.count - 1];
-  item.target = nil;
-  item.action = @selector(terminate:);
+  [self populate:items];
+  if (self.root) {
+    NSMenuItem *item = [self itemAtIndex:items.count - 2];
+    item.action = @selector(toggleStartup:);
+    if (runningAtStartup()) {
+      item.state = NSOnState;
+    } else {
+      item.state = NSOffState;
+    }
+    item = [self itemAtIndex:items.count - 1];
+    item.target = nil;
+    item.action = @selector(terminate:);
+  }
 }
+
+- (void)press:(id)sender {
+  NSString *callback = [sender representedObject];
+  itemClicked(callback.UTF8String);
+}
+
+- (void)toggleStartup:(id)sender {
+  toggleStartup();
+}
+
+@end
+
+@interface MenuetAppDelegate : NSObject <NSApplicationDelegate, NSMenuDelegate>
+
+@end
+
+NSStatusItem *_statusItem;
 
 void setState(const char *jsonString) {
   NSDictionary *state = [NSJSONSerialization
@@ -116,7 +151,8 @@ void setState(const char *jsonString) {
         initWithString:state[@"Title"]
             attributes:@{
               NSFontAttributeName :
-                  [NSFont monospacedDigitSystemFontOfSize:14 weight:NSFontWeightRegular]
+                  [NSFont monospacedDigitSystemFontOfSize:14
+                                                   weight:NSFontWeightRegular]
             }];
     NSImage *image = nil;
     NSString *imageName = state[@"Image"];
@@ -126,56 +162,28 @@ void setState(const char *jsonString) {
       [image setTemplate:YES];
     }
     _statusItem.button.image = image;
-    NSArray *items = state[@"Items"];
-    if ([items isKindOfClass:[NSArray class]]) {
-      setItems(items);
-    } else {
-      setItems(@[]);
-    }
   });
 }
 
 void createAndRunApplication() {
   [NSAutoreleasePool new];
   NSApplication *a = NSApplication.sharedApplication;
+  MenuetAppDelegate *d = [MenuetAppDelegate new];
+  [a setDelegate:d];
   [a setActivationPolicy:NSApplicationActivationPolicyAccessory];
   _statusItem = [[NSStatusBar systemStatusBar]
       statusItemWithLength:NSVariableStatusItemLength];
-  CantSleepDelegate *p = [CantSleepDelegate new];
-  [a setDelegate:p];
+  MenuetMenu *menu = [MenuetMenu new];
+  menu.root = true;
+  _statusItem.menu = menu;
   [a run];
 }
 
-@implementation CantSleepDelegate
+@implementation MenuetAppDelegate
 
 - (NSApplicationTerminateReply)applicationShouldTerminate:
     (NSApplication *)sender {
   return NSTerminateNow;
 }
 
-- (void)press:(id)sender {
-  NSString *callback = [sender representedObject];
-  itemClicked(callback.UTF8String);
-}
-
-- (void)toggleStartup:(id)sender {
-  toggleStartup();
-}
-
-- (void)nop:(id)sender {
-}
-
-- (void)menuWillOpen:(NSMenu *)menu {
-  const char *str = menuOpened();
-  if (str == NULL) {
-    return;
-  }
-  NSArray *items = [NSJSONSerialization
-      JSONObjectWithData:[[NSString stringWithUTF8String:str]
-                             dataUsingEncoding:NSUTF8StringEncoding]
-                 options:0
-                   error:nil];
-  setItems(items);
-  free((char *)str);
-}
 @end

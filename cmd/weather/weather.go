@@ -48,7 +48,12 @@ func location(query string) (string, string) {
 	url := "https://query.yahooapis.com/v1/public/yql?format=json&q=select%20woeid,name%20from%20geo.places%20where%20text%3D%22" + url.QueryEscape(query) + "%22"
 	resp, err := http.Get(url)
 	if err != nil {
-		log.Fatal(err)
+		log.Printf("Get: %v", err)
+		menuet.App().Alert(menuet.Alert{
+			MessageText:     "Could not get the weather",
+			InformativeText: err.Error(),
+		})
+		return "", ""
 	}
 	var response struct {
 		Query struct {
@@ -63,9 +68,25 @@ func location(query string) (string, string) {
 	dec := json.NewDecoder(resp.Body)
 	err = dec.Decode(&response)
 	if err != nil {
-		log.Fatal(err)
+		log.Printf("Decode: %v", err)
+		menuet.App().Alert(menuet.Alert{
+			MessageText:     "Could not decode the weather",
+			InformativeText: err.Error(),
+		})
+		return "", ""
 	}
 	return response.Query.Results.Place.Name, response.Query.Results.Place.WoeID
+}
+
+func temperatureString(woeid string) string {
+	temp, unit, text := temperature(woeid)
+	return fmt.Sprintf("%s°%s and %s", temp, unit, text)
+}
+
+func setWeather() {
+	menuet.App().SetMenuState(&menuet.MenuState{
+		Title: temperatureString(menuet.Defaults().String("loc")),
+	})
 }
 
 var woeids = map[int]string{
@@ -74,15 +95,16 @@ var woeids = map[int]string{
 	2459115: "New York",
 }
 
-func setWeather() {
-	temp, unit, text := temperature(menuet.Defaults().String("loc"))
-	menuet.App().SetMenuState(&menuet.MenuState{
-		Title: fmt.Sprintf("%s°%s and %s", temp, unit, text),
-		Items: menuItems(),
-	})
-}
+func menuItems(key string) []menuet.MenuItem {
+	if key != "" {
+		return []menuet.MenuItem{
+			menuet.MenuItem{
+				Text: temperatureString(key),
+				Key:  key,
+			},
+		}
+	}
 
-func menuItems() []menuet.MenuItem {
 	items := []menuet.MenuItem{}
 
 	currentWoeid := menuet.Defaults().String("loc")
@@ -94,8 +116,9 @@ func menuItems() []menuet.MenuItem {
 	for woeid, name := range woeids {
 		items = append(items, menuet.MenuItem{
 			Text:     name,
-			Callback: strconv.Itoa(woeid),
+			Key:      strconv.Itoa(woeid),
 			State:    strconv.Itoa(woeid) == menuet.Defaults().String("loc"),
+			Children: true,
 		})
 		if woeid == currentNumber {
 			found = true
@@ -104,16 +127,17 @@ func menuItems() []menuet.MenuItem {
 	if !found {
 		items = append(items, menuet.MenuItem{
 			Text:     menuet.Defaults().String("name"),
-			Callback: currentWoeid,
+			Key:      currentWoeid,
 			State:    true,
+			Children: true,
 		})
 	}
 	sort.Slice(items, func(i, j int) bool {
-		return items[i].Callback < items[j].Callback
+		return items[i].Key < items[j].Key
 	})
 	items = append(items, menuet.MenuItem{
-		Text:     "Other...",
-		Callback: "prompt",
+		Text: "Other...",
+		Key:  "prompt",
 	})
 	return items
 }

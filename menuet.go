@@ -24,70 +24,15 @@ import (
 	"unsafe"
 )
 
-// ItemType represents what type of menu item this is
-type ItemType string
-
-const (
-	// Regular is a normal item with text and optional callback
-	Regular ItemType = ""
-	// Separator is a horizontal line
-	Separator = "separator"
-	// TODO: StartAtLogin, Quit
-)
-
-// FontWeight represents the weight of the font
-type FontWeight float64
-
-const (
-	// WeightUltraLight is equivalent to NSFontWeightUltraLight
-	WeightUltraLight FontWeight = -0.8
-	// WeightThin is equivalent to NSFontWeightThin
-	WeightThin = -0.6
-	// WeightLight is equivalent to NSFontWeightLight
-	WeightLight = -0.4
-	// WeightRegular is equivalent to NSFontWeightRegular, and is the default
-	WeightRegular = 0
-	// WeightMedium is equivalent to NSFontWeightMedium
-	WeightMedium = 0.23
-	// WeightSemibold is equivalent to NSFontWeightSemibold
-	WeightSemibold = 0.3
-	// WeightBold is equivalent to NSFontWeightBold
-	WeightBold = 0.4
-	// WeightHeavy is equivalent to NSFontWeightHeavy
-	WeightHeavy = 0.56
-	// WeightBlack is equivalent to NSFontWeightBlack
-	WeightBlack = 0.62
-)
-
-// MenuItem represents one item in the dropdown
-type MenuItem struct {
-	Type ItemType
-	// These fields only used for Regular item type:
-	Text       string
-	FontSize   int // Default: 14
-	FontWeight FontWeight
-	Callback   string
-	State      bool // checkmark if true
-	Children   []MenuItem
-}
-
-// MenuState represents the title and drop down,
-type MenuState struct {
-	Title string
-	// This is the name of an image in the Resources directory
-	Image string
-	Items []MenuItem
-}
-
 // Application represents the OSX application
 type Application struct {
 	Name  string
 	Label string
 
-	// Clicked is called with the callback string of a menu item that is selected
+	// Clicked is called with the key string of a menu item that is selected
 	Clicked func(string)
-	// If set, will be called to refresh menu items when clicked
-	MenuOpened func() []MenuItem
+	// MenuOpened is called to refresh menu items when clicked, empty string for the top level
+	MenuOpened func(string) []MenuItem
 
 	// If Version and Repo are set, checks for updates every day
 	AutoUpdate struct {
@@ -129,6 +74,37 @@ func (a *Application) SetMenuState(state *MenuState) {
 	go a.sendState(state)
 }
 
+// MenuState represents the title and drop down,
+type MenuState struct {
+	Title string
+	// This is the name of an image in the Resources directory
+	Image string
+}
+
+// ItemType represents what type of menu item this is
+type ItemType string
+
+const (
+	// Regular is a normal item with text and optional callback
+	Regular ItemType = ""
+	// Separator is a horizontal line
+	Separator = "separator"
+	// TODO: StartAtLogin, Quit, Image, Spinner, etc
+)
+
+// MenuItem represents one item in the dropdown
+type MenuItem struct {
+	Type ItemType
+	Key  string // Only required if Clickable or Children is true
+
+	Text       string
+	FontSize   int // Default: 14
+	FontWeight FontWeight
+	State      bool // shows checkmark when set
+	Disabled   bool
+	Children   bool
+}
+
 func (a *Application) sendState(state *MenuState) {
 	a.debounceMutex.Lock()
 	a.nextState = state
@@ -149,7 +125,7 @@ func (a *Application) sendState(state *MenuState) {
 	a.debounceMutex.Unlock()
 	b, err := json.Marshal(a.currentState)
 	if err != nil {
-		log.Printf("Marshal: %v", err)
+		log.Printf("Marshal: %v (%+v)", err, a.currentState)
 		return
 	}
 	cstr := C.CString(string(b))
@@ -157,29 +133,30 @@ func (a *Application) sendState(state *MenuState) {
 	C.free(unsafe.Pointer(cstr))
 }
 
-func (a *Application) clicked(callback string) {
+func (a *Application) clicked(key string) {
 	if a.Clicked == nil {
 		return
 	}
-	go a.Clicked(callback)
+	go a.Clicked(key)
 }
 
-func (a *Application) menuOpened() []MenuItem {
+func (a *Application) menuOpened(key string) []MenuItem {
 	if a.MenuOpened == nil {
 		return nil
 	}
-	return a.MenuOpened()
+	return a.MenuOpened(key)
 }
 
 //export itemClicked
-func itemClicked(callbackCString *C.char) {
-	callback := C.GoString(callbackCString)
-	App().clicked(callback)
+func itemClicked(keyCString *C.char) {
+	key := C.GoString(keyCString)
+	App().clicked(key)
 }
 
 //export menuOpened
-func menuOpened() *C.char {
-	items := App().menuOpened()
+func menuOpened(keyCString *C.char) *C.char {
+	key := C.GoString(keyCString)
+	items := App().menuOpened(key)
 	if items == nil {
 		return nil
 	}
@@ -188,7 +165,6 @@ func menuOpened() *C.char {
 		log.Printf("Marshal: %v", err)
 		return nil
 	}
-	App().currentState.Items = items
 	return C.CString(string(b))
 }
 
