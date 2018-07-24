@@ -10,9 +10,6 @@ package menuet
 #import "menuet.h"
 #endif
 
-void setState(const char *jsonString);
-void createAndRunApplication();
-
 */
 import "C"
 import (
@@ -72,6 +69,11 @@ func (a *Application) SetMenuState(state *MenuState) {
 		return
 	}
 	go a.sendState(state)
+}
+
+// MenuChanged refreshes any open menus
+func (a *Application) MenuChanged() {
+	C.menuChanged()
 }
 
 // MenuState represents the title and drop down,

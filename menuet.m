@@ -11,6 +11,7 @@ void toggleStartup();
 
 @property(nonatomic, copy) NSString *key;
 @property(nonatomic, assign) BOOL root;
+@property(nonatomic, assign) BOOL open;
 
 @end
 
@@ -21,6 +22,19 @@ void toggleStartup();
     self.delegate = self;
   }
   return self;
+}
+
+- (void)refreshVisibleMenus {
+  if (!self.open) {
+    return;
+  }
+  [self menuWillOpen:self];
+  for (NSMenuItem *item in self.itemArray) {
+    MenuetMenu* menu = (MenuetMenu *)item.submenu;
+    if (menu != NULL) {
+      [menu refreshVisibleMenus];
+    }
+  }
 }
 
 - (void)populate:(NSArray *)items {
@@ -121,6 +135,11 @@ void toggleStartup();
     item.target = nil;
     item.action = @selector(terminate:);
   }
+  self.open = YES;
+}
+
+- (void)menuDidClose:(MenuetMenu *)menu {
+  self.open = NO;
 }
 
 - (void)press:(id)sender {
@@ -162,6 +181,13 @@ void setState(const char *jsonString) {
       [image setTemplate:YES];
     }
     _statusItem.button.image = image;
+  });
+}
+
+void menuChanged() {
+  dispatch_async(dispatch_get_main_queue(), ^{
+    MenuetMenu *menu = (MenuetMenu *)_statusItem.menu;
+    [menu refreshVisibleMenus];
   });
 }
 

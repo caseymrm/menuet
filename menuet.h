@@ -3,4 +3,5 @@
 #endif
 
 void setState(const char *jsonString);
+void menuChanged();
 void createAndRunApplication();
