@@ -19,6 +19,8 @@ import (
 	"sync"
 	"time"
 	"unsafe"
+
+	"github.com/caseymrm/askm"
 )
 
 // Application represents the OSX application
@@ -26,9 +28,9 @@ type Application struct {
 	Name  string
 	Label string
 
-	// Clicked is called with the key string of a menu item that is selected
+	// Clicked is called with the key string of a menu item that is selected, if the item doesn't have a Clicked function
 	Clicked func(string)
-	// MenuOpened is called to refresh menu items when clicked, empty string for the top level
+	// MenuOpened is called to refresh menu items when clicked, empty string for the top level, skipped if the item has a MenuOpened
 	MenuOpened func(string) []MenuItem
 
 	// If Version and Repo are set, checks for updates every day
@@ -42,6 +44,7 @@ type Application struct {
 	nextState          *MenuState
 	pendingStateChange bool
 	debounceMutex      sync.Mutex
+	visibleMenuItems   map[string]internalItem
 }
 
 var appInstance *Application
@@ -50,7 +53,9 @@ var appOnce sync.Once
 // App returns the application singleton
 func App() *Application {
 	appOnce.Do(func() {
-		appInstance = &Application{}
+		appInstance = &Application{
+			visibleMenuItems: make(map[string]internalItem),
+		}
 	})
 	return appInstance
 }
@@ -83,30 +88,6 @@ type MenuState struct {
 	Image string
 }
 
-// ItemType represents what type of menu item this is
-type ItemType string
-
-const (
-	// Regular is a normal item with text and optional callback
-	Regular ItemType = ""
-	// Separator is a horizontal line
-	Separator = "separator"
-	// TODO: StartAtLogin, Quit, Image, Spinner, etc
-)
-
-// MenuItem represents one item in the dropdown
-type MenuItem struct {
-	Type ItemType
-	Key  string // Only required if Clickable or Children is true
-
-	Text       string
-	FontSize   int // Default: 14
-	FontWeight FontWeight
-	State      bool // shows checkmark when set
-	Disabled   bool
-	Children   bool
-}
-
 func (a *Application) sendState(state *MenuState) {
 	a.debounceMutex.Lock()
 	a.nextState = state
@@ -135,30 +116,75 @@ func (a *Application) sendState(state *MenuState) {
 	C.free(unsafe.Pointer(cstr))
 }
 
-func (a *Application) clicked(key string) {
+func (a *Application) clicked(unique string) {
+	item, ok := a.visibleMenuItems[unique]
+	if !ok {
+		log.Printf("Item not found for click: %s", unique)
+	}
+	if item.Clicked != nil {
+		go item.Clicked()
+		return
+	}
 	if a.Clicked == nil {
 		return
 	}
-	go a.Clicked(key)
+	go a.Clicked(item.Key)
 }
 
-func (a *Application) menuOpened(key string) []MenuItem {
-	if a.MenuOpened == nil {
-		return nil
+func (a *Application) menuOpened(unique string) []internalItem {
+	item, ok := a.visibleMenuItems[unique]
+	if !ok && unique != "" {
+		log.Printf("Item not found for menu open: %s", unique)
 	}
-	return a.MenuOpened(key)
+	var items []MenuItem
+	if item.MenuOpened != nil {
+		items = item.MenuOpened()
+	} else {
+		if a.MenuOpened == nil {
+			return nil
+		}
+		items = a.MenuOpened(item.Key)
+	}
+	internalItems := make([]internalItem, len(items))
+	for ind, item := range items {
+		newUnique := askm.ArbitraryKeyNotInMap(a.visibleMenuItems)
+		internal := internalItem{
+			Unique:       newUnique,
+			ParentUnique: unique,
+			MenuItem:     item,
+		}
+		if internal.MenuOpened != nil {
+			internal.Children = true
+		}
+		a.visibleMenuItems[newUnique] = internal
+		internalItems[ind] = internal
+	}
+	return internalItems
+}
+
+func (a *Application) menuClosed(unique string) {
+	// menu close comes before the click, so delay removing the items for a sec
+	go func() {
+		time.Sleep(10 * time.Millisecond)
+		delete(a.visibleMenuItems, unique)
+		for itemUnique, item := range a.visibleMenuItems {
+			if item.ParentUnique == unique {
+				delete(a.visibleMenuItems, itemUnique)
+			}
+		}
+	}()
 }
 
 //export itemClicked
-func itemClicked(keyCString *C.char) {
-	key := C.GoString(keyCString)
-	App().clicked(key)
+func itemClicked(uniqueCString *C.char) {
+	unique := C.GoString(uniqueCString)
+	App().clicked(unique)
 }
 
 //export menuOpened
-func menuOpened(keyCString *C.char) *C.char {
-	key := C.GoString(keyCString)
-	items := App().menuOpened(key)
+func menuOpened(uniqueCString *C.char) *C.char {
+	unique := C.GoString(uniqueCString)
+	items := App().menuOpened(unique)
 	if items == nil {
 		return nil
 	}
@@ -168,6 +194,12 @@ func menuOpened(keyCString *C.char) *C.char {
 		return nil
 	}
 	return C.CString(string(b))
+}
+
+//export menuClosed
+func menuClosed(uniqueCString *C.char) {
+	unique := C.GoString(uniqueCString)
+	App().menuClosed(unique)
 }
 
 //export runningAtStartup

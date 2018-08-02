@@ -4,12 +4,13 @@
 
 void itemClicked(const char *);
 const char *menuOpened(const char *);
+void menuClosed(const char *);
 bool runningAtStartup();
 void toggleStartup();
 
 @interface MenuetMenu : NSMenu <NSMenuDelegate>
 
-@property(nonatomic, copy) NSString *key;
+@property(nonatomic, copy) NSString *unique;
 @property(nonatomic, assign) BOOL root;
 @property(nonatomic, assign) BOOL open;
 
@@ -51,7 +52,7 @@ void toggleStartup();
       }
       continue;
     }
-    NSString *key = dict[@"Key"];
+    NSString *unique = dict[@"Unique"];
     NSString *text = dict[@"Text"];
     NSNumber *fontSize = dict[@"FontSize"];
     NSNumber *fontWeight = dict[@"FontWeight"];
@@ -74,9 +75,9 @@ void toggleStartup();
         [[NSMutableAttributedString alloc] initWithString:text
                                                attributes:attributes];
     item.target = self;
-    if (key.length > 0 && !disabled) {
+    if (!disabled) {
       item.action = @selector(press:);
-      item.representedObject = key;
+      item.representedObject = unique;
     } else {
       item.action = nil;
       item.representedObject = nil;
@@ -91,7 +92,7 @@ void toggleStartup();
         item.submenu = [MenuetMenu new];
       }
       MenuetMenu *menu = (MenuetMenu *)item.submenu;
-      menu.key = key;
+      menu.unique = unique;
     } else if (item.submenu) {
       item.submenu = nil;
     }
@@ -105,7 +106,7 @@ void toggleStartup();
 // submenuAction does not appear to be called, and menuNeedsUpdate is only
 // called once per tracking session.
 - (void)menuWillOpen:(MenuetMenu *)menu {
-  const char *str = menuOpened(self.key.UTF8String);
+  const char *str = menuOpened(self.unique.UTF8String);
   NSArray *items = @[];
   if (str != NULL) {
     items = [NSJSONSerialization
@@ -140,6 +141,7 @@ void toggleStartup();
 
 - (void)menuDidClose:(MenuetMenu *)menu {
   self.open = NO;
+  menuClosed(self.unique.UTF8String);
 }
 
 - (void)press:(id)sender {

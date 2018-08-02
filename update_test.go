@@ -6,8 +6,8 @@ var testProject = "caseymrm/whyawake"
 var testOldVersion = "v0.3"
 
 func TestCheckForRelease(t *testing.T) {
-	CheckForRestart()
-	release := CheckForNewRelease(testProject, testOldVersion)
+	checkForRestart()
+	release := checkForNewRelease(testProject, testOldVersion)
 	if release == nil {
 		t.Fail()
 	}
@@ -17,12 +17,12 @@ func TestCheckForRelease(t *testing.T) {
 }
 
 func TestUpdateInPlace(t *testing.T) {
-	CheckForRestart()
-	release := CheckForNewRelease(testProject, testOldVersion)
+	checkForRestart()
+	release := checkForNewRelease(testProject, testOldVersion)
 	if release == nil {
 		t.Fail()
 	}
-	err := UpdateApp(release)
+	err := updateApp(release)
 	t.Errorf("UpdateApp: %+v", err)
 
 }

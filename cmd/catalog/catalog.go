@@ -167,6 +167,24 @@ func menuItems(key string) []menuet.MenuItem {
 				Key:   "State = true",
 				State: true,
 			},
+			{
+				Text: "Text and inline Clicked",
+				Clicked: func() {
+					menuet.App().Alert(menuet.Alert{
+						MessageText: "Just MessageText",
+					})
+				},
+			},
+			{
+				Text: "Text and inline MenuOpened",
+				MenuOpened: func() []menuet.MenuItem {
+					return []menuet.MenuItem{
+						{
+							Text: "Hello",
+						},
+					}
+				},
+			},
 		}
 	case "fontsizes":
 		return []menuet.MenuItem{
