@@ -39,12 +39,13 @@ type Application struct {
 		Repo    string // For example "caseymrm/menuet"
 	}
 
-	alertChannel       chan AlertClicked
-	currentState       *MenuState
-	nextState          *MenuState
-	pendingStateChange bool
-	debounceMutex      sync.Mutex
-	visibleMenuItems   map[string]internalItem
+	alertChannel          chan AlertClicked
+	currentState          *MenuState
+	nextState             *MenuState
+	pendingStateChange    bool
+	debounceMutex         sync.Mutex
+	visibleMenuItemsMutex sync.RWMutex
+	visibleMenuItems      map[string]internalItem
 }
 
 var appInstance *Application
@@ -117,7 +118,9 @@ func (a *Application) sendState(state *MenuState) {
 }
 
 func (a *Application) clicked(unique string) {
+	a.visibleMenuItemsMutex.RLock()
 	item, ok := a.visibleMenuItems[unique]
+	a.visibleMenuItemsMutex.RUnlock()
 	if !ok {
 		log.Printf("Item not found for click: %s", unique)
 	}
@@ -132,7 +135,9 @@ func (a *Application) clicked(unique string) {
 }
 
 func (a *Application) menuOpened(unique string) []internalItem {
+	a.visibleMenuItemsMutex.RLock()
 	item, ok := a.visibleMenuItems[unique]
+	a.visibleMenuItemsMutex.RUnlock()
 	if !ok && unique != "" {
 		log.Printf("Item not found for menu open: %s", unique)
 	}
@@ -147,6 +152,7 @@ func (a *Application) menuOpened(unique string) []internalItem {
 	}
 	internalItems := make([]internalItem, len(items))
 	for ind, item := range items {
+		a.visibleMenuItemsMutex.Lock()
 		newUnique := askm.ArbitraryKeyNotInMap(a.visibleMenuItems)
 		internal := internalItem{
 			Unique:       newUnique,
@@ -158,20 +164,23 @@ func (a *Application) menuOpened(unique string) []internalItem {
 		}
 		a.visibleMenuItems[newUnique] = internal
 		internalItems[ind] = internal
+		a.visibleMenuItemsMutex.Unlock()
 	}
 	return internalItems
 }
 
 func (a *Application) menuClosed(unique string) {
-	// menu close comes before the click, so delay removing the items for a sec
+	// menu close comes before the click, so delay removing the items for a sec (240ms highest observed)
 	go func() {
-		time.Sleep(10 * time.Millisecond)
+		time.Sleep(time.Second)
+		a.visibleMenuItemsMutex.Lock()
 		delete(a.visibleMenuItems, unique)
 		for itemUnique, item := range a.visibleMenuItems {
 			if item.ParentUnique == unique {
 				delete(a.visibleMenuItems, itemUnique)
 			}
 		}
+		a.visibleMenuItemsMutex.Unlock()
 	}()
 }
 

@@ -70,7 +70,7 @@ func location(query string) (string, string) {
 	if err != nil {
 		log.Printf("Decode: %v", err)
 		menuet.App().Alert(menuet.Alert{
-			MessageText:     "Could not decode the weather",
+			MessageText:     "Could not search for location",
 			InformativeText: err.Error(),
 		})
 		return "", ""
@@ -95,16 +95,18 @@ var woeids = map[int]string{
 	2459115: "New York",
 }
 
-func menuItems(key string) []menuet.MenuItem {
-	if key != "" {
+func menuPreview(woeid string) func() []menuet.MenuItem {
+	return func() []menuet.MenuItem {
 		return []menuet.MenuItem{
 			menuet.MenuItem{
-				Text: temperatureString(key),
-				Key:  key,
+				Text: temperatureString(woeid),
+				Key:  woeid,
 			},
 		}
 	}
+}
 
+func menuItems(key string) []menuet.MenuItem {
 	items := []menuet.MenuItem{}
 
 	currentWoeid := menuet.Defaults().String("loc")
@@ -114,11 +116,12 @@ func menuItems(key string) []menuet.MenuItem {
 	}
 	found := false
 	for woeid, name := range woeids {
+		woeStr := strconv.Itoa(woeid)
 		items = append(items, menuet.MenuItem{
-			Text:     name,
-			Key:      strconv.Itoa(woeid),
-			State:    strconv.Itoa(woeid) == menuet.Defaults().String("loc"),
-			Children: true,
+			Text:       name,
+			Key:        woeStr,
+			State:      woeStr == menuet.Defaults().String("loc"),
+			MenuOpened: menuPreview(woeStr),
 		})
 		if woeid == currentNumber {
 			found = true
@@ -126,10 +129,10 @@ func menuItems(key string) []menuet.MenuItem {
 	}
 	if !found {
 		items = append(items, menuet.MenuItem{
-			Text:     menuet.Defaults().String("name"),
-			Key:      currentWoeid,
-			State:    true,
-			Children: true,
+			Text:       menuet.Defaults().String("name"),
+			Key:        currentWoeid,
+			MenuOpened: menuPreview(currentWoeid),
+			State:      true,
 		})
 	}
 	sort.Slice(items, func(i, j int) bool {
@@ -137,7 +140,25 @@ func menuItems(key string) []menuet.MenuItem {
 	})
 	items = append(items, menuet.MenuItem{
 		Text: "Other...",
-		Key:  "prompt",
+		Clicked: func() {
+			response := menuet.App().Alert(menuet.Alert{
+				MessageText: "Where would you like to display the weather for?",
+				Inputs:      []string{"Location"},
+				Buttons:     []string{"Search", "Cancel"},
+			})
+			if response.Button == 0 && len(response.Inputs) == 1 && response.Inputs[0] != "" {
+				newName, newWoeid := location(response.Inputs[0])
+				if newWoeid != "" && newName != "" {
+					menuet.Defaults().SetString("loc", newWoeid)
+					menuet.Defaults().SetString("name", newName)
+					menuet.App().Notification(menuet.Notification{
+						Title:    fmt.Sprintf("Showing weather for %s", newName),
+						Subtitle: temperatureString(newWoeid),
+					})
+					setWeather()
+				}
+			}
+		},
 	})
 	return items
 }
@@ -150,33 +171,8 @@ func hourlyWeather() {
 }
 
 func handleClick(woeid string) {
-	if woeid == "prompt" {
-		response := menuet.App().Alert(menuet.Alert{
-			MessageText: "Where would you like to display the weather for?",
-			Inputs:      []string{"Location"},
-			Buttons:     []string{"Search", "Cancel"},
-		})
-		if response.Button == 0 && len(response.Inputs) == 1 && response.Inputs[0] != "" {
-			newName, newWoeid := location(response.Inputs[0])
-			if newWoeid != "" && newName != "" {
-				menuet.Defaults().SetString("loc", newWoeid)
-				menuet.Defaults().SetString("name", newName)
-				setWeather()
-			}
-		}
-		return
-	}
 	menuet.Defaults().SetString("loc", woeid)
 	setWeather()
-	num, err := strconv.Atoi(woeid)
-	if err != nil {
-		log.Printf("Atoi: %v", err)
-	}
-	menuet.App().Notification(menuet.Notification{
-		Title:    "Location changed",
-		Subtitle: "Did you move?",
-		Message:  "Now showing weather for " + woeids[num],
-	})
 }
 
 func main() {
