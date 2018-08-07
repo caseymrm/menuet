@@ -172,7 +172,7 @@ func (a *Application) menuOpened(unique string) []internalItem {
 func (a *Application) menuClosed(unique string) {
 	// menu close comes before the click, so delay removing the items for a sec (240ms highest observed)
 	go func() {
-		time.Sleep(time.Second)
+		time.Sleep(2 * time.Second)
 		a.visibleMenuItemsMutex.Lock()
 		delete(a.visibleMenuItems, unique)
 		for itemUnique, item := range a.visibleMenuItems {
