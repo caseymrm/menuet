@@ -100,13 +100,13 @@ func menuPreview(woeid string) func() []menuet.MenuItem {
 		return []menuet.MenuItem{
 			menuet.MenuItem{
 				Text: temperatureString(woeid),
-				Key:  woeid,
+				Data: woeid,
 			},
 		}
 	}
 }
 
-func menuItems(key string) []menuet.MenuItem {
+func menuItems(item menuet.MenuItem) []menuet.MenuItem {
 	items := []menuet.MenuItem{}
 
 	currentWoeid := menuet.Defaults().String("loc")
@@ -119,7 +119,7 @@ func menuItems(key string) []menuet.MenuItem {
 		woeStr := strconv.Itoa(woeid)
 		items = append(items, menuet.MenuItem{
 			Text:       name,
-			Key:        woeStr,
+			Data:       woeStr,
 			State:      woeStr == menuet.Defaults().String("loc"),
 			MenuOpened: menuPreview(woeStr),
 		})
@@ -130,13 +130,13 @@ func menuItems(key string) []menuet.MenuItem {
 	if !found {
 		items = append(items, menuet.MenuItem{
 			Text:       menuet.Defaults().String("name"),
-			Key:        currentWoeid,
+			Data:       currentWoeid,
 			MenuOpened: menuPreview(currentWoeid),
 			State:      true,
 		})
 	}
 	sort.Slice(items, func(i, j int) bool {
-		return items[i].Key < items[j].Key
+		return items[i].Data.(string) < items[j].Data.(string)
 	})
 	items = append(items, menuet.MenuItem{
 		Text: "Other...",
@@ -170,9 +170,12 @@ func hourlyWeather() {
 	}
 }
 
-func handleClick(woeid string) {
-	menuet.Defaults().SetString("loc", woeid)
-	setWeather()
+func handleClick(item menuet.MenuItem) {
+	woeid, ok := item.Data.(string)
+	if ok {
+		menuet.Defaults().SetString("loc", woeid)
+		setWeather()
+	}
 }
 
 func main() {

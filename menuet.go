@@ -19,8 +19,6 @@ import (
 	"sync"
 	"time"
 	"unsafe"
-
-	"github.com/caseymrm/askm"
 )
 
 // Application represents the OSX application
@@ -28,10 +26,10 @@ type Application struct {
 	Name  string
 	Label string
 
-	// Clicked is called with the key string of a menu item that is selected, if the item doesn't have a Clicked function
-	Clicked func(string)
+	// Clicked is called with the menu item that is selected, if the item doesn't have a Clicked function
+	Clicked func(MenuItem)
 	// MenuOpened is called to refresh menu items when clicked, empty string for the top level, skipped if the item has a MenuOpened
-	MenuOpened func(string) []MenuItem
+	MenuOpened func(MenuItem) []MenuItem
 
 	// If Version and Repo are set, checks for updates every day
 	AutoUpdate struct {
@@ -131,57 +129,7 @@ func (a *Application) clicked(unique string) {
 	if a.Clicked == nil {
 		return
 	}
-	go a.Clicked(item.Key)
-}
-
-func (a *Application) menuOpened(unique string) []internalItem {
-	a.visibleMenuItemsMutex.RLock()
-	item, ok := a.visibleMenuItems[unique]
-	a.visibleMenuItemsMutex.RUnlock()
-	if !ok && unique != "" {
-		log.Printf("Item not found for menu open: %s", unique)
-	}
-	var items []MenuItem
-	if item.MenuOpened != nil {
-		items = item.MenuOpened()
-	} else {
-		if a.MenuOpened == nil {
-			return nil
-		}
-		items = a.MenuOpened(item.Key)
-	}
-	internalItems := make([]internalItem, len(items))
-	for ind, item := range items {
-		a.visibleMenuItemsMutex.Lock()
-		newUnique := askm.ArbitraryKeyNotInMap(a.visibleMenuItems)
-		internal := internalItem{
-			Unique:       newUnique,
-			ParentUnique: unique,
-			MenuItem:     item,
-		}
-		if internal.MenuOpened != nil {
-			internal.Children = true
-		}
-		a.visibleMenuItems[newUnique] = internal
-		internalItems[ind] = internal
-		a.visibleMenuItemsMutex.Unlock()
-	}
-	return internalItems
-}
-
-func (a *Application) menuClosed(unique string) {
-	// menu close comes before the click, so delay removing the items for a sec (240ms highest observed)
-	go func() {
-		time.Sleep(2 * time.Second)
-		a.visibleMenuItemsMutex.Lock()
-		delete(a.visibleMenuItems, unique)
-		for itemUnique, item := range a.visibleMenuItems {
-			if item.ParentUnique == unique {
-				delete(a.visibleMenuItems, itemUnique)
-			}
-		}
-		a.visibleMenuItemsMutex.Unlock()
-	}()
+	go a.Clicked(item.MenuItem)
 }
 
 //export itemClicked

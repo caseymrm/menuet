@@ -106,6 +106,10 @@ void toggleStartup();
 // submenuAction does not appear to be called, and menuNeedsUpdate is only
 // called once per tracking session.
 - (void)menuWillOpen:(MenuetMenu *)menu {
+  if (self.root) {
+    // For the root menu, we generate a new unique every time it's opened. Go handles all other unique generation.
+    self.unique = [[[[NSProcessInfo processInfo] globallyUniqueString] substringFromIndex:51] stringByAppendingString:@":root"];
+  }
   const char *str = menuOpened(self.unique.UTF8String);
   NSArray *items = @[];
   if (str != NULL) {
