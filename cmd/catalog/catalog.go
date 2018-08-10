@@ -89,26 +89,27 @@ var notificationsCatalog = []menuet.Notification{
 	},
 }
 
-func menuItems(key string) []menuet.MenuItem {
-	switch key {
-	case "":
+func menuItems(item menuet.MenuItem) []menuet.MenuItem {
+	if item.Type == menuet.Root {
 		return []menuet.MenuItem{
 			menuet.MenuItem{
 				Text:     "Show Alert",
-				Key:      "alerts",
+				Data:     "alerts",
 				Children: true,
 			},
 			menuet.MenuItem{
 				Text:     "Send Notification",
-				Key:      "notifs",
+				Data:     "notifs",
 				Children: true,
 			},
 			menuet.MenuItem{
 				Text:     "Menu Items",
-				Key:      "items",
+				Data:     "items",
 				Children: true,
 			},
 		}
+	}
+	switch item.Data {
 	case "alerts":
 		alerts := make([]menuet.MenuItem, 0, len(alertsCatalog))
 		for ind, alert := range alertsCatalog {
@@ -118,7 +119,7 @@ func menuItems(key string) []menuet.MenuItem {
 			}
 			alerts = append(alerts, menuet.MenuItem{
 				Text: text,
-				Key:  fmt.Sprintf("alert %d", ind),
+				Data: fmt.Sprintf("alert %d", ind),
 			})
 		}
 		return alerts
@@ -134,7 +135,7 @@ func menuItems(key string) []menuet.MenuItem {
 			}
 			notifs = append(notifs, menuet.MenuItem{
 				Text: text,
-				Key:  fmt.Sprintf("notif %d", ind),
+				Data: fmt.Sprintf("notif %d", ind),
 			})
 		}
 		return notifs
@@ -145,26 +146,26 @@ func menuItems(key string) []menuet.MenuItem {
 			},
 			{
 				Text: "Text with key",
-				Key:  "Text with key",
+				Data: "Text with key",
 			},
 			{
 				Text:     "Text with key, disabled",
-				Key:      "Text with key, disabled",
+				Data:     "Text with key, disabled",
 				Disabled: true,
 			},
 			{
 				Text:     "FontSizes",
-				Key:      "fontsizes",
+				Data:     "fontsizes",
 				Children: true,
 			},
 			{
 				Text:     "FontWeights",
-				Key:      "fontweights",
+				Data:     "fontweights",
 				Children: true,
 			},
 			{
 				Text:  "State = true",
-				Key:   "State = true",
+				Data:  "State = true",
 				State: true,
 			},
 			{
@@ -190,67 +191,67 @@ func menuItems(key string) []menuet.MenuItem {
 		return []menuet.MenuItem{
 			{
 				Text:     "FontSize 2",
-				Key:      "FontSize 2",
+				Data:     "FontSize 2",
 				FontSize: 2,
 			},
 			{
 				Text:     "FontSize 4",
-				Key:      "FontSize 4",
+				Data:     "FontSize 4",
 				FontSize: 4,
 			},
 			{
 				Text:     "FontSize 6",
-				Key:      "FontSize 6",
+				Data:     "FontSize 6",
 				FontSize: 6,
 			},
 			{
 				Text:     "FontSize 8",
-				Key:      "FontSize 8",
+				Data:     "FontSize 8",
 				FontSize: 8,
 			},
 			{
 				Text:     "FontSize 10",
-				Key:      "FontSize 10",
+				Data:     "FontSize 10",
 				FontSize: 10,
 			},
 			{
 				Text:     "FontSize 12",
-				Key:      "FontSize 12",
+				Data:     "FontSize 12",
 				FontSize: 12,
 			},
 			{
 				Text:     "FontSize 14",
-				Key:      "FontSize 14",
+				Data:     "FontSize 14",
 				FontSize: 14,
 			},
 			{
 				Text:     "FontSize 16",
-				Key:      "FontSize 16",
+				Data:     "FontSize 16",
 				FontSize: 16,
 			},
 			{
 				Text:     "FontSize 18",
-				Key:      "FontSize 18",
+				Data:     "FontSize 18",
 				FontSize: 18,
 			},
 			{
 				Text:     "FontSize 20",
-				Key:      "FontSize 20",
+				Data:     "FontSize 20",
 				FontSize: 20,
 			},
 			{
 				Text:     "FontSize 22",
-				Key:      "FontSize 22",
+				Data:     "FontSize 22",
 				FontSize: 22,
 			},
 			{
 				Text:     "FontSize 24",
-				Key:      "FontSize 24",
+				Data:     "FontSize 24",
 				FontSize: 24,
 			},
 			{
 				Text:     "FontSize 26",
-				Key:      "FontSize 26",
+				Data:     "FontSize 26",
 				FontSize: 26,
 			},
 		}
@@ -259,54 +260,58 @@ func menuItems(key string) []menuet.MenuItem {
 			{
 				Text:       "WeightUltraLight",
 				FontWeight: menuet.WeightUltraLight,
-				Key:        "WeightUltraLight",
+				Data:       "WeightUltraLight",
 			},
 			{
 				Text:       "WeightThin",
 				FontWeight: menuet.WeightThin,
-				Key:        "WeightThin",
+				Data:       "WeightThin",
 			},
 			{
 				Text:       "WeightLight",
 				FontWeight: menuet.WeightLight,
-				Key:        "WeightLight",
+				Data:       "WeightLight",
 			},
 			{
 				Text:       "WeightRegular",
 				FontWeight: menuet.WeightRegular,
-				Key:        "WeightRegular",
+				Data:       "WeightRegular",
 			},
 			{
 				Text:       "WeightMedium",
 				FontWeight: menuet.WeightMedium,
-				Key:        "WeightMedium",
+				Data:       "WeightMedium",
 			},
 			{
 				Text:       "WeightSemibold",
 				FontWeight: menuet.WeightSemibold,
-				Key:        "WeightSemibold",
+				Data:       "WeightSemibold",
 			},
 			{
 				Text:       "WeightBold",
 				FontWeight: menuet.WeightBold,
-				Key:        "WeightBold",
+				Data:       "WeightBold",
 			},
 			{
 				Text:       "WeightHeavy",
 				FontWeight: menuet.WeightHeavy,
-				Key:        "WeightHeavy",
+				Data:       "WeightHeavy",
 			},
 			{
 				Text:       "WeightBlack",
 				FontWeight: menuet.WeightBlack,
-				Key:        "WeightBlack",
+				Data:       "WeightBlack",
 			},
 		}
 	}
 	return nil
 }
 
-func handleClick(click string) {
+func handleClick(item menuet.MenuItem) {
+	click, ok := item.Data.(string)
+	if !ok {
+		return
+	}
 	var index int
 	var kind string
 	n, err := fmt.Sscan(click, &kind, &index)
