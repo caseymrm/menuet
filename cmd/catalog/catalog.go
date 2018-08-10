@@ -93,19 +93,19 @@ func menuItems(item menuet.MenuItem) []menuet.MenuItem {
 	if item.Type == menuet.Root {
 		return []menuet.MenuItem{
 			menuet.MenuItem{
-				Text:     "Show Alert",
-				Data:     "alerts",
-				Children: true,
+				Text:        "Show Alert",
+				Data:        "alerts",
+				HasChildren: true,
 			},
 			menuet.MenuItem{
-				Text:     "Send Notification",
-				Data:     "notifs",
-				Children: true,
+				Text:        "Send Notification",
+				Data:        "notifs",
+				HasChildren: true,
 			},
 			menuet.MenuItem{
-				Text:     "Menu Items",
-				Data:     "items",
-				Children: true,
+				Text:        "Menu Items",
+				Data:        "items",
+				HasChildren: true,
 			},
 		}
 	}
@@ -154,14 +154,14 @@ func menuItems(item menuet.MenuItem) []menuet.MenuItem {
 				Disabled: true,
 			},
 			{
-				Text:     "FontSizes",
-				Data:     "fontsizes",
-				Children: true,
+				Text:        "FontSizes",
+				Data:        "fontsizes",
+				HasChildren: true,
 			},
 			{
-				Text:     "FontWeights",
-				Data:     "fontweights",
-				Children: true,
+				Text:        "FontWeights",
+				Data:        "fontweights",
+				HasChildren: true,
 			},
 			{
 				Text:  "State = true",
@@ -177,8 +177,8 @@ func menuItems(item menuet.MenuItem) []menuet.MenuItem {
 				},
 			},
 			{
-				Text: "Text and inline MenuOpened",
-				MenuOpened: func() []menuet.MenuItem {
+				Text: "Text and inline Children",
+				Children: func() []menuet.MenuItem {
 					return []menuet.MenuItem{
 						{
 							Text: "Hello",
@@ -335,6 +335,6 @@ func main() {
 	})
 	menuet.App().Label = "com.github.caseymrm.menuet.catalog"
 	menuet.App().Clicked = handleClick
-	menuet.App().MenuOpened = menuItems
+	menuet.App().Children = menuItems
 	menuet.App().RunApplication()
 }

@@ -3,7 +3,7 @@
 #import "menuet.h"
 
 void itemClicked(const char *);
-const char *menuOpened(const char *);
+const char *children(const char *);
 void menuClosed(const char *);
 bool runningAtStartup();
 void toggleStartup();
@@ -57,7 +57,7 @@ void toggleStartup();
     NSNumber *fontSize = dict[@"FontSize"];
     NSNumber *fontWeight = dict[@"FontWeight"];
     BOOL state = [dict[@"State"] boolValue];
-    BOOL children = [dict[@"Children"] boolValue];
+    BOOL hasChildren = [dict[@"HasChildren"] boolValue];
     BOOL disabled = [dict[@"Disabled"] boolValue];
     if (!item || item.isSeparatorItem) {
       item =
@@ -87,7 +87,7 @@ void toggleStartup();
     } else {
       item.state = NSOffState;
     }
-    if (children) {
+    if (hasChildren) {
       if (!item.submenu) {
         item.submenu = [MenuetMenu new];
       }
@@ -110,7 +110,7 @@ void toggleStartup();
     // For the root menu, we generate a new unique every time it's opened. Go handles all other unique generation.
     self.unique = [[[[NSProcessInfo processInfo] globallyUniqueString] substringFromIndex:51] stringByAppendingString:@":root"];
   }
-  const char *str = menuOpened(self.unique.UTF8String);
+  const char *str = children(self.unique.UTF8String);
   NSArray *items = @[];
   if (str != NULL) {
     items = [NSJSONSerialization

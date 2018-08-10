@@ -28,8 +28,8 @@ type Application struct {
 
 	// Clicked is called with the menu item that is selected, if the item doesn't have a Clicked function
 	Clicked func(MenuItem)
-	// MenuOpened is called to refresh menu items when clicked, empty string for the top level, skipped if the item has a MenuOpened
-	MenuOpened func(MenuItem) []MenuItem
+	// Children is called to refresh menu items when clicked, empty string for the top level, skipped if the item has a Children
+	Children func(MenuItem) []MenuItem
 
 	// If Version and Repo are set, checks for updates every day
 	AutoUpdate struct {
@@ -138,10 +138,10 @@ func itemClicked(uniqueCString *C.char) {
 	App().clicked(unique)
 }
 
-//export menuOpened
-func menuOpened(uniqueCString *C.char) *C.char {
+//export children
+func children(uniqueCString *C.char) *C.char {
 	unique := C.GoString(uniqueCString)
-	items := App().menuOpened(unique)
+	items := App().children(unique)
 	if items == nil {
 		return nil
 	}

@@ -124,7 +124,7 @@ func main() {
 	clickChannel := make(chan string)
 	menuet.App().Label = "com.github.caseymrm.menuet.weather"
 	menuet.App().Clicked = handleClick
-	menuet.App().MenuOpened = func() []menuet.MenuItem {
+	menuet.App().Children = func() []menuet.MenuItem {
 		items := []menuet.MenuItem{}
 		for woeid, name := range woeids {
 			items = append(items, menuet.MenuItem{

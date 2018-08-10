@@ -26,17 +26,17 @@ type MenuItem struct {
 	Type ItemType
 	Data interface{}
 
-	Text       string
-	FontSize   int // Default: 14
-	FontWeight FontWeight
-	State      bool // shows checkmark when set
-	Disabled   bool
-	Children   bool
+	Text        string
+	FontSize    int // Default: 14
+	FontWeight  FontWeight
+	State       bool // shows checkmark when set
+	Disabled    bool
+	HasChildren bool // indicates the application's Children should be called for this item
 
 	// If set, the application's Clicked is not called for this item
 	Clicked func() `json:"-"`
-	// If set, the application's MenuOpened is not called for this item
-	MenuOpened func() []MenuItem `json:"-"`
+	// If set, the application's Children is not called for this item
+	Children func() []MenuItem `json:"-"`
 }
 
 type internalItem struct {
@@ -46,7 +46,7 @@ type internalItem struct {
 	MenuItem
 }
 
-func (a *Application) menuOpened(unique string) []internalItem {
+func (a *Application) children(unique string) []internalItem {
 	a.visibleMenuItemsMutex.RLock()
 	item, ok := a.visibleMenuItems[unique]
 	a.visibleMenuItemsMutex.RUnlock()
@@ -56,17 +56,17 @@ func (a *Application) menuOpened(unique string) []internalItem {
 			item.Unique = unique
 			item.Type = Root
 		} else {
-			log.Printf("Item not found for menuOpened: %s", unique)
+			log.Printf("Item not found for children: %s", unique)
 		}
 	}
 	var items []MenuItem
-	if item.MenuOpened != nil {
-		items = item.MenuOpened()
+	if item.Children != nil {
+		items = item.Children()
 	} else {
-		if a.MenuOpened == nil {
+		if a.Children == nil {
 			return nil
 		}
-		items = a.MenuOpened(item.MenuItem)
+		items = a.Children(item.MenuItem)
 	}
 	internalItems := make([]internalItem, len(items))
 	for ind, item := range items {
@@ -77,8 +77,8 @@ func (a *Application) menuOpened(unique string) []internalItem {
 			ParentUnique: unique,
 			MenuItem:     item,
 		}
-		if internal.MenuOpened != nil {
-			internal.Children = true
+		if internal.Children != nil {
+			internal.HasChildren = true
 		}
 		a.visibleMenuItems[newUnique] = internal
 		internalItems[ind] = internal

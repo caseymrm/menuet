@@ -121,7 +121,7 @@ func menuItems(item menuet.MenuItem) []menuet.MenuItem {
 			Text:       name,
 			Data:       woeStr,
 			State:      woeStr == menuet.Defaults().String("loc"),
-			MenuOpened: menuPreview(woeStr),
+			Children: menuPreview(woeStr),
 		})
 		if woeid == currentNumber {
 			found = true
@@ -131,7 +131,7 @@ func menuItems(item menuet.MenuItem) []menuet.MenuItem {
 		items = append(items, menuet.MenuItem{
 			Text:       menuet.Defaults().String("name"),
 			Data:       currentWoeid,
-			MenuOpened: menuPreview(currentWoeid),
+			Children: menuPreview(currentWoeid),
 			State:      true,
 		})
 	}
@@ -192,7 +192,7 @@ func main() {
 	menuet.App().Label = "com.github.caseymrm.menuet.weather"
 
 	// Hook up the on-click to populate the menu
-	menuet.App().MenuOpened = menuItems
+	menuet.App().Children = menuItems
 
 	// Set up the click handler
 	menuet.App().Clicked = handleClick
