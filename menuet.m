@@ -21,6 +21,7 @@ void toggleStartup();
   self = [super init];
   if (self) {
     self.delegate = self;
+    self.autoenablesItems = false;
   }
   return self;
 }
@@ -58,7 +59,7 @@ void toggleStartup();
     NSNumber *fontWeight = dict[@"FontWeight"];
     BOOL state = [dict[@"State"] boolValue];
     BOOL hasChildren = [dict[@"HasChildren"] boolValue];
-    BOOL disabled = [dict[@"Disabled"] boolValue];
+    BOOL clickable = [dict[@"Clickable"] boolValue];
     if (!item || item.isSeparatorItem) {
       item =
           [self insertItemWithTitle:@"" action:nil keyEquivalent:@"" atIndex:i];
@@ -75,7 +76,7 @@ void toggleStartup();
         [[NSMutableAttributedString alloc] initWithString:text
                                                attributes:attributes];
     item.target = self;
-    if (!disabled) {
+    if (clickable) {
       item.action = @selector(press:);
       item.representedObject = unique;
     } else {
@@ -96,6 +97,7 @@ void toggleStartup();
     } else if (item.submenu) {
       item.submenu = nil;
     }
+    item.enabled = clickable || hasChildren;
   }
   while (self.numberOfItems > items.count) {
     [self removeItemAtIndex:self.numberOfItems - 1];
@@ -122,9 +124,9 @@ void toggleStartup();
   }
   if (self.root) {
     items = [items arrayByAddingObjectsFromArray:@[
-      @{@"Type" : @"separator"},
-      @{@"Text" : @"Start at Login"},
-      @{@"Text" : @"Quit"},
+      @{@"Type" : @"separator", @"Clickable" : @YES},
+      @{@"Text" : @"Start at Login", @"Clickable" : @YES},
+      @{@"Text" : @"Quit", @"Clickable" : @YES},
     ]];
   }
   [self populate:items];

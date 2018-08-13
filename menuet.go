@@ -26,10 +26,8 @@ type Application struct {
 	Name  string
 	Label string
 
-	// Clicked is called with the menu item that is selected, if the item doesn't have a Clicked function
-	Clicked func(MenuItem)
-	// Children is called to refresh menu items when clicked, empty string for the top level, skipped if the item has a Children
-	Children func(MenuItem) []MenuItem
+	// Children returns the top level children
+	Children func() []MenuItem
 
 	// If Version and Repo are set, checks for updates every day
 	AutoUpdate struct {
@@ -124,12 +122,7 @@ func (a *Application) clicked(unique string) {
 	}
 	if item.Clicked != nil {
 		go item.Clicked()
-		return
 	}
-	if a.Clicked == nil {
-		return
-	}
-	go a.Clicked(item.MenuItem)
 }
 
 //export itemClicked

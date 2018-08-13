@@ -100,13 +100,15 @@ func menuPreview(woeid string) func() []menuet.MenuItem {
 		return []menuet.MenuItem{
 			menuet.MenuItem{
 				Text: temperatureString(woeid),
-				Data: woeid,
+				Clicked: func() {
+					setLocation(woeid)
+				},
 			},
 		}
 	}
 }
 
-func menuItems(item menuet.MenuItem) []menuet.MenuItem {
+func menuItems() []menuet.MenuItem {
 	items := []menuet.MenuItem{}
 
 	currentWoeid := menuet.Defaults().String("loc")
@@ -118,9 +120,11 @@ func menuItems(item menuet.MenuItem) []menuet.MenuItem {
 	for woeid, name := range woeids {
 		woeStr := strconv.Itoa(woeid)
 		items = append(items, menuet.MenuItem{
-			Text:       name,
-			Data:       woeStr,
-			State:      woeStr == menuet.Defaults().String("loc"),
+			Text: name,
+			Clicked: func() {
+				setLocation(woeStr)
+			},
+			State:    woeStr == menuet.Defaults().String("loc"),
 			Children: menuPreview(woeStr),
 		})
 		if woeid == currentNumber {
@@ -129,14 +133,16 @@ func menuItems(item menuet.MenuItem) []menuet.MenuItem {
 	}
 	if !found {
 		items = append(items, menuet.MenuItem{
-			Text:       menuet.Defaults().String("name"),
-			Data:       currentWoeid,
+			Text: menuet.Defaults().String("name"),
+			Clicked: func() {
+				setLocation(currentWoeid)
+			},
 			Children: menuPreview(currentWoeid),
-			State:      true,
+			State:    true,
 		})
 	}
 	sort.Slice(items, func(i, j int) bool {
-		return items[i].Data.(string) < items[j].Data.(string)
+		return items[i].Text < items[j].Text
 	})
 	items = append(items, menuet.MenuItem{
 		Text: "Other...",
@@ -170,12 +176,9 @@ func hourlyWeather() {
 	}
 }
 
-func handleClick(item menuet.MenuItem) {
-	woeid, ok := item.Data.(string)
-	if ok {
-		menuet.Defaults().SetString("loc", woeid)
-		setWeather()
-	}
+func setLocation(woeid string) {
+	menuet.Defaults().SetString("loc", woeid)
+	setWeather()
 }
 
 func main() {
@@ -193,9 +196,6 @@ func main() {
 
 	// Hook up the on-click to populate the menu
 	menuet.App().Children = menuItems
-
-	// Set up the click handler
-	menuet.App().Clicked = handleClick
 
 	// Run the app (does not return)
 	menuet.App().RunApplication()

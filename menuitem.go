@@ -24,24 +24,21 @@ const (
 // MenuItem represents one item in the dropdown
 type MenuItem struct {
 	Type ItemType
-	Data interface{}
 
-	Text        string
-	FontSize    int // Default: 14
-	FontWeight  FontWeight
-	State       bool // shows checkmark when set
-	Disabled    bool
-	HasChildren bool // indicates the application's Children should be called for this item
+	Text       string
+	FontSize   int // Default: 14
+	FontWeight FontWeight
+	State      bool // shows checkmark when set
 
-	// If set, the application's Clicked is not called for this item
-	Clicked func() `json:"-"`
-	// If set, the application's Children is not called for this item
+	Clicked  func()            `json:"-"`
 	Children func() []MenuItem `json:"-"`
 }
 
 type internalItem struct {
 	Unique       string
 	ParentUnique string
+	HasChildren  bool
+	Clickable    bool
 
 	MenuItem
 }
@@ -50,23 +47,19 @@ func (a *Application) children(unique string) []internalItem {
 	a.visibleMenuItemsMutex.RLock()
 	item, ok := a.visibleMenuItems[unique]
 	a.visibleMenuItemsMutex.RUnlock()
+	if strings.HasSuffix(unique, ":root") {
+		// Create synthetic item
+		item.Unique = unique
+		item.Type = Root
+		item.Children = a.Children
+		ok = true
+	}
 	if !ok {
-		if strings.HasSuffix(unique, ":root") {
-			// Fill in this synthetic item
-			item.Unique = unique
-			item.Type = Root
-		} else {
-			log.Printf("Item not found for children: %s", unique)
-		}
+		log.Printf("Item not found for children: %s", unique)
 	}
 	var items []MenuItem
 	if item.Children != nil {
 		items = item.Children()
-	} else {
-		if a.Children == nil {
-			return nil
-		}
-		items = a.Children(item.MenuItem)
 	}
 	internalItems := make([]internalItem, len(items))
 	for ind, item := range items {
@@ -79,6 +72,9 @@ func (a *Application) children(unique string) []internalItem {
 		}
 		if internal.Children != nil {
 			internal.HasChildren = true
+		}
+		if internal.Clicked != nil {
+			internal.Clickable = true
 		}
 		a.visibleMenuItems[newUnique] = internal
 		internalItems[ind] = internal
