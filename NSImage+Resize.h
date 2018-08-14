@@ -4,4 +4,6 @@
 
 - (NSImage *)imageWithHeight:(CGFloat)height;
 
++ (NSImage *)imageFromName:(NSString *)name withHeight:(CGFloat)height;
+
 @end

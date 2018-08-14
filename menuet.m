@@ -1,7 +1,7 @@
 #import <Cocoa/Cocoa.h>
 
-#import "menuet.h"
 #import "NSImage+Resize.h"
+#import "menuet.h"
 
 void itemClicked(const char *);
 const char *children(const char *);
@@ -56,6 +56,7 @@ void toggleStartup();
     }
     NSString *unique = dict[@"Unique"];
     NSString *text = dict[@"Text"];
+    NSString *imageName = dict[@"Image"];
     NSNumber *fontSize = dict[@"FontSize"];
     NSNumber *fontWeight = dict[@"FontWeight"];
     BOOL state = [dict[@"State"] boolValue];
@@ -99,6 +100,7 @@ void toggleStartup();
       item.submenu = nil;
     }
     item.enabled = clickable || hasChildren;
+    item.image = [NSImage imageFromName:imageName withHeight:16];
   }
   while (self.numberOfItems > items.count) {
     [self removeItemAtIndex:self.numberOfItems - 1];
@@ -187,21 +189,10 @@ void setState(const char *jsonString) {
                   [NSFont monospacedDigitSystemFontOfSize:14
                                                    weight:NSFontWeightRegular]
             }];
-    NSImage *image = nil;
     NSString *imageName = state[@"Image"];
-    if ([imageName isKindOfClass:[NSString class]] && imageName.length > 0) {
-      if ([imageName hasPrefix:@"http"]) {
-        image = [[NSImage alloc]
-            initWithContentsOfURL:[NSURL URLWithString:imageName]];
-      } else {
-        image = [NSImage imageNamed:imageName];
-      }
-      // TODO: Make template an option? File naming convention?
-      [image setTemplate:YES];
-      if (image.size.height > 22) {
-        image = [image imageWithHeight:22.0];
-      }
-    }
+    NSImage *image = [NSImage imageFromName:imageName withHeight:22];
+    // TODO: Make template an option? File naming convention?
+    [image setTemplate:YES];
     _statusItem.button.image = image;
     _statusItem.button.imagePosition = NSImageLeft;
   });

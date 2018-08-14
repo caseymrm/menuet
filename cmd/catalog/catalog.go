@@ -193,7 +193,7 @@ func items() []menuet.MenuItem {
 			State: true,
 		},
 		{
-			Text: "Text and inline Clicked",
+			Text: "Text and Clicked",
 			Clicked: func() {
 				menuet.App().Alert(menuet.Alert{
 					MessageText: "You clicked the inline function",
@@ -201,7 +201,7 @@ func items() []menuet.MenuItem {
 			},
 		},
 		{
-			Text: "Text and inline Children",
+			Text: "Text and Children",
 			Children: func() []menuet.MenuItem {
 				return []menuet.MenuItem{
 					{
@@ -215,6 +215,39 @@ func items() []menuet.MenuItem {
 					},
 				}
 			},
+		},
+		{
+			Text:  "Text, Image, and Clicked",
+			Image: "clipboard",
+			Clicked: func() {
+				menuet.App().Alert(menuet.Alert{
+					MessageText: "You clicked the inline function",
+				})
+			},
+		},
+		{
+			Text:  "Text, Image, and Children",
+			Image: "clipboard",
+			Children: func() []menuet.MenuItem {
+				return []menuet.MenuItem{
+					{
+						Text: "Hello",
+					},
+					{
+						Text: "Inline",
+					},
+					{
+						Text: "Children",
+					},
+				}
+			},
+		},
+		{
+			Text:  "Image and Text",
+			Image: "clipboard",
+		},
+		{
+			Image: "clipboard",
 		},
 	}
 }

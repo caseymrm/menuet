@@ -26,7 +26,8 @@ type MenuItem struct {
 	Type ItemType
 
 	Text       string
-	FontSize   int // Default: 14
+	Image      string // The name of an image in the Resources directory
+	FontSize   int    // Default: 14
 	FontWeight FontWeight
 	State      bool // shows checkmark when set
 
