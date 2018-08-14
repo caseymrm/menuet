@@ -1,6 +1,7 @@
 #import <Cocoa/Cocoa.h>
 
 #import "menuet.h"
+#import "NSImage+Resize.h"
 
 void itemClicked(const char *);
 const char *children(const char *);
@@ -32,7 +33,7 @@ void toggleStartup();
   }
   [self menuWillOpen:self];
   for (NSMenuItem *item in self.itemArray) {
-    MenuetMenu* menu = (MenuetMenu *)item.submenu;
+    MenuetMenu *menu = (MenuetMenu *)item.submenu;
     if (menu != NULL) {
       [menu refreshVisibleMenus];
     }
@@ -109,8 +110,10 @@ void toggleStartup();
 // called once per tracking session.
 - (void)menuWillOpen:(MenuetMenu *)menu {
   if (self.root) {
-    // For the root menu, we generate a new unique every time it's opened. Go handles all other unique generation.
-    self.unique = [[[[NSProcessInfo processInfo] globallyUniqueString] substringFromIndex:51] stringByAppendingString:@":root"];
+    // For the root menu, we generate a new unique every time it's opened. Go
+    // handles all other unique generation.
+    self.unique = [[[[NSProcessInfo processInfo] globallyUniqueString]
+        substringFromIndex:51] stringByAppendingString:@":root"];
   }
   const char *str = children(self.unique.UTF8String);
   NSArray *items = @[];
@@ -124,9 +127,12 @@ void toggleStartup();
   }
   if (self.root) {
     items = [items arrayByAddingObjectsFromArray:@[
-      @{@"Type" : @"separator", @"Clickable" : @YES},
-      @{@"Text" : @"Start at Login", @"Clickable" : @YES},
-      @{@"Text" : @"Quit", @"Clickable" : @YES},
+      @{@"Type" : @"separator",
+        @"Clickable" : @YES},
+      @{@"Text" : @"Start at Login",
+        @"Clickable" : @YES},
+      @{@"Text" : @"Quit",
+        @"Clickable" : @YES},
     ]];
   }
   [self populate:items];
@@ -184,11 +190,20 @@ void setState(const char *jsonString) {
     NSImage *image = nil;
     NSString *imageName = state[@"Image"];
     if ([imageName isKindOfClass:[NSString class]] && imageName.length > 0) {
-      image = [NSImage imageNamed:imageName];
-      // TODO: Make template an option?
+      if ([imageName hasPrefix:@"http"]) {
+        image = [[NSImage alloc]
+            initWithContentsOfURL:[NSURL URLWithString:imageName]];
+      } else {
+        image = [NSImage imageNamed:imageName];
+      }
+      // TODO: Make template an option? File naming convention?
       [image setTemplate:YES];
+      if (image.size.height > 22) {
+        image = [image imageWithHeight:22.0];
+      }
     }
     _statusItem.button.image = image;
+    _statusItem.button.imagePosition = NSImageLeft;
   });
 }
 
