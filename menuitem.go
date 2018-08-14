@@ -26,7 +26,7 @@ type MenuItem struct {
 	Type ItemType
 
 	Text       string
-	Image      string // The name of an image in the Resources directory
+	Image      string // In Resources dir or URL, should have height 16
 	FontSize   int    // Default: 14
 	FontWeight FontWeight
 	State      bool // shows checkmark when set
