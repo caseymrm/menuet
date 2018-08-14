@@ -98,6 +98,10 @@ func menuItems() []menuet.MenuItem {
 			Children: notifs,
 		},
 		menuet.MenuItem{
+			Text:     "Change Title",
+			Children: changeTitle,
+		},
+		menuet.MenuItem{
 			Text:     "Menu Items",
 			Children: items,
 		},
@@ -139,6 +143,36 @@ func notifs() []menuet.MenuItem {
 		})
 	}
 	return notifs
+}
+
+func changeTitle() []menuet.MenuItem {
+	return []menuet.MenuItem{
+		{
+			Text: "Text only",
+			Clicked: func() {
+				menuet.App().SetMenuState(&menuet.MenuState{
+					Title: "Catalog",
+				})
+			},
+		},
+		{
+			Text: "Image only",
+			Clicked: func() {
+				menuet.App().SetMenuState(&menuet.MenuState{
+					Image: "clipboard",
+				})
+			},
+		},
+		{
+			Text: "Text and Image",
+			Clicked: func() {
+				menuet.App().SetMenuState(&menuet.MenuState{
+					Title: "Catalog",
+					Image: "clipboard",
+				})
+			},
+		},
+	}
 }
 
 func items() []menuet.MenuItem {
