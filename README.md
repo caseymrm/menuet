@@ -17,10 +17,19 @@ https://godoc.org/github.com/caseymrm/menuet
 ## Apps built with Menuet
 
 * [Why Awake?](https://github.com/caseymrm/whyawake) - shows why your Mac can't sleep, and lets you force it awake
+
+<img src="https://github.com/caseymrm/whyawake/raw/master/static/cansleep.png" width="25%"/> <img src="https://github.com/caseymrm/whyawake/raw/master/static/cantsleep.png" width="25%"/> <img src="https://github.com/caseymrm/whyawake/raw/master/static/prevented.png" width="25%"/>
+
+
 * [Not a Fan](https://github.com/caseymrm/notafan) - shows your Mac's temperature and fan speed, notifies you when your CPU is being throttled due to excessive heat
+
+<img src="https://github.com/caseymrm/notafan/raw/master/notafan.png" width="25%"/> <img src="https://github.com/caseymrm/notafan/raw/master/throttled.png" width="25%"/> <img src="https://github.com/caseymrm/notafan/raw/master/notthrottled.png" width="25%"/>
+
 * [Traytter](https://github.com/caseymrm/traytter) - minimalist Twitter client for following a few users
 
-## Hello World
+<img src="https://github.com/caseymrm/traytter/raw/master/traytter.png" width="25%"/>
+
+## [Hello World](https://github.com/caseymrm/menuet/tree/master/cmd/helloworld)
 
 ```go
 package main
@@ -48,6 +57,10 @@ func main() {
 ```
 
 ![Output](https://github.com/caseymrm/menuet/raw/master/static/helloworld.gif)
+
+## [Catalog](https://github.com/caseymrm/menuet/tree/master/cmd/catalog)
+
+![Output](https://github.com/caseymrm/menuet/raw/master/static/catalog.png)
 
 ## Advanced Features
 
