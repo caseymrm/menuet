@@ -60,6 +60,8 @@ func main() {
 
 ## [Catalog](https://github.com/caseymrm/menuet/tree/master/cmd/catalog)
 
+The catalog app is useful for trying many of the possible combinations of features.
+
 <img src="https://github.com/caseymrm/menuet/raw/master/static/catalog.png" width="50%"/>
 
 ## Advanced Features
