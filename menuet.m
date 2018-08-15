@@ -9,6 +9,8 @@ void menuClosed(const char *);
 bool runningAtStartup();
 void toggleStartup();
 
+NSStatusItem *_statusItem;
+
 @interface MenuetMenu : NSMenu <NSMenuDelegate>
 
 @property(nonatomic, copy) NSString *unique;
@@ -112,6 +114,7 @@ void toggleStartup();
 // called once per tracking session.
 - (void)menuWillOpen:(MenuetMenu *)menu {
   if (self.root) {
+    _statusItem.button.image.template = true;
     // For the root menu, we generate a new unique every time it's opened. Go
     // handles all other unique generation.
     self.unique = [[[[NSProcessInfo processInfo] globallyUniqueString]
@@ -154,6 +157,9 @@ void toggleStartup();
 }
 
 - (void)menuDidClose:(MenuetMenu *)menu {
+  if (self.root) {
+    _statusItem.button.image.template = false;
+  }
   self.open = NO;
   menuClosed(self.unique.UTF8String);
 }
@@ -173,8 +179,6 @@ void toggleStartup();
 
 @end
 
-NSStatusItem *_statusItem;
-
 void setState(const char *jsonString) {
   NSDictionary *state = [NSJSONSerialization
       JSONObjectWithData:[[NSString stringWithUTF8String:jsonString]
@@ -191,8 +195,6 @@ void setState(const char *jsonString) {
             }];
     NSString *imageName = state[@"Image"];
     NSImage *image = [NSImage imageFromName:imageName withHeight:22];
-    // TODO: Make template an option? File naming convention?
-    [image setTemplate:YES];
     _statusItem.button.image = image;
     _statusItem.button.imagePosition = NSImageLeft;
   });
