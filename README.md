@@ -27,7 +27,7 @@ https://godoc.org/github.com/caseymrm/menuet
 
 * [Traytter](https://github.com/caseymrm/traytter) - minimalist Twitter client for following a few users
 
-<img src="https://github.com/caseymrm/traytter/raw/master/traytter.png" width="25%"/>
+<img src="https://github.com/caseymrm/traytter/raw/master/traytter.png" width="50%"/>
 
 ## [Hello World](https://github.com/caseymrm/menuet/tree/master/cmd/helloworld)
 
@@ -60,7 +60,7 @@ func main() {
 
 ## [Catalog](https://github.com/caseymrm/menuet/tree/master/cmd/catalog)
 
-![Output](https://github.com/caseymrm/menuet/raw/master/static/catalog.png)
+<img src="https://github.com/caseymrm/menuet/raw/master/static/catalog.png" width="50%"/>
 
 ## Advanced Features
 
