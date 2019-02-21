@@ -35,6 +35,9 @@ type Application struct {
 		Repo    string // For example "caseymrm/menuet"
 	}
 
+	// NotificationResponder is a handler called when notification respond
+	NotificationResponder func(id, response string)
+
 	alertChannel          chan AlertClicked
 	currentState          *MenuState
 	nextState             *MenuState
@@ -149,6 +152,11 @@ func children(uniqueCString *C.char) *C.char {
 func menuClosed(uniqueCString *C.char) {
 	unique := C.GoString(uniqueCString)
 	App().menuClosed(unique)
+}
+
+//export notificationRespond
+func notificationRespond(id *C.char, response *C.char) {
+	App().NotificationResponder(C.GoString(id), C.GoString(response))
 }
 
 //export runningAtStartup

@@ -4,6 +4,7 @@
 #import "menuet.h"
 
 void itemClicked(const char *);
+void notificationRespond(const char *, const char *);
 const char *children(const char *);
 void menuClosed(const char *);
 bool runningAtStartup();
@@ -175,7 +176,7 @@ NSStatusItem *_statusItem;
 
 @end
 
-@interface MenuetAppDelegate : NSObject <NSApplicationDelegate, NSMenuDelegate>
+@interface MenuetAppDelegate : NSObject <NSApplicationDelegate, NSMenuDelegate, NSUserNotificationCenterDelegate>
 
 @end
 
@@ -212,6 +213,7 @@ void createAndRunApplication() {
   NSApplication *a = NSApplication.sharedApplication;
   MenuetAppDelegate *d = [MenuetAppDelegate new];
   [a setDelegate:d];
+  [[NSUserNotificationCenter defaultUserNotificationCenter] setDelegate:d];
   [a setActivationPolicy:NSApplicationActivationPolicyAccessory];
   _statusItem = [[NSStatusBar systemStatusBar]
       statusItemWithLength:NSVariableStatusItemLength];
@@ -226,6 +228,15 @@ void createAndRunApplication() {
 - (NSApplicationTerminateReply)applicationShouldTerminate:
     (NSApplication *)sender {
   return NSTerminateNow;
+}
+
+- (void)userNotificationCenter:(NSUserNotificationCenter *)center didActivateNotification:(NSUserNotification *)notification {
+  if (notification.activationType == NSUserNotificationActivationTypeReplied){
+      NSString* userResponse = notification.response.string;
+      notificationRespond(notification.identifier.UTF8String, userResponse.UTF8String);
+  } else {
+      notificationRespond(notification.identifier.UTF8String, @"".UTF8String);
+  }
 }
 
 @end
