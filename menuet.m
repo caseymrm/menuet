@@ -88,9 +88,9 @@ NSStatusItem *_statusItem;
       item.representedObject = nil;
     }
     if (state) {
-      item.state = NSOnState;
+      item.state = NSControlStateValueOn;
     } else {
-      item.state = NSOffState;
+      item.state = NSControlStateValueOff;
     }
     if (hasChildren) {
       if (!item.submenu) {
@@ -145,9 +145,9 @@ NSStatusItem *_statusItem;
     NSMenuItem *item = [self itemAtIndex:items.count - 2];
     item.action = @selector(toggleStartup:);
     if (runningAtStartup()) {
-      item.state = NSOnState;
+      item.state = NSControlStateValueOn;
     } else {
-      item.state = NSOffState;
+      item.state = NSControlStateValueOff;
     }
     item = [self itemAtIndex:items.count - 1];
     item.target = nil;
