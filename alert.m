@@ -10,36 +10,38 @@ void showAlert(const char *jsonString) {
                              dataUsingEncoding:NSUTF8StringEncoding]
                  options:0
                    error:nil];
-  NSAlert *alert = [NSAlert new];
-  alert.messageText = jsonDict[@"MessageText"];
-  alert.informativeText = jsonDict[@"InformativeText"];
-  NSArray *buttons = jsonDict[@"Buttons"];
-  if (![buttons isEqualTo:NSNull.null] && buttons.count > 0) {
-    for (NSString *label in buttons) {
-      [alert addButtonWithTitle:label];
-    }
-  }
-  NSView *accessoryView;
-  NSArray *inputs = jsonDict[@"Inputs"];
-  BOOL hasInputs = ![inputs isEqualTo:NSNull.null] && inputs.count > 0;
-  if (hasInputs) {
-    BOOL first = false;
-    int y = 30 * inputs.count;
-    accessoryView = [[NSView alloc] initWithFrame:NSMakeRect(0, 0, 200, y)];
-    for (NSString *input in inputs) {
-      y -= 30;
-      NSTextField *textfield =
-          [[NSTextField alloc] initWithFrame:NSMakeRect(0, y, 200, 25)];
-      [textfield setPlaceholderString:input];
-      [accessoryView addSubview:textfield];
-      if (!first) {
-        [alert.window setInitialFirstResponder:textfield];
-        first = true;
+  
+  dispatch_async(dispatch_get_main_queue(), ^{
+    NSAlert *alert = [NSAlert new];
+    alert.messageText = jsonDict[@"MessageText"];
+    alert.informativeText = jsonDict[@"InformativeText"];
+    NSArray *buttons = jsonDict[@"Buttons"];
+    if (![buttons isEqualTo:NSNull.null] && buttons.count > 0) {
+      for (NSString *label in buttons) {
+        [alert addButtonWithTitle:label];
       }
     }
-    [alert setAccessoryView:accessoryView];
-  }
-  dispatch_async(dispatch_get_main_queue(), ^{
+    NSView *accessoryView;
+    NSArray *inputs = jsonDict[@"Inputs"];
+    BOOL hasInputs = ![inputs isEqualTo:NSNull.null] && inputs.count > 0;
+    if (hasInputs) {
+      BOOL first = false;
+      int y = 30 * inputs.count;
+      accessoryView = [[NSView alloc] initWithFrame:NSMakeRect(0, 0, 200, y)];
+      for (NSString *input in inputs) {
+        y -= 30;
+        NSTextField *textfield =
+            [[NSTextField alloc] initWithFrame:NSMakeRect(0, y, 200, 25)];
+        [textfield setPlaceholderString:input];
+        [accessoryView addSubview:textfield];
+        if (!first) {
+          [alert.window setInitialFirstResponder:textfield];
+          first = true;
+        }
+      }
+      [alert setAccessoryView:accessoryView];
+    }
+    
     [NSApp activateIgnoringOtherApps:YES];
     NSInteger resp = [alert runModal];
     NSMutableArray *values = [NSMutableArray new];
