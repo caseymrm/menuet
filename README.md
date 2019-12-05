@@ -29,6 +29,10 @@ https://godoc.org/github.com/caseymrm/menuet
 
 <img src="https://github.com/caseymrm/traytter/raw/master/traytter.png" width="50%"/>
 
+* [Hacker News Menuet](https://github.com/unkrich/hackernews-menuet) - easily browse latest Hacker News posts
+
+<img src="https://github.com/unkrich/hackernews-menuet/blob/master/static/screenshot.png" width="50%"/>
+
 ## [Hello World](https://github.com/caseymrm/menuet/tree/master/cmd/helloworld)
 
 ```go
