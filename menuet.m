@@ -115,7 +115,6 @@ NSStatusItem *_statusItem;
 // called once per tracking session.
 - (void)menuWillOpen:(MenuetMenu *)menu {
   if (self.root) {
-    _statusItem.button.image.template = true;
     // For the root menu, we generate a new unique every time it's opened. Go
     // handles all other unique generation.
     self.unique = [[[[NSProcessInfo processInfo] globallyUniqueString]
@@ -158,9 +157,6 @@ NSStatusItem *_statusItem;
 }
 
 - (void)menuDidClose:(MenuetMenu *)menu {
-  if (self.root) {
-    _statusItem.button.image.template = false;
-  }
   self.open = NO;
   menuClosed(self.unique.UTF8String);
 }
@@ -197,6 +193,7 @@ void setState(const char *jsonString) {
     NSString *imageName = state[@"Image"];
     NSImage *image = [NSImage imageFromName:imageName withHeight:22];
     _statusItem.button.image = image;
+    _statusItem.button.image.template = true;
     _statusItem.button.imagePosition = NSImageLeft;
   });
 }
