@@ -82,7 +82,7 @@ var notificationsCatalog = []menuet.Notification{
 		Identifier: "identified",
 	},
 	menuet.Notification{
-		Title: "Remove from notification center",
+		Title:                        "Remove from notification center",
 		RemoveFromNotificationCenter: true,
 	},
 }
@@ -111,6 +111,7 @@ func menuItems() []menuet.MenuItem {
 func alerts() []menuet.MenuItem {
 	alerts := make([]menuet.MenuItem, 0, len(alertsCatalog))
 	for _, alert := range alertsCatalog {
+		alert := alert
 		text := alert.MessageText
 		if text == "" {
 			text = alert.InformativeText
@@ -128,6 +129,7 @@ func alerts() []menuet.MenuItem {
 func notifs() []menuet.MenuItem {
 	notifs := make([]menuet.MenuItem, 0, len(notificationsCatalog))
 	for _, notif := range notificationsCatalog {
+		notif := notif
 		text := notif.Title
 		if text == "" {
 			text = notif.Subtitle
