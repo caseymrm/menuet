@@ -7,6 +7,7 @@ void itemClicked(const char *);
 void notificationRespond(const char *, const char *);
 const char *children(const char *);
 void menuClosed(const char *);
+bool hideStartup();
 bool runningAtStartup();
 void toggleStartup();
 
@@ -134,20 +135,29 @@ NSStatusItem *_statusItem;
 		items = [items arrayByAddingObjectsFromArray:@[
 				 @{@"Type" : @"separator",
 				   @"Clickable" : @YES},
-				 @{@"Text" : @"Start at Login",
-				   @"Clickable" : @YES},
+		]];
+		if (!hideStartup()) {
+			items = [items arrayByAddingObjectsFromArray:@[
+					@{@"Text" : @"Start at Login",
+					@"Clickable" : @YES},
+			]];
+		}
+		items = [items arrayByAddingObjectsFromArray:@[
 				 @{@"Text" : @"Quit",
 				   @"Clickable" : @YES},
 		]];
 	}
 	[self populate:items];
 	if (self.root) {
-		NSMenuItem *item = [self itemAtIndex:items.count - 2];
-		item.action = @selector(toggleStartup:);
-		if (runningAtStartup()) {
-			item.state = NSControlStateValueOn;
-		} else {
-			item.state = NSControlStateValueOff;
+		NSMenuItem *item = nil;
+		if (!hideStartup()) {
+			item = [self itemAtIndex:items.count - 2];
+			item.action = @selector(toggleStartup:);
+			if (runningAtStartup()) {
+				item.state = NSControlStateValueOn;
+			} else {
+				item.state = NSControlStateValueOff;
+			}
 		}
 		item = [self itemAtIndex:items.count - 1];
 		item.target = nil;

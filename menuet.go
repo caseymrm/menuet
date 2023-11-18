@@ -41,6 +41,7 @@ type Application struct {
 	alertChannel          chan AlertClicked
 	currentState          *MenuState
 	nextState             *MenuState
+	hideStartupItem       bool
 	pendingStateChange    bool
 	debounceMutex         sync.Mutex
 	visibleMenuItemsMutex sync.RWMutex
@@ -79,6 +80,11 @@ func (a *Application) SetMenuState(state *MenuState) {
 // MenuChanged refreshes any open menus
 func (a *Application) MenuChanged() {
 	C.menuChanged()
+}
+
+// HideStartup prevents the Start at Login menu item from being displayed
+func (a *Application) HideStartup() {
+	a.hideStartupItem = true
 }
 
 // MenuState represents the title and drop down,
@@ -157,6 +163,11 @@ func menuClosed(uniqueCString *C.char) {
 //export notificationRespond
 func notificationRespond(id *C.char, response *C.char) {
 	App().NotificationResponder(C.GoString(id), C.GoString(response))
+}
+
+//export hideStartup
+func hideStartup() bool {
+	return App().hideStartupItem
 }
 
 //export runningAtStartup
