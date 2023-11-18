@@ -10,6 +10,7 @@ void menuClosed(const char *);
 bool hideStartup();
 bool runningAtStartup();
 void toggleStartup();
+void shutdownWait();
 
 NSStatusItem *_statusItem;
 
@@ -160,8 +161,7 @@ NSStatusItem *_statusItem;
 			}
 		}
 		item = [self itemAtIndex:items.count - 1];
-		item.target = nil;
-		item.action = @selector(terminate:);
+		item.action = @selector(prepareShutdown:);
 	}
 	self.open = YES;
 }
@@ -178,6 +178,11 @@ NSStatusItem *_statusItem;
 
 - (void)toggleStartup:(id)sender {
 	toggleStartup();
+}
+
+- (void)prepareShutdown:(id)sender {
+	shutdownWait();
+	[NSApp terminate: nil];
 }
 
 @end
