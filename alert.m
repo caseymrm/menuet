@@ -1,6 +1,7 @@
 #import <Cocoa/Cocoa.h>
 
 #import "alert.h"
+#import "EditableNSTextField.h"
 
 void alertClicked(int, const char *);
 
@@ -30,8 +31,8 @@ void showAlert(const char *jsonString) {
 		        accessoryView = [[NSView alloc] initWithFrame:NSMakeRect(0, 0, 200, y)];
 		        for (NSString *input in inputs) {
 		                y -= 30;
-		                NSTextField *textfield =
-					[[NSTextField alloc] initWithFrame:NSMakeRect(0, y, 200, 25)];
+		                EditableNSTextField *textfield =
+					[[EditableNSTextField alloc] initWithFrame:NSMakeRect(0, y, 200, 25)];
 		                [textfield setPlaceholderString:input];
 		                [accessoryView addSubview:textfield];
 		                if (!first) {
@@ -47,10 +48,10 @@ void showAlert(const char *jsonString) {
 		NSMutableArray *values = [NSMutableArray new];
 		if (hasInputs) {
 		        for (NSView *subview in accessoryView.subviews) {
-		                if (![subview isKindOfClass:[NSTextField class]]) {
+		                if (![subview isKindOfClass:[EditableNSTextField class]]) {
 		                        continue;
 				}
-		                [values addObject:((NSTextField *)subview).stringValue];
+		                [values addObject:((EditableNSTextField *)subview).stringValue];
 			}
 		}
 		NSData *jsonData =
