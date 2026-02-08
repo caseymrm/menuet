@@ -29,11 +29,17 @@ void showAlert(const char *jsonString) {
 		        BOOL first = false;
 		        int y = 30 * inputs.count;
 		        accessoryView = [[NSView alloc] initWithFrame:NSMakeRect(0, 0, 200, y)];
-		        for (NSString *input in inputs) {
+		        for (NSDictionary *input in inputs) {
 		                y -= 30;
-		                EditableNSTextField *textfield =
-					[[EditableNSTextField alloc] initWithFrame:NSMakeRect(0, y, 200, 25)];
-		                [textfield setPlaceholderString:input];
+		                NSString *placeholder = input[@"Placeholder"];
+		                NSInteger type = [input[@"Type"] integerValue];
+		                NSTextField *textfield;
+		                if (type == 1) {
+		                        textfield = [[NSSecureTextField alloc] initWithFrame:NSMakeRect(0, y, 200, 25)];
+		                } else {
+		                        textfield = [[EditableNSTextField alloc] initWithFrame:NSMakeRect(0, y, 200, 25)];
+		                }
+		                [textfield setPlaceholderString:placeholder];
 		                [accessoryView addSubview:textfield];
 		                if (!first) {
 		                        [alert.window setInitialFirstResponder:textfield];
@@ -48,10 +54,10 @@ void showAlert(const char *jsonString) {
 		NSMutableArray *values = [NSMutableArray new];
 		if (hasInputs) {
 		        for (NSView *subview in accessoryView.subviews) {
-		                if (![subview isKindOfClass:[EditableNSTextField class]]) {
+		                if (![subview isKindOfClass:[NSTextField class]]) {
 		                        continue;
 				}
-		                [values addObject:((EditableNSTextField *)subview).stringValue];
+		                [values addObject:((NSTextField *)subview).stringValue];
 			}
 		}
 		NSData *jsonData =

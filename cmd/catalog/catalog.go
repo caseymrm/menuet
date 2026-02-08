@@ -21,17 +21,25 @@ var alertsCatalog = []menuet.Alert{
 	},
 	menuet.Alert{
 		MessageText: "Message and input",
-		Inputs:      []string{"Example input"},
+		Inputs:      []menuet.AlertInput{{Placeholder: "Example input"}},
 	},
 	menuet.Alert{
 		MessageText:     "Message, InformativeText, Button, and Input",
 		InformativeText: "Example InformativeText",
 		Buttons:         []string{"Example button"},
-		Inputs:          []string{"Example Input"},
+		Inputs:          []menuet.AlertInput{{Placeholder: "Example Input"}},
 	},
 	menuet.Alert{
 		MessageText: "Message and two inputs",
-		Inputs:      []string{"Input one", "Input two"},
+		Inputs:      []menuet.AlertInput{{Placeholder: "Input one"}, {Placeholder: "Input two"}},
+	},
+	menuet.Alert{
+		MessageText: "Login form",
+		Buttons:     []string{"Login", "Cancel"},
+		Inputs: []menuet.AlertInput{
+			{Placeholder: "Username"},
+			{Placeholder: "Password", Type: menuet.InputPassword},
+		},
 	},
 }
 
