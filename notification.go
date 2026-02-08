@@ -2,7 +2,7 @@ package menuet
 
 /*
 #cgo CFLAGS: -x objective-c
-#cgo LDFLAGS: -framework Cocoa
+#cgo LDFLAGS: -framework Cocoa -framework UserNotifications
 
 #import <Cocoa/Cocoa.h>
 
@@ -20,14 +20,17 @@ import (
 	"unsafe"
 )
 
-// Notification represents an NSUserNotification
+// Notification represents a macOS user notification.
 type Notification struct {
 	// The basic text of the notification
 	Title    string
 	Subtitle string
 	Message  string
 
-	// These add an optional action button, change what the close button says, and adds an in-line reply
+	// These add an optional action button, configure dismiss behavior, and add an in-line reply.
+	// Note: on macOS 11+, CloseButton still causes the dismiss action to trigger the
+	// NotificationResponder callback, but custom button text is not supported by the
+	// UserNotifications framework — the system default text is used instead.
 	ActionButton        string
 	CloseButton         string
 	ResponsePlaceholder string
