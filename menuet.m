@@ -9,6 +9,8 @@ void notificationRespond(const char *, const char *);
 const char *children(const char *);
 void menuClosed(const char *);
 bool hideStartup();
+char *startAtLoginLabel();
+char *quitLabel();
 bool runningAtStartup();
 void toggleStartup();
 void shutdownWait();
