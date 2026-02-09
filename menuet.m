@@ -140,15 +140,19 @@ NSStatusItem *_statusItem;
 				   @"Clickable" : @YES},
 		]];
 		if (!hideStartup()) {
+			char *startLabel = startAtLoginLabel();
 			items = [items arrayByAddingObjectsFromArray:@[
-					@{@"Text" : @"Start at Login",
+					@{@"Text" : [NSString stringWithUTF8String:startLabel],
 					@"Clickable" : @YES},
 			]];
+			free(startLabel);
 		}
+		char *qLabel = quitLabel();
 		items = [items arrayByAddingObjectsFromArray:@[
-				 @{@"Text" : @"Quit",
+				 @{@"Text" : [NSString stringWithUTF8String:qLabel],
 				   @"Clickable" : @YES},
 		]];
+		free(qLabel);
 	}
 	[self populate:items];
 	if (self.root) {
