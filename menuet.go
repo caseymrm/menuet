@@ -44,6 +44,11 @@ type Application struct {
 	// NotificationResponder is a handler called when notification respond
 	NotificationResponder func(id, response string)
 
+	// StartAtLoginLabel overrides the default "Start at Login" menu item text
+	StartAtLoginLabel string
+	// QuitLabel overrides the default "Quit" menu item text
+	QuitLabel string
+
 	alertChannel          chan AlertClicked
 	currentState          *MenuState
 	nextState             *MenuState
@@ -192,6 +197,24 @@ func notificationRespond(id *C.char, response *C.char) {
 //export hideStartup
 func hideStartup() bool {
 	return App().hideStartupItem
+}
+
+//export startAtLoginLabel
+func startAtLoginLabel() *C.char {
+	label := App().StartAtLoginLabel
+	if label == "" {
+		label = "Start at Login"
+	}
+	return C.CString(label)
+}
+
+//export quitLabel
+func quitLabel() *C.char {
+	label := App().QuitLabel
+	if label == "" {
+		label = "Quit"
+	}
+	return C.CString(label)
 }
 
 //export runningAtStartup
