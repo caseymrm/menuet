@@ -15,8 +15,13 @@ bool runningAtStartup();
 void toggleStartup();
 void shutdownWait();
 void initNotifications(void);
+bool hasTopLevelClicked();
+void topLevelClicked();
+
+@class MenuetMenu;
 
 NSStatusItem *_statusItem;
+MenuetMenu *_rootMenu;
 
 @interface MenuetMenu : NSMenu <NSMenuDelegate>
 
@@ -223,8 +228,7 @@ void setState(const char *jsonString) {
 
 void menuChanged() {
         dispatch_async(dispatch_get_main_queue(), ^{
-		MenuetMenu *menu = (MenuetMenu *)_statusItem.menu;
-		[menu refreshVisibleMenus];
+		[_rootMenu refreshVisibleMenus];
 	});
 }
 
@@ -238,9 +242,15 @@ void createAndRunApplication() {
         [a setActivationPolicy:NSApplicationActivationPolicyAccessory];
         _statusItem = [[NSStatusBar systemStatusBar]
                        statusItemWithLength:NSVariableStatusItemLength];
-        MenuetMenu *menu = [MenuetMenu new];
-        menu.root = true;
-        _statusItem.menu = menu;
+        _rootMenu = [MenuetMenu new];
+        _rootMenu.root = true;
+        // We intercept all button clicks instead of assigning _statusItem.menu
+        // so that the optional Application.Clicked handler (Go side) can fire
+        // on left clicks while the menu still opens on right click. When no
+        // handler is set, every click falls through to the menu popup.
+        _statusItem.button.target = d;
+        _statusItem.button.action = @selector(statusItemClicked:);
+        [_statusItem.button sendActionOn:(NSEventMaskLeftMouseUp | NSEventMaskRightMouseUp)];
         [a run];
 }
 
@@ -262,6 +272,23 @@ void createAndRunApplication() {
                 notificationRespond(identifier.UTF8String, @"".UTF8String);
         }
         completionHandler();
+}
+
+- (void)statusItemClicked:(id)sender {
+        NSEvent *event = [NSApp currentEvent];
+        BOOL openMenu = !hasTopLevelClicked() ||
+                        event.type == NSEventTypeRightMouseUp ||
+                        (event.modifierFlags & NSEventModifierFlagControl) != 0;
+        if (openMenu) {
+                NSStatusBarButton *button = _statusItem.button;
+                button.highlighted = YES;
+                [_rootMenu popUpMenuPositioningItem:nil
+                                         atLocation:NSMakePoint(0, button.bounds.size.height)
+                                             inView:button];
+                button.highlighted = NO;
+                return;
+        }
+        topLevelClicked();
 }
 
 - (void)userNotificationCenter:(UNUserNotificationCenter *)center

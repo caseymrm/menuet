@@ -14,6 +14,23 @@ menuet requires OS X.
 
 https://godoc.org/github.com/caseymrm/menuet
 
+## Left-click handler
+
+Set `Application.Clicked` to intercept left clicks on the menubar icon
+instead of opening the menu. The menu still opens on right click (or
+Ctrl-left-click). Useful for toggle-style apps — mute audio, pause a
+timer, etc. — where the menu is the secondary UI:
+
+```go
+menuet.App().Clicked = func() {
+    // toggle whatever state your app exposes
+}
+```
+
+Leave `Clicked` as `nil` (the default) for the standard behavior where
+any click opens the menu. Safe to set or clear at runtime; the next
+click reflects the current value.
+
 ## Running as a real macOS app
 
 `go run` is fine for early development, but several menuet features only work
