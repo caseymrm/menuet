@@ -1,4 +1,5 @@
 #import <Cocoa/Cocoa.h>
+#import <UserNotifications/UserNotifications.h>
 
 #import "NSImage+Resize.h"
 #import "menuet.h"
@@ -11,6 +12,7 @@ bool hideStartup();
 bool runningAtStartup();
 void toggleStartup();
 void shutdownWait();
+void initNotifications(void);
 
 NSStatusItem *_statusItem;
 
@@ -187,7 +189,7 @@ NSStatusItem *_statusItem;
 
 @end
 
-@interface MenuetAppDelegate : NSObject <NSApplicationDelegate, NSMenuDelegate, NSUserNotificationCenterDelegate>
+@interface MenuetAppDelegate : NSObject <NSApplicationDelegate, NSMenuDelegate, UNUserNotificationCenterDelegate>
 
 @end
 
@@ -225,7 +227,8 @@ void createAndRunApplication() {
         NSApplication *a = NSApplication.sharedApplication;
         MenuetAppDelegate *d = [MenuetAppDelegate new];
         [a setDelegate:d];
-        [[NSUserNotificationCenter defaultUserNotificationCenter] setDelegate:d];
+        initNotifications();
+        [UNUserNotificationCenter currentNotificationCenter].delegate = d;
         [a setActivationPolicy:NSApplicationActivationPolicyAccessory];
         _statusItem = [[NSStatusBar systemStatusBar]
                        statusItemWithLength:NSVariableStatusItemLength];
@@ -242,13 +245,24 @@ void createAndRunApplication() {
         return NSTerminateNow;
 }
 
-- (void)userNotificationCenter:(NSUserNotificationCenter *)center didActivateNotification:(NSUserNotification *)notification {
-        if (notification.activationType == NSUserNotificationActivationTypeReplied) {
-                NSString* userResponse = notification.response.string;
-                notificationRespond(notification.identifier.UTF8String, userResponse.UTF8String);
-	} else {
-                notificationRespond(notification.identifier.UTF8String, @"".UTF8String);
-	}
+- (void)userNotificationCenter:(UNUserNotificationCenter *)center
+       didReceiveNotificationResponse:(UNNotificationResponse *)response
+       withCompletionHandler:(void (^)(void))completionHandler {
+        NSString *identifier = response.notification.request.identifier;
+        if ([response isKindOfClass:[UNTextInputNotificationResponse class]]) {
+                NSString *userText = ((UNTextInputNotificationResponse *)response).userText;
+                notificationRespond(identifier.UTF8String, userText.UTF8String);
+        } else {
+                notificationRespond(identifier.UTF8String, @"".UTF8String);
+        }
+        completionHandler();
+}
+
+- (void)userNotificationCenter:(UNUserNotificationCenter *)center
+       willPresentNotification:(UNNotification *)notification
+       withCompletionHandler:(void (^)(UNNotificationPresentationOptions))completionHandler {
+        completionHandler(UNNotificationPresentationOptionBanner |
+                          UNNotificationPresentationOptionSound);
 }
 
 @end
