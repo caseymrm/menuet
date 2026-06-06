@@ -17,8 +17,9 @@ import (
 )
 
 type release struct {
-	TagName string `json:"tag_name"`
-	Assets  []struct {
+	TagName    string `json:"tag_name"`
+	Prerelease bool   `json:"prerelease"`
+	Assets     []struct {
 		Name        string `json:"name"`
 		DownloadURL string `json:"browser_download_url"`
 	} `json:"assets"`
@@ -28,7 +29,7 @@ func (a *Application) checkForUpdates() {
 	checkForRestart()
 	ticker := time.NewTicker(24 * time.Hour)
 	for ; true; <-ticker.C {
-		release := checkForNewRelease(a.AutoUpdate.Repo, a.AutoUpdate.Version)
+		release := checkForNewRelease(a.AutoUpdate.Repo, a.AutoUpdate.Version, a.AutoUpdate.AllowPrerelease)
 		if release == nil {
 			continue
 		}
@@ -62,7 +63,7 @@ func checkForRestart() {
 	syscall.Kill(ppid, syscall.SIGTERM)
 }
 
-func checkForNewRelease(githubProject, currentVersion string) *release {
+func checkForNewRelease(githubProject, currentVersion string, allowPrerelease bool) *release {
 	if currentVersion == "" {
 		log.Printf("Not checking updates for dev version")
 		return nil
@@ -72,7 +73,7 @@ func checkForNewRelease(githubProject, currentVersion string) *release {
 		log.Printf("Error fetching github releases: %v", err)
 		return nil
 	}
-	return getReleaseToUpdateTo(releases, currentVersion)
+	return getReleaseToUpdateTo(releases, currentVersion, allowPrerelease)
 }
 
 func updateApp(release *release) error {
@@ -244,7 +245,16 @@ func unzipBundle(filename string) (string, error) {
 	return bundle, nil
 }
 
-func getReleaseToUpdateTo(releases []release, currentVersion string) *release {
+func getReleaseToUpdateTo(releases []release, currentVersion string, allowPrerelease bool) *release {
+	if !allowPrerelease {
+		filtered := releases[:0:0]
+		for _, r := range releases {
+			if !r.Prerelease {
+				filtered = append(filtered, r)
+			}
+		}
+		releases = filtered
+	}
 	if len(releases) == 0 {
 		log.Printf("No github releases found")
 		return nil
