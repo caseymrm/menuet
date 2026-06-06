@@ -1,6 +1,7 @@
 package menuet
 
 import (
+	"bytes"
 	"log"
 	"os"
 	"os/user"
@@ -11,7 +12,8 @@ import (
 
 func (a *Application) getStartupPath() string {
 	if a.Label == "" {
-		log.Fatal("Need to set a Label for the app")
+		log.Println("Warning: no application Label set, cannot manage Start at Login")
+		return ""
 	}
 	u, err := user.Current()
 	if err != nil {
@@ -22,20 +24,20 @@ func (a *Application) getStartupPath() string {
 }
 
 func (a *Application) runningAtStartup() bool {
-	if a.Label == "" {
-		log.Println("Warning: no application Label set")
+	path := a.getStartupPath()
+	if path == "" {
 		return false
 	}
-	_, err := os.Stat(a.getStartupPath())
-	if err == nil {
-		return true
-	}
-	return false
+	_, err := os.Stat(path)
+	return err == nil
 }
 
 func (a *Application) removeStartupItem() {
-	err := os.Remove(a.getStartupPath())
-	if err != nil {
+	path := a.getStartupPath()
+	if path == "" {
+		return
+	}
+	if err := os.Remove(path); err != nil {
 		log.Printf("os.Remove: %v", err)
 	}
 }
@@ -43,11 +45,29 @@ func (a *Application) removeStartupItem() {
 var launchdOnce sync.Once
 var launchdTemplate *template.Template
 
+type launchdPlistData struct {
+	Name       string
+	Label      string
+	Executable string
+}
+
+func renderLaunchdPlist(data launchdPlistData) (string, error) {
+	launchdOnce.Do(func() {
+		launchdTemplate = template.Must(template.New("launchdConfig").Parse(launchdString))
+	})
+	var buf bytes.Buffer
+	if err := launchdTemplate.Execute(&buf, data); err != nil {
+		return "", err
+	}
+	return buf.String(), nil
+}
+
 func (a *Application) addStartupItem() {
 	path := a.getStartupPath()
-	// Make sure ~/Library/LaunchAgents exists
-	err := os.MkdirAll(filepath.Dir(path), 0700)
-	if err != nil {
+	if path == "" {
+		return
+	}
+	if err := os.MkdirAll(filepath.Dir(path), 0700); err != nil {
 		log.Printf("os.MkdirAll: %v", err)
 		return
 	}
@@ -56,27 +76,17 @@ func (a *Application) addStartupItem() {
 		log.Printf("os.Executable: %v", err)
 		return
 	}
-	f, err := os.Create(path)
+	rendered, err := renderLaunchdPlist(launchdPlistData{
+		Name:       a.Name,
+		Label:      a.Label,
+		Executable: executable,
+	})
 	if err != nil {
-		log.Printf("os.Create: %v", err)
+		log.Printf("renderLaunchdPlist: %v", err)
 		return
 	}
-	defer f.Close()
-	launchdOnce.Do(func() {
-		launchdTemplate = template.Must(template.New("launchdConfig").Parse(launchdString))
-	})
-	err = launchdTemplate.Execute(f,
-		struct {
-			Name       string
-			Label      string
-			Executable string
-		}{
-			a.Name,
-			a.Label,
-			executable,
-		})
-	if err != nil {
-		log.Printf("template.Execute: %v", err)
+	if err := os.WriteFile(path, []byte(rendered), 0644); err != nil {
+		log.Printf("os.WriteFile: %v", err)
 		return
 	}
 }
@@ -86,7 +96,7 @@ var launchdString = `
  <!DOCTYPE plist PUBLIC \"-//Apple Computer//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\" >
  <plist version='1.0'>
    <dict>
-     <key>Label</key><string>{{.Name}}</string>
+     <key>Label</key><string>{{.Label}}</string>
      <key>Program</key><string>{{.Executable}}</string>
      <key>StandardOutPath</key><string>/tmp/{{.Label}}-out.log</string>
      <key>StandardErrorPath</key><string>/tmp/{{.Label}}-err.log</string>

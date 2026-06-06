@@ -140,11 +140,18 @@ func appPath() (string, string) {
 	if err != nil {
 		log.Fatalf("os.Executable: %v", err)
 	}
-	d := strings.Split(currentPath, string(os.PathSeparator))
+	return currentPath, bundlePathForExecutable(currentPath)
+}
+
+// bundlePathForExecutable returns the .app bundle path containing the given
+// executable, or "" if the executable is not inside one. A bundle layout is
+// recognized when the executable lives at .../<Something>.app/Contents/MacOS/<binary>.
+func bundlePathForExecutable(execPath string) string {
+	d := strings.Split(execPath, string(os.PathSeparator))
 	if len(d) < 5 || d[len(d)-2] != "MacOS" || d[len(d)-3] != "Contents" {
-		return currentPath, ""
+		return ""
 	}
-	return currentPath, strings.Join(d[0:len(d)-3], string(os.PathSeparator))
+	return strings.Join(d[0:len(d)-3], string(os.PathSeparator))
 }
 
 func getReleasesFromGitHub(project string) ([]release, error) {

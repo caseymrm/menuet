@@ -14,6 +14,38 @@ menuet requires OS X.
 
 https://godoc.org/github.com/caseymrm/menuet
 
+## Running as a real macOS app
+
+`go run` is fine for early development, but several menuet features only work
+when the binary is launched from inside a proper macOS `.app` bundle. These
+requirements are enforced by macOS, not by menuet:
+
+* **Notifications** require a bundle. `UNUserNotificationCenter` will silently
+  no-op for a loose executable. The app also needs to be code-signed —
+  ad-hoc signing is not enough; you need a Developer ID signature (or full
+  notarization for distribution).
+* **Start at Login** writes a launchd plist that points at the executable
+  path. You'll typically want that path to be the binary inside your `.app`
+  bundle, not a `go run` temp directory.
+* **Auto-update** moves a new `.app` bundle on top of the running one, so it
+  obviously needs a bundle to update.
+
+The shared `menuet.mk` Makefile assembles a minimal bundle for you. From your
+app directory, create a `Makefile` like:
+
+```make
+APP=My App
+IDENTIFIER=com.example.myapp
+include $(GOPATH)/src/github.com/caseymrm/menuet/menuet.mk
+```
+
+Then `make run` builds the binary into `My App.app/Contents/MacOS/myapp`,
+generates `My App.app/Contents/Info.plist` with your `CFBundleIdentifier`,
+and launches it. The `cmd/catalog` example uses this pattern.
+
+To sign the bundle for notifications and distribution, set `IDENTITY` to a
+Developer ID Application certificate from your Keychain and run `make sign`.
+
 ## Apps built with Menuet
 
 * [Why Awake?](https://github.com/caseymrm/whyawake) - shows why your Mac can't sleep, and lets you force it awake
