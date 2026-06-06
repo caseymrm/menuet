@@ -44,6 +44,13 @@ type Application struct {
 	// NotificationResponder is a handler called when notification respond
 	NotificationResponder func(id, response string)
 
+	// Clicked, if set, is called when the user left-clicks the menubar
+	// icon. The menu does not auto-open on left click in this case —
+	// right click (or Ctrl-left-click) opens it instead. Useful for
+	// toggle-style apps (mute, pause, etc.) where the menu is the
+	// secondary UI. Safe to set or clear at runtime.
+	Clicked func()
+
 	// StartAtLoginLabel overrides the default "Start at Login" menu item text
 	StartAtLoginLabel string
 	// QuitLabel overrides the default "Quit" menu item text
@@ -197,6 +204,18 @@ func notificationRespond(id *C.char, response *C.char) {
 //export hideStartup
 func hideStartup() bool {
 	return App().hideStartupItem
+}
+
+//export hasTopLevelClicked
+func hasTopLevelClicked() bool {
+	return App().Clicked != nil
+}
+
+//export topLevelClicked
+func topLevelClicked() {
+	if f := App().Clicked; f != nil {
+		go f()
+	}
 }
 
 //export startAtLoginLabel

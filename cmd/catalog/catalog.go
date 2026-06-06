@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+
 	"github.com/caseymrm/menuet"
 )
 
@@ -112,6 +114,36 @@ func menuItems() []menuet.MenuItem {
 		menuet.MenuItem{
 			Text:     "Menu Items",
 			Children: items,
+		},
+		menuet.MenuItem{
+			Text:     "Left-click handler",
+			Children: clickHandlerMenu,
+		},
+	}
+}
+
+var topLevelClicks int
+
+func handleTopLevelClick() {
+	topLevelClicks++
+	menuet.App().SetMenuState(&menuet.MenuState{
+		Title: fmt.Sprintf("Clicks: %d", topLevelClicks),
+	})
+}
+
+func clickHandlerMenu() []menuet.MenuItem {
+	return []menuet.MenuItem{
+		{
+			Text:  "Enabled (left click counts; right click still opens menu)",
+			State: menuet.App().Clicked != nil,
+			Clicked: func() {
+				if menuet.App().Clicked == nil {
+					menuet.App().Clicked = handleTopLevelClick
+				} else {
+					menuet.App().Clicked = nil
+					menuet.App().SetMenuState(&menuet.MenuState{Title: "Catalog"})
+				}
+			},
 		},
 	}
 }
