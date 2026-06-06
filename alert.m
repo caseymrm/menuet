@@ -28,16 +28,16 @@ void showAlert(const char *jsonString) {
 		if (hasInputs) {
 		        BOOL first = false;
 		        int y = 30 * inputs.count;
-		        accessoryView = [[NSView alloc] initWithFrame:NSMakeRect(0, 0, 200, y)];
+		        accessoryView = [[NSView alloc] initWithFrame:NSMakeRect(0, 0, 300, y)];
 		        for (NSDictionary *input in inputs) {
 		                y -= 30;
 		                NSString *placeholder = input[@"Placeholder"];
 		                NSInteger type = [input[@"Type"] integerValue];
 		                NSTextField *textfield;
 		                if (type == 1) {
-		                        textfield = [[NSSecureTextField alloc] initWithFrame:NSMakeRect(0, y, 200, 25)];
+		                        textfield = [[NSSecureTextField alloc] initWithFrame:NSMakeRect(0, y, 300, 25)];
 		                } else {
-		                        textfield = [[EditableNSTextField alloc] initWithFrame:NSMakeRect(0, y, 200, 25)];
+		                        textfield = [[EditableNSTextField alloc] initWithFrame:NSMakeRect(0, y, 300, 25)];
 		                }
 		                [textfield setPlaceholderString:placeholder];
 		                [accessoryView addSubview:textfield];
