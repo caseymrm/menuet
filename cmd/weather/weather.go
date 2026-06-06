@@ -149,7 +149,7 @@ func menuItems() []menuet.MenuItem {
 		Clicked: func() {
 			response := menuet.App().Alert(menuet.Alert{
 				MessageText: "Where would you like to display the weather for?",
-				Inputs:      []string{"Location"},
+				Inputs:      []menuet.AlertInput{{Placeholder: "Location"}},
 				Buttons:     []string{"Search", "Cancel"},
 			})
 			if response.Button == 0 && len(response.Inputs) == 1 && response.Inputs[0] != "" {

@@ -20,12 +20,26 @@ import (
 	"unsafe"
 )
 
+// InputType specifies the type of input field in an alert
+type InputType int
+
+const (
+	InputText     InputType = iota // regular text field
+	InputPassword                  // masked password field (NSSecureTextField)
+)
+
+// AlertInput defines an input field in an alert
+type AlertInput struct {
+	Placeholder string
+	Type        InputType
+}
+
 // Alert represents an NSAlert
 type Alert struct {
 	MessageText     string
 	InformativeText string
 	Buttons         []string
-	Inputs          []string
+	Inputs          []AlertInput
 }
 
 // AlertClicked represents a selected alert button
