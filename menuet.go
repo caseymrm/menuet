@@ -34,6 +34,11 @@ type Application struct {
 	AutoUpdate struct {
 		Version string
 		Repo    string // For example "caseymrm/menuet"
+		// AllowPrerelease opts in to GitHub releases marked as prereleases.
+		// When false (the default), prereleases are filtered out before
+		// choosing what to update to. Apps on a prerelease are not
+		// downgraded to the latest stable — switch channels manually.
+		AllowPrerelease bool
 	}
 
 	// NotificationResponder is a handler called when notification respond

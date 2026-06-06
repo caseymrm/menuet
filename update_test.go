@@ -3,14 +3,21 @@ package menuet
 import "testing"
 
 func TestGetReleaseToUpdateTo(t *testing.T) {
-	r := func(tag string) release { return release{TagName: tag} }
-	releases := []release{r("v1.2.0"), r("v1.1.0"), r("v1.0.0")}
+	stable := func(tag string) release { return release{TagName: tag} }
+	pre := func(tag string) release { return release{TagName: tag, Prerelease: true} }
+	stables := []release{stable("v1.2.0"), stable("v1.1.0"), stable("v1.0.0")}
+	mixed := []release{
+		stable("v2.0.0"),
+		pre("v2.0.0-beta1"),
+		stable("v1.0.0"),
+	}
 
 	tests := []struct {
-		name           string
-		releases       []release
-		currentVersion string
-		wantTag        string // "" means nil result
+		name            string
+		releases        []release
+		currentVersion  string
+		allowPrerelease bool
+		wantTag         string // "" means nil result
 	}{
 		{
 			name:           "empty release list returns nil",
@@ -20,32 +27,69 @@ func TestGetReleaseToUpdateTo(t *testing.T) {
 		},
 		{
 			name:           "already on latest returns nil",
-			releases:       releases,
+			releases:       stables,
 			currentVersion: "v1.2.0",
 			wantTag:        "",
 		},
 		{
 			name:           "behind by one returns latest",
-			releases:       releases,
+			releases:       stables,
 			currentVersion: "v1.1.0",
 			wantTag:        "v1.2.0",
 		},
 		{
 			name:           "behind by two returns latest",
-			releases:       releases,
+			releases:       stables,
 			currentVersion: "v1.0.0",
 			wantTag:        "v1.2.0",
 		},
 		{
-			name:           "current version not in list returns nil (we don't downgrade strangers)",
-			releases:       releases,
+			name:           "current version not in list returns nil",
+			releases:       stables,
 			currentVersion: "v0.9.0",
 			wantTag:        "",
+		},
+
+		// Prerelease handling
+		{
+			name:            "stable channel skips prereleases when picking latest",
+			releases:        mixed,
+			currentVersion:  "v1.0.0",
+			allowPrerelease: false,
+			wantTag:         "v2.0.0",
+		},
+		{
+			name:            "stable channel skips prereleases even when only prereleases exist",
+			releases:        []release{pre("v1.0.0-beta1")},
+			currentVersion:  "v0.9.0",
+			allowPrerelease: false,
+			wantTag:         "",
+		},
+		{
+			name:            "user on a prerelease with stable channel does not downgrade",
+			releases:        mixed,
+			currentVersion:  "v2.0.0-beta1",
+			allowPrerelease: false,
+			wantTag:         "",
+		},
+		{
+			name:            "beta channel offers a newer prerelease over the current stable",
+			releases:        mixed,
+			currentVersion:  "v1.0.0",
+			allowPrerelease: true,
+			wantTag:         "v2.0.0",
+		},
+		{
+			name:            "beta channel updates a prerelease to the latest including prereleases",
+			releases:        []release{pre("v2.0.0-beta2"), pre("v2.0.0-beta1")},
+			currentVersion:  "v2.0.0-beta1",
+			allowPrerelease: true,
+			wantTag:         "v2.0.0-beta2",
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := getReleaseToUpdateTo(tt.releases, tt.currentVersion)
+			got := getReleaseToUpdateTo(tt.releases, tt.currentVersion, tt.allowPrerelease)
 			if tt.wantTag == "" {
 				if got != nil {
 					t.Errorf("got %+v, want nil", got)
