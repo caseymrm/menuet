@@ -99,23 +99,23 @@ var notificationsCatalog = []menuet.Notification{
 
 func menuItems() []menuet.MenuItem {
 	return []menuet.MenuItem{
-		menuet.MenuItem{
+		menuet.Regular{
 			Text:     "Show Alert",
 			Children: alerts,
 		},
-		menuet.MenuItem{
+		menuet.Regular{
 			Text:     "Send Notification",
 			Children: notifs,
 		},
-		menuet.MenuItem{
+		menuet.Regular{
 			Text:     "Change Title",
 			Children: changeTitle,
 		},
-		menuet.MenuItem{
+		menuet.Regular{
 			Text:     "Menu Items",
 			Children: items,
 		},
-		menuet.MenuItem{
+		menuet.Regular{
 			Text:     "Left-click handler",
 			Children: clickHandlerMenu,
 		},
@@ -133,7 +133,7 @@ func handleTopLevelClick() {
 
 func clickHandlerMenu() []menuet.MenuItem {
 	return []menuet.MenuItem{
-		{
+		menuet.Regular{
 			Text:  "Enabled (left click counts; right click still opens menu)",
 			State: menuet.App().Clicked != nil,
 			Clicked: func() {
@@ -156,7 +156,7 @@ func alerts() []menuet.MenuItem {
 		if text == "" {
 			text = alert.InformativeText
 		}
-		alerts = append(alerts, menuet.MenuItem{
+		alerts = append(alerts, menuet.Regular{
 			Text: text,
 			Clicked: func() {
 				menuet.App().Alert(alert)
@@ -177,7 +177,7 @@ func notifs() []menuet.MenuItem {
 		if text == "" {
 			text = notif.Message
 		}
-		notifs = append(notifs, menuet.MenuItem{
+		notifs = append(notifs, menuet.Regular{
 			Text: text,
 			Clicked: func() {
 				menuet.App().Notification(notif)
@@ -189,7 +189,7 @@ func notifs() []menuet.MenuItem {
 
 func changeTitle() []menuet.MenuItem {
 	return []menuet.MenuItem{
-		{
+		menuet.Regular{
 			Text: "Text only",
 			Clicked: func() {
 				menuet.App().SetMenuState(&menuet.MenuState{
@@ -197,7 +197,7 @@ func changeTitle() []menuet.MenuItem {
 				})
 			},
 		},
-		{
+		menuet.Regular{
 			Text: "Image only",
 			Clicked: func() {
 				menuet.App().SetMenuState(&menuet.MenuState{
@@ -205,7 +205,7 @@ func changeTitle() []menuet.MenuItem {
 				})
 			},
 		},
-		{
+		menuet.Regular{
 			Text: "Text and Image",
 			Clicked: func() {
 				menuet.App().SetMenuState(&menuet.MenuState{
@@ -219,22 +219,22 @@ func changeTitle() []menuet.MenuItem {
 
 func items() []menuet.MenuItem {
 	return []menuet.MenuItem{
-		{
+		menuet.Regular{
 			Text: "Just text",
 		},
-		{
+		menuet.Regular{
 			Text:     "FontSizes",
 			Children: fontsizes,
 		},
-		{
+		menuet.Regular{
 			Text:     "FontWeights",
 			Children: fontweights,
 		},
-		{
+		menuet.Regular{
 			Text:  "State = true",
 			State: true,
 		},
-		{
+		menuet.Regular{
 			Text: "Text and Clicked",
 			Clicked: func() {
 				menuet.App().Alert(menuet.Alert{
@@ -242,23 +242,23 @@ func items() []menuet.MenuItem {
 				})
 			},
 		},
-		{
+		menuet.Regular{
 			Text: "Text and Children",
 			Children: func() []menuet.MenuItem {
 				return []menuet.MenuItem{
-					{
+					menuet.Regular{
 						Text: "Hello",
 					},
-					{
+					menuet.Regular{
 						Text: "Inline",
 					},
-					{
+					menuet.Regular{
 						Text: "Children",
 					},
 				}
 			},
 		},
-		{
+		menuet.Regular{
 			Text:  "Text, Image, and Clicked",
 			Image: "clipboard",
 			Clicked: func() {
@@ -267,83 +267,83 @@ func items() []menuet.MenuItem {
 				})
 			},
 		},
-		{
+		menuet.Regular{
 			Text:  "Text, Image, and Children",
 			Image: "clipboard",
 			Children: func() []menuet.MenuItem {
 				return []menuet.MenuItem{
-					{
+					menuet.Regular{
 						Text: "Hello",
 					},
-					{
+					menuet.Regular{
 						Text: "Inline",
 					},
-					{
+					menuet.Regular{
 						Text: "Children",
 					},
 				}
 			},
 		},
-		{
+		menuet.Regular{
 			Text:  "Image and Text",
 			Image: "clipboard",
 		},
-		{
+		menuet.Regular{
 			Image: "clipboard",
 		},
 	}
 }
 func fontsizes() []menuet.MenuItem {
 	return []menuet.MenuItem{
-		{
+		menuet.Regular{
 			Text:     "FontSize 2",
 			FontSize: 2,
 		},
-		{
+		menuet.Regular{
 			Text:     "FontSize 4",
 			FontSize: 4,
 		},
-		{
+		menuet.Regular{
 			Text:     "FontSize 6",
 			FontSize: 6,
 		},
-		{
+		menuet.Regular{
 			Text:     "FontSize 8",
 			FontSize: 8,
 		},
-		{
+		menuet.Regular{
 			Text:     "FontSize 10",
 			FontSize: 10,
 		},
-		{
+		menuet.Regular{
 			Text:     "FontSize 12",
 			FontSize: 12,
 		},
-		{
+		menuet.Regular{
 			Text:     "FontSize 14",
 			FontSize: 14,
 		},
-		{
+		menuet.Regular{
 			Text:     "FontSize 16",
 			FontSize: 16,
 		},
-		{
+		menuet.Regular{
 			Text:     "FontSize 18",
 			FontSize: 18,
 		},
-		{
+		menuet.Regular{
 			Text:     "FontSize 20",
 			FontSize: 20,
 		},
-		{
+		menuet.Regular{
 			Text:     "FontSize 22",
 			FontSize: 22,
 		},
-		{
+		menuet.Regular{
 			Text:     "FontSize 24",
 			FontSize: 24,
 		},
-		{
+		menuet.Regular{
 			Text:     "FontSize 26",
 			FontSize: 26,
 		},
@@ -352,39 +352,39 @@ func fontsizes() []menuet.MenuItem {
 
 func fontweights() []menuet.MenuItem {
 	return []menuet.MenuItem{
-		{
+		menuet.Regular{
 			Text:       "WeightUltraLight",
 			FontWeight: menuet.WeightUltraLight,
 		},
-		{
+		menuet.Regular{
 			Text:       "WeightThin",
 			FontWeight: menuet.WeightThin,
 		},
-		{
+		menuet.Regular{
 			Text:       "WeightLight",
 			FontWeight: menuet.WeightLight,
 		},
-		{
+		menuet.Regular{
 			Text:       "WeightRegular",
 			FontWeight: menuet.WeightRegular,
 		},
-		{
+		menuet.Regular{
 			Text:       "WeightMedium",
 			FontWeight: menuet.WeightMedium,
 		},
-		{
+		menuet.Regular{
 			Text:       "WeightSemibold",
 			FontWeight: menuet.WeightSemibold,
 		},
-		{
+		menuet.Regular{
 			Text:       "WeightBold",
 			FontWeight: menuet.WeightBold,
 		},
-		{
+		menuet.Regular{
 			Text:       "WeightHeavy",
 			FontWeight: menuet.WeightHeavy,
 		},
-		{
+		menuet.Regular{
 			Text:       "WeightBlack",
 			FontWeight: menuet.WeightBlack,
 		},

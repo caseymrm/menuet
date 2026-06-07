@@ -98,7 +98,7 @@ var woeids = map[int]string{
 func menuPreview(woeid string) func() []menuet.MenuItem {
 	return func() []menuet.MenuItem {
 		return []menuet.MenuItem{
-			menuet.MenuItem{
+			menuet.Regular{
 				Text: temperatureString(woeid),
 				Clicked: func() {
 					setLocation(woeid)
@@ -119,7 +119,7 @@ func menuItems() []menuet.MenuItem {
 	found := false
 	for woeid, name := range woeids {
 		woeStr := strconv.Itoa(woeid)
-		items = append(items, menuet.MenuItem{
+		items = append(items, menuet.Regular{
 			Text: name,
 			Clicked: func() {
 				setLocation(woeStr)
@@ -132,7 +132,7 @@ func menuItems() []menuet.MenuItem {
 		}
 	}
 	if !found {
-		items = append(items, menuet.MenuItem{
+		items = append(items, menuet.Regular{
 			Text: menuet.Defaults().String("name"),
 			Clicked: func() {
 				setLocation(currentWoeid)
@@ -142,9 +142,9 @@ func menuItems() []menuet.MenuItem {
 		})
 	}
 	sort.Slice(items, func(i, j int) bool {
-		return items[i].Text < items[j].Text
+		return items[i].(menuet.Regular).Text < items[j].(menuet.Regular).Text
 	})
-	items = append(items, menuet.MenuItem{
+	items = append(items, menuet.Regular{
 		Text: "Other...",
 		Clicked: func() {
 			response := menuet.App().Alert(menuet.Alert{
