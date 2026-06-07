@@ -10,7 +10,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/caseymrm/menuet"
+	"github.com/caseymrm/menuet/v2"
 )
 
 func temperature(woeid string) (temp, unit, text string) {
