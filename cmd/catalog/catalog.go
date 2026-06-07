@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/caseymrm/menuet"
+	"github.com/caseymrm/menuet/v2"
 )
 
 var alertsCatalog = []menuet.Alert{

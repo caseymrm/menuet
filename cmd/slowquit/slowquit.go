@@ -6,7 +6,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/caseymrm/menuet"
+	"github.com/caseymrm/menuet/v2"
 )
 
 func main() {

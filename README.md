@@ -8,7 +8,7 @@ Under active development. API still changing rapidly.
 ## Installation
 menuet requires OS X.
 
-`go get github.com/caseymrm/menuet`
+`go get github.com/caseymrm/menuet/v2`
 
 ## Documentation
 
@@ -90,7 +90,7 @@ package main
 import (
 	"time"
 
-	"github.com/caseymrm/menuet"
+	"github.com/caseymrm/menuet/v2"
 )
 
 func helloClock() {
@@ -132,7 +132,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/caseymrm/menuet"
+	"github.com/caseymrm/menuet/v2"
 )
 
 func temperature(woeid string) (temp, unit, text string) {
