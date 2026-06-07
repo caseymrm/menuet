@@ -163,9 +163,10 @@ func (a *Application) clicked(unique string) {
 	a.visibleMenuItemsMutex.RUnlock()
 	if !ok {
 		log.Printf("Item not found for click: %s", unique)
+		return
 	}
-	if item.Clicked != nil {
-		go item.Clicked()
+	if reg, ok := item.item.(Regular); ok && reg.Clicked != nil {
+		go reg.Clicked()
 	}
 }
 

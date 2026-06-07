@@ -111,6 +111,27 @@ func main() {
 
 ![Output](https://github.com/caseymrm/menuet/raw/master/static/helloworld.gif)
 
+## Menu items
+
+`MenuItem` is an interface; the concrete types are `Regular` (a normal row)
+and `Separator` (a horizontal divider). Construct a menu by returning a
+`[]menuet.MenuItem` containing whichever concrete types you need:
+
+```go
+menuet.App().Children = func() []menuet.MenuItem {
+    return []menuet.MenuItem{
+        menuet.Regular{Text: "Status: Active"},
+        menuet.Separator{},
+        menuet.Regular{Text: "Refresh", Clicked: refresh},
+        menuet.Regular{Text: "Submenu", Children: subItems},
+    }
+}
+```
+
+`Regular` carries the familiar fields — `Text`, `Image`, `FontSize`,
+`FontWeight`, `State`, `Clicked`, `Children`. Setting `Clicked` makes it
+clickable; setting `Children` makes it a submenu.
+
 ## [Catalog](https://github.com/caseymrm/menuet/tree/master/cmd/catalog)
 
 The catalog app is useful for trying many of the possible combinations of features.
@@ -220,7 +241,7 @@ var woeids = map[int]string{
 func menuPreview(woeid string) func() []menuet.MenuItem {
 	return func() []menuet.MenuItem {
 		return []menuet.MenuItem{
-			menuet.MenuItem{
+			menuet.Regular{
 				Text: temperatureString(woeid),
 				Clicked: func() {
 					setLocation(woeid)
@@ -241,7 +262,7 @@ func menuItems() []menuet.MenuItem {
 	found := false
 	for woeid, name := range woeids {
 		woeStr := strconv.Itoa(woeid)
-		items = append(items, menuet.MenuItem{
+		items = append(items, menuet.Regular{
 			Text: name,
 			Clicked: func() {
 				setLocation(woeStr)
@@ -254,7 +275,7 @@ func menuItems() []menuet.MenuItem {
 		}
 	}
 	if !found {
-		items = append(items, menuet.MenuItem{
+		items = append(items, menuet.Regular{
 			Text: menuet.Defaults().String("name"),
 			Clicked: func() {
 				setLocation(currentWoeid)
@@ -264,9 +285,9 @@ func menuItems() []menuet.MenuItem {
 		})
 	}
 	sort.Slice(items, func(i, j int) bool {
-		return items[i].Text < items[j].Text
+		return items[i].(menuet.Regular).Text < items[j].(menuet.Regular).Text
 	})
-	items = append(items, menuet.MenuItem{
+	items = append(items, menuet.Regular{
 		Text: "Other...",
 		Clicked: func() {
 			response := menuet.App().Alert(menuet.Alert{
