@@ -191,6 +191,22 @@ func children(uniqueCString *C.char) *C.char {
 	return C.CString(string(b))
 }
 
+//export searchResults
+func searchResults(searchUniqueCString *C.char, queryCString *C.char) *C.char {
+	unique := C.GoString(searchUniqueCString)
+	query := C.GoString(queryCString)
+	items := App().searchResults(unique, query)
+	if items == nil {
+		return nil
+	}
+	b, err := json.Marshal(items)
+	if err != nil {
+		log.Printf("Marshal: %v", err)
+		return nil
+	}
+	return C.CString(string(b))
+}
+
 //export menuClosed
 func menuClosed(uniqueCString *C.char) {
 	unique := C.GoString(uniqueCString)

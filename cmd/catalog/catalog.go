@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/caseymrm/menuet/v2"
 )
@@ -118,6 +119,58 @@ func menuItems() []menuet.MenuItem {
 		menuet.Regular{
 			Text:     "Left-click handler",
 			Children: clickHandlerMenu,
+		},
+		menuet.Regular{
+			Text:     "Search",
+			Children: searchDemo,
+		},
+	}
+}
+
+// searchDemo shows a submenu containing a Search field over a static
+// list of US states. The Results callback runs on every keystroke; for
+// this demo it does a simple case-insensitive substring match, but the
+// signature gives you the query string so a real app can do HTTP
+// lookups, fuzzy matching, etc.
+var demoStates = []string{
+	"Alabama", "Alaska", "Arizona", "Arkansas", "California",
+	"Colorado", "Connecticut", "Delaware", "Florida", "Georgia",
+	"Hawaii", "Idaho", "Illinois", "Indiana", "Iowa", "Kansas",
+	"Kentucky", "Louisiana", "Maine", "Maryland", "Massachusetts",
+	"Michigan", "Minnesota", "Mississippi", "Missouri", "Montana",
+	"Nebraska", "Nevada", "New Hampshire", "New Jersey", "New Mexico",
+	"New York", "North Carolina", "North Dakota", "Ohio", "Oklahoma",
+	"Oregon", "Pennsylvania", "Rhode Island", "South Carolina",
+	"South Dakota", "Tennessee", "Texas", "Utah", "Vermont",
+	"Virginia", "Washington", "West Virginia", "Wisconsin", "Wyoming",
+}
+
+func searchDemo() []menuet.MenuItem {
+	return []menuet.MenuItem{
+		menuet.Search{
+			Placeholder: "Filter US states…",
+			Results: func(query string) []menuet.MenuItem {
+				q := strings.ToLower(query)
+				out := make([]menuet.MenuItem, 0, len(demoStates))
+				for _, name := range demoStates {
+					if q != "" && !strings.Contains(strings.ToLower(name), q) {
+						continue
+					}
+					state := name
+					out = append(out, menuet.Regular{
+						Text: state,
+						Clicked: func() {
+							menuet.App().Alert(menuet.Alert{
+								MessageText: "You picked " + state,
+							})
+						},
+					})
+					if len(out) >= 20 {
+						break
+					}
+				}
+				return out
+			},
 		},
 	}
 }

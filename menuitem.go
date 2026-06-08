@@ -35,6 +35,23 @@ type Separator struct{}
 
 func (Separator) menuItem() {}
 
+// Search is an in-menu search field. The Results callback fires on every
+// keystroke with the current query (empty string when the menu first
+// opens). Returned items appear immediately below the search field and
+// replace whatever was there before.
+//
+// Apps that use Search cannot be distributed via the Mac App Store: the
+// underlying keystroke-capture relies on the Carbon Event Manager, and
+// the as-you-type highlight uses [NSMenu highlightItem:], a private
+// AppKit selector. Both are stable on current macOS, but private API
+// triggers Mac App Store rejection.
+type Search struct {
+	Placeholder string
+	Results     func(query string) []MenuItem
+}
+
+func (Search) menuItem() {}
+
 type internalItem struct {
 	Unique       string
 	ParentUnique string
@@ -69,6 +86,10 @@ func buildInternalItem(item MenuItem, unique, parentUnique string) internalItem 
 		out.HasChildren = v.Children != nil
 	case Separator:
 		out.Type = "separator"
+	case Search:
+		out.Type = "search"
+		// Text doubles as the placeholder string on the ObjC side.
+		out.Text = v.Placeholder
 	}
 	return out
 }
@@ -99,6 +120,49 @@ func (a *Application) children(unique string) []internalItem {
 	for ind, item := range items {
 		newUnique := askm.ArbitraryKeyNotInMap(a.visibleMenuItems)
 		internal := buildInternalItem(item, newUnique, unique)
+		a.visibleMenuItems[newUnique] = internal
+		internalItems[ind] = internal
+	}
+	return internalItems
+}
+
+// searchResults runs the Search.Results callback for the search item with
+// the given unique ID, replacing any previously-registered result items
+// for this search and returning the fresh items to the ObjC side. Called
+// on every keystroke and once with an empty query when the search field
+// is first rendered.
+func (a *Application) searchResults(searchUnique, query string) []internalItem {
+	a.visibleMenuItemsMutex.RLock()
+	item, ok := a.visibleMenuItems[searchUnique]
+	a.visibleMenuItemsMutex.RUnlock()
+	if !ok {
+		log.Printf("Search item not found: %s", searchUnique)
+		return nil
+	}
+	search, ok := item.item.(Search)
+	if !ok {
+		log.Printf("Item %s is not a Search: %T", searchUnique, item.item)
+		return nil
+	}
+	if search.Results == nil {
+		return nil
+	}
+
+	items := search.Results(query)
+
+	a.visibleMenuItemsMutex.Lock()
+	defer a.visibleMenuItemsMutex.Unlock()
+	// Drop result items from the previous query — they were registered
+	// with ParentUnique == searchUnique by an earlier call.
+	for k, v := range a.visibleMenuItems {
+		if v.ParentUnique == searchUnique {
+			delete(a.visibleMenuItems, k)
+		}
+	}
+	internalItems := make([]internalItem, len(items))
+	for ind, child := range items {
+		newUnique := askm.ArbitraryKeyNotInMap(a.visibleMenuItems)
+		internal := buildInternalItem(child, newUnique, searchUnique)
 		a.visibleMenuItems[newUnique] = internal
 		internalItems[ind] = internal
 	}
