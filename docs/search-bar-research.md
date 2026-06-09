@@ -10,36 +10,37 @@ exposed publicly. This document captures what we learned so the next
 person to touch this (probably future-Casey) doesn't have to re-derive
 it from scratch.
 
-## tl;dr — what actually works
+## tl;dr — what actually shipped
 
 - **Text cursor & focus** require flipping a private flag on the popup
   window via `-[NSPopupMenuWindow setKeyOverride:YES]` plus invoking
   `-[NSCell selectWithFrame:inView:editor:delegate:start:length:]` on
   the field's cell to engage a non-modal editing session.
-- **Arrow-key navigation** of the result items requires NSMenu's
-  tracking loop to consider the search field item "actively selected,"
-  and the only way to drive that from outside AppKit is to **synthesize
-  a hardware-level click** on the field via `CGEventPost` —
-  specifically:
-  - `kCGSessionEventTap` (the same level a physical click enters)
-  - the cursor's **live screen position** must be inside the field's
-    rect, because NSMenu validates the click against `CGEventGetLocation`
-    rather than the event's own `.location` field
-  - the click has to happen during the initial tracking-setup window
-    (~tens of ms after `viewDidMoveToWindow` fires non-nil), not on
-    first keystroke or anything user-driven later — NSMenu only accepts
-    the engagement at tracking start
-  - the cursor has to **stay** in the field's rect for the menu's
-    lifetime; NSMenu revokes the active state the moment the cursor
-    leaves
-- The visible mouse-cursor jump that all of this implies is suppressed
-  with `[NSCursor setHiddenUntilMouseMoves:YES]` called **after** the
-  warp (called before, the warp counts as movement and reinstates the
-  cursor immediately).
-- Query persistence across opens is via
-  `NSMenuDidEndTrackingNotification` (snapshot field value); the saved
-  value is reinstated by `populate:` when the menu reopens and the cell
-  is selected with a full range so the next keystroke replaces it.
+- **Type-to-filter** flows naturally once the field is first responder
+  and the input context is engaged — `controlTextDidChange:` fires on
+  each keystroke and we call back into Go for fresh result items.
+- **Enter activates the first result; Esc closes the menu** — both
+  routed through `-[NSControlTextEditingDelegate control:textView:
+  doCommandBySelector:]`.
+- **Query persistence across opens**: saved in
+  `viewDidMoveToWindow` whenever the SearchView's window goes nil
+  (catches submenu close even when the root menu's tracking continues)
+  and again in `NSMenuDidEndTrackingNotification` as a safety net. The
+  saved value is restored by `populate:` when the menu reopens, with
+  the field's full range selected so the next keystroke replaces it.
+- **Mid-tracking elision** of long result strings is avoided by
+  forcing `NSLineBreakByClipping` in each item's attributed title
+  (bypasses the elide) and growing the menu's `minimumWidth` to
+  whichever item's `NSMenuItemCell.cellSize.width` is widest. The
+  width "ratchets up" within a session and never shrinks (jarring).
+- **Arrow-key navigation** of result items is NOT supported. We
+  determined this requires synthesizing a hardware-level mouse click
+  (`CGEventPost`) on the field to promote it to NSMenu's actively-
+  selected item state. The trade-offs (Accessibility permission
+  prompt, visible mouse cursor warp, fragility under user mouse
+  movement during the menu) were worse than just not supporting
+  arrow nav. The full investigation is preserved in the "What didn't
+  work" section below in case a cleaner approach surfaces later.
 
 ## Mac App Store implications
 
@@ -47,6 +48,8 @@ it from scratch.
 rejected by Mac App Store review. The Go-side doc comment on `Search`
 calls this out explicitly. Direct-distribution apps (the menuet
 ecosystem so far — whyawake, notafan, traytter, etc.) are unaffected.
+We did **not** ship the click-sim arrow-key approach, so no
+`CGEventPost` and no Accessibility permission prompt on first run.
 
 ## What didn't work
 
