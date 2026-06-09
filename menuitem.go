@@ -38,13 +38,18 @@ func (Separator) menuItem() {}
 // Search is an in-menu search field. The Results callback fires on every
 // keystroke with the current query (empty string when the menu first
 // opens). Returned items appear immediately below the search field and
-// replace whatever was there before.
+// replace whatever was there before. The last query is remembered across
+// menu opens.
 //
-// Apps that use Search cannot be distributed via the Mac App Store: the
-// underlying keystroke-capture relies on the Carbon Event Manager, and
-// the as-you-type highlight uses [NSMenu highlightItem:], a private
-// AppKit selector. Both are stable on current macOS, but private API
-// triggers Mac App Store rejection.
+// Press Enter to activate the top result, Esc to dismiss, or click any
+// result. Arrow keys do not navigate result items — NSMenu's tracking
+// loop owns them at a layer outside this library's reach.
+//
+// Apps that use Search cannot be distributed via the Mac App Store —
+// the implementation uses a private NSPopupMenuWindow selector
+// (setKeyOverride:) to engage the text field's input context during
+// menu tracking. Stable on current macOS but private-API-rejection
+// material for the App Store. Direct-distribution apps are unaffected.
 type Search struct {
 	Placeholder string
 	Results     func(query string) []MenuItem

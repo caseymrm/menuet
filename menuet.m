@@ -34,8 +34,6 @@ MenuetMenu *_rootMenu;
 @property(nonatomic, copy) NSString *searchUnique;
 @property(nonatomic, copy) NSString *savedQuery;
 @property(nonatomic, assign) NSMenu *trackingMenu;
-@property(nonatomic, assign) CGPoint cursorBeforeWarp;
-@property(nonatomic, assign) BOOL cursorWasWarped;
 - (instancetype)initWithPlaceholder:(NSString *)placeholder
                         searchUnique:(NSString *)searchUnique;
 - (void)updatePlaceholder:(NSString *)placeholder searchUnique:(NSString *)unique;
@@ -322,6 +320,13 @@ MenuetMenu *_rootMenu;
 - (void)viewDidMoveToWindow {
 	[super viewDidMoveToWindow];
 	if (self.window == nil) {
+		// Submenu closed (either user moved off to another parent-menu
+		// item or the whole tracking session ended). Snapshot the field
+		// so the query persists across re-opens. Safe to run on AppKit's
+		// open-time view-window cycles too — the field's value at that
+		// point is whatever populate: just set it to (either the prior
+		// savedQuery or "").
+		self.savedQuery = self.field.stringValue;
 		return;
 	}
 
@@ -368,86 +373,10 @@ MenuetMenu *_rootMenu;
 	                       delegate:self.field
 	                          start:0
 	                         length:len];
-
-	// Engage NSMenu's "this menu item is actively selected" state for the
-	// search field by synthesizing a hardware-level click on it. Arrow-key
-	// navigation through the result items depends on this state; without
-	// the click, NSMenu's tracking loop reads arrows as menu-nav.
-	//
-	// Constraints we have to thread:
-	//   - NSMenu only accepts this engagement during the initial tracking-
-	//     setup window, so we click on menu open, not on first keystroke.
-	//   - It validates the click against the cursor's LIVE position, so
-	//     the cursor must be inside the field's rect. We pin x to the
-	//     field's left edge (closest to where the parent menu's hover sat)
-	//     to minimize the visible motion.
-	//   - The 150ms delay gives the submenu's window time to finish
-	//     positioning; if we race the layout, the field's screen rect
-	//     comes back garbage and we'd fling the cursor off-screen.
-	//   - The cursor stays at the field for the menu's entire lifetime —
-	//     NSMenu would revoke the active state the moment it leaves. We
-	//     restore the cursor's original position in -menuDidEndTracking:.
-	//   - We hide the cursor via -setHiddenUntilMouseMoves: AFTER the warp.
-	//     Called before, the warp itself counts as movement and immediately
-	//     reinstates the cursor; after, it stays hidden until the user
-	//     physically moves the mouse.
-	dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 150 * NSEC_PER_MSEC),
-	               dispatch_get_main_queue(), ^{
-		if (!self.window) return;
-		NSRect fieldRectInWindow = [self.field convertRect:self.field.bounds
-		                                            toView:nil];
-		NSRect fieldRectOnScreen = [self.window convertRectToScreen:fieldRectInWindow];
-		CGFloat maxY = 0;
-		for (NSScreen *s in NSScreen.screens) {
-			CGFloat top = NSMaxY(s.frame);
-			if (top > maxY) maxY = top;
-		}
-		const CGFloat inset = 4;
-		CGFloat minX = fieldRectOnScreen.origin.x + inset;
-		CGFloat cgMinY = maxY - NSMaxY(fieldRectOnScreen) + inset;
-		CGFloat cgMaxY = maxY - fieldRectOnScreen.origin.y - inset;
-
-		CGEventRef probe = CGEventCreate(NULL);
-		CGPoint orig = CGEventGetLocation(probe);
-		CFRelease(probe);
-
-		CGPoint target = orig;
-		target.x = minX;
-		if (target.y < cgMinY) target.y = cgMinY;
-		if (target.y > cgMaxY) target.y = cgMaxY;
-
-		// If the computed target is off-screen, the submenu's window had
-		// not finished positioning. Bail rather than fling the cursor.
-		// Arrow nav won't work for this particular open.
-		if (target.y < 0 || target.y > maxY || target.x < 0) {
-			return;
-		}
-
-		BOOL needsWarp = (target.x != orig.x) || (target.y != orig.y);
-		self.cursorBeforeWarp = orig;
-		self.cursorWasWarped = needsWarp;
-
-		if (needsWarp) {
-			CGWarpMouseCursorPosition(target);
-			[NSCursor setHiddenUntilMouseMoves:YES];
-		}
-		CGEventRef down = CGEventCreateMouseEvent(NULL, kCGEventLeftMouseDown,
-		                                          target, kCGMouseButtonLeft);
-		CGEventPost(kCGSessionEventTap, down);
-		CFRelease(down);
-		CGEventRef up = CGEventCreateMouseEvent(NULL, kCGEventLeftMouseUp,
-		                                        target, kCGMouseButtonLeft);
-		CGEventPost(kCGSessionEventTap, up);
-		CFRelease(up);
-	});
 }
 
 - (void)menuDidEndTracking:(NSNotification *)note {
 	self.savedQuery = self.field.stringValue;
-	if (self.cursorWasWarped) {
-		CGWarpMouseCursorPosition(self.cursorBeforeWarp);
-		self.cursorWasWarped = NO;
-	}
 }
 
 // NSTextFieldDelegate: live filtering as the user types.
@@ -455,9 +384,7 @@ MenuetMenu *_rootMenu;
 	[self applyQuery:self.field.stringValue];
 }
 
-// NSTextFieldDelegate: intercept specific keys so Enter activates the first
-// result, Esc closes the menu, and Down hands focus back to NSMenu so its
-// arrow-key navigation can walk the result items.
+// NSTextFieldDelegate: Enter activates the first result; Esc closes the menu.
 - (BOOL)control:(NSControl *)control
        textView:(NSTextView *)textView
 doCommandBySelector:(SEL)cmd {
@@ -472,11 +399,6 @@ doCommandBySelector:(SEL)cmd {
 	}
 	if (cmd == @selector(cancelOperation:)) {
 		[menu cancelTracking];
-		return YES;
-	}
-	if (cmd == @selector(moveDown:)) {
-		// Relinquish first responder so NSMenu's own tracking handles arrows.
-		[self.window makeFirstResponder:self.window];
 		return YES;
 	}
 	return NO;
@@ -524,6 +446,13 @@ doCommandBySelector:(SEL)cmd {
 			NSString *text = dict[@"Text"] ?: @"";
 			BOOL clickable = [dict[@"Clickable"] boolValue];
 			newItem = [[NSMenuItem alloc] initWithTitle:text action:nil keyEquivalent:@""];
+			// Force no truncation at the cell layer — bypasses the cached
+			// "drawable width" elision NSMenu falls back to mid-tracking.
+			NSMutableParagraphStyle *para = [NSMutableParagraphStyle new];
+			para.lineBreakMode = NSLineBreakByClipping;
+			newItem.attributedTitle = [[NSAttributedString alloc]
+			    initWithString:text
+			        attributes:@{NSParagraphStyleAttributeName: para}];
 			if (clickable) {
 				newItem.target = menu;
 				newItem.action = @selector(press:);
@@ -535,10 +464,32 @@ doCommandBySelector:(SEL)cmd {
 		insertIndex++;
 	}
 
-	// Force NSMenu to recompute its layout. Without this, items inserted
-	// during tracking can render but the menu doesn't grow — the new rows
-	// end up outside the visible content rect.
 	[menu update];
+
+	// NSMenu sizes the popup window's content rect once at first display
+	// and doesn't grow it for items inserted mid-tracking, so any result
+	// wider than what was there originally gets clipped at the cached
+	// cell width. Fix: ask the actual NSMenuItemCell for the cell size it
+	// wants for each result item (same code AppKit uses to draw), then
+	// grow the menu's minimumWidth to fit the widest.
+	//
+	// Only grow, never shrink — shrinking mid-tracking is jarring and
+	// AppKit doesn't actually contract the popup window after we shrink
+	// minimumWidth anyway. The width "ratchets up" to fit whatever's
+	// widest in this session.
+	CGFloat widestCell = 0;
+	for (NSMenuItem *it in menu.itemArray) {
+		if (it.tag != MENUET_SEARCH_RESULT_TAG) continue;
+		NSMenuItemCell *cell = [[NSMenuItemCell alloc] init];
+		cell.menuItem = it;
+		CGFloat w = cell.cellSize.width;
+		[cell release];
+		if (w > widestCell) widestCell = w;
+	}
+	CGFloat needed = ceil(widestCell);
+	if (needed > menu.minimumWidth) {
+		menu.minimumWidth = needed;
+	}
 }
 
 // Returns the first tagged search-result item in this view's menu that has
