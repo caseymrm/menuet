@@ -132,6 +132,36 @@ menuet.App().Children = func() []menuet.MenuItem {
 `FontWeight`, `State`, `Clicked`, `Children`. Setting `Clicked` makes it
 clickable; setting `Children` makes it a submenu.
 
+## Toggle-style apps
+
+For apps where the primary action is a toggle (mute audio, pause a
+timer, hide notifications…), macOS menus dismiss the moment the user
+clicks an item — there's no public API to "click without closing." Two
+patterns work around it:
+
+**Left click toggles, right click opens the menu.** Set
+`Application.Clicked` to a callback; left clicks fire the callback
+without opening the menu, right clicks (and Ctrl-left-clicks) still
+open the menu for secondary actions:
+
+```go
+menuet.App().Clicked = func() { toggleMuted() }
+```
+
+**Stateful menu items with checkmarks.** For toggles you do want inside
+the menu, set `MenuItem.State = true` to show a checkmark, and update
+your app state from the `Clicked` callback. The menu will dismiss on
+click as usual (OS standard); on the next open, return the items with
+the new `State`:
+
+```go
+menuet.Regular{
+    Text:    "Notifications enabled",
+    State:   prefs.NotificationsEnabled,
+    Clicked: func() { prefs.NotificationsEnabled = !prefs.NotificationsEnabled },
+}
+```
+
 ## [Catalog](https://github.com/caseymrm/menuet/tree/master/cmd/catalog)
 
 The catalog app is useful for trying many of the possible combinations of features.
