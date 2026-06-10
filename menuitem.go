@@ -31,6 +31,13 @@ type Regular struct {
 	Monospaced bool
 	State      bool // shows checkmark when set
 
+	// Shortcut, when non-nil, displays in the menu like a standard Apple
+	// shortcut (⌘N etc.) AND registers a system-wide hotkey: pressing the
+	// key combination triggers Clicked even when this app isn't frontmost.
+	// Identical Shortcuts across multiple Regular items: only the first
+	// wins; subsequent registrations are silently ignored.
+	Shortcut *Shortcut
+
 	Clicked  func()
 	Children func() []MenuItem
 }
@@ -77,8 +84,9 @@ type internalItem struct {
 	Image       string
 	FontSize    int
 	FontWeight  FontWeight
-	Color       Color `json:",omitempty"`
-	Monospaced  bool  `json:",omitempty"`
+	Color       Color     `json:",omitempty"`
+	Monospaced  bool      `json:",omitempty"`
+	Shortcut    *Shortcut `json:",omitempty"`
 	State       bool
 	HasChildren bool
 	Clickable   bool
@@ -99,9 +107,15 @@ func buildInternalItem(item MenuItem, unique, parentUnique string) internalItem 
 		out.FontWeight = v.FontWeight
 		out.Color = v.Color
 		out.Monospaced = v.Monospaced
+		out.Shortcut = v.Shortcut
 		out.State = v.State
 		out.Clickable = v.Clicked != nil
 		out.HasChildren = v.Children != nil
+		// Register the global hotkey, with the click callback as the
+		// action. Duplicate registrations are deduped in hotkey.go.
+		if v.Shortcut != nil && !v.Shortcut.IsZero() && v.Clicked != nil {
+			registerGlobalHotkey(*v.Shortcut, v.Clicked)
+		}
 	case Separator:
 		out.Type = "separator"
 	case Search:
