@@ -160,6 +160,38 @@ func hotkeysDemo() []menuet.MenuItem {
 func richTextDemo() []menuet.MenuItem {
 	return []menuet.MenuItem{
 		menuet.Regular{
+			Runs: []menuet.TextRun{
+				{Text: "Semantic ", Color: menuet.LabelPrimary},
+				{Text: "colors ", Color: menuet.LabelSecondary},
+				{Text: "adapt ", Color: menuet.LabelTertiary},
+				{Text: "to dark mode", Color: menuet.LabelQuaternary},
+			},
+		},
+		menuet.Regular{
+			Runs: []menuet.TextRun{
+				{Text: "Status: ", Color: menuet.LabelSecondary},
+				{Text: "FAILED", Color: menuet.SystemRed, FontWeight: menuet.WeightBold},
+			},
+		},
+		menuet.Regular{
+			Runs: []menuet.TextRun{
+				{Text: "GSW 71 – 68 MIN  "},
+				{Text: "LIVE", Color: menuet.SystemRed, Badge: true},
+			},
+			Subtitle: []menuet.TextRun{
+				{Text: "NBA · Q3 5:42"},
+			},
+		},
+		menuet.Regular{
+			Runs: []menuet.TextRun{
+				{Text: "$ ", Color: menuet.LabelTertiary, Monospaced: true},
+				{Text: "make release", Monospaced: true},
+			},
+			Subtitle: []menuet.TextRun{
+				{Text: "Builds + signs + uploads zip to GitHub"},
+			},
+		},
+		menuet.Regular{
 			Text:  "Item-level color (red)",
 			Color: menuet.Red,
 		},
@@ -338,6 +370,20 @@ func changeTitle() []menuet.MenuItem {
 				menuet.App().SetMenuState(&menuet.MenuState{
 					Title: "Catalog",
 					Image: "clipboard",
+				})
+			},
+		},
+		menuet.Regular{
+			Text: "Runs in the title (live score)",
+			Clicked: func() {
+				menuet.App().SetMenuState(&menuet.MenuState{
+					Runs: []menuet.TextRun{
+						{Text: "● ", Color: menuet.SystemRed},
+						{Text: "GSW ", FontWeight: menuet.WeightSemibold},
+						{Text: "71", FontWeight: menuet.WeightBold, Monospaced: true},
+						{Text: "–68", Color: menuet.LabelSecondary, Monospaced: true},
+						{Text: " MIN", Color: menuet.LabelSecondary},
+					},
 				})
 			},
 		},

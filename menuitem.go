@@ -38,6 +38,13 @@ type Regular struct {
 	// wins; subsequent registrations are silently ignored.
 	Shortcut *Shortcut
 
+	// Subtitle, when non-empty, renders as a dimmer second line below the
+	// main title — Apple's native NSMenuItem.subtitle on macOS 14+. The
+	// runs' per-segment colors aren't honored on this path (NSMenuItem.subtitle
+	// is a plain string property); only the concatenated text appears in
+	// the system's standard subtitle styling.
+	Subtitle []TextRun
+
 	Clicked  func()
 	Children func() []MenuItem
 }
@@ -81,6 +88,7 @@ type internalItem struct {
 	Type        string
 	Text        string
 	Runs        []TextRun `json:",omitempty"`
+	Subtitle    []TextRun `json:",omitempty"`
 	Image       string
 	FontSize    int
 	FontWeight  FontWeight
@@ -102,6 +110,7 @@ func buildInternalItem(item MenuItem, unique, parentUnique string) internalItem 
 	case Regular:
 		out.Text = v.Text
 		out.Runs = v.Runs
+		out.Subtitle = v.Subtitle
 		out.Image = v.Image
 		out.FontSize = v.FontSize
 		out.FontWeight = v.FontWeight

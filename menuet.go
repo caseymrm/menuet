@@ -126,7 +126,11 @@ func (a *Application) HideStartup() {
 // MenuState represents the title and drop down,
 type MenuState struct {
 	Title string
-	Image string // // In Resources dir or URL, should have height 22
+	// Runs, when non-empty, overrides Title with per-segment styled text
+	// — the same TextRun shape used by Regular.Runs. Useful for a status-
+	// item title that mixes weights, sizes, colors, or monospaced digits.
+	Runs  []TextRun
+	Image string // In Resources dir or URL, should have height 22
 }
 
 func (a *Application) sendState(state *MenuState) {
