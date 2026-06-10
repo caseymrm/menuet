@@ -48,6 +48,71 @@ MenuetMenu *_rootMenu;
 
 @end
 
+// Build an NSAttributedString for a menu item's title. If runs is non-nil
+// and non-empty, each run is appended with its own per-segment attributes
+// (color, font size, weight, monospace). Otherwise the whole title is
+// styled with the item-level attributes.
+//
+// A run's zero-value Color/FontSize/FontWeight means "inherit from the
+// item-level value" so callers can change just one attribute per run
+// without re-specifying the rest.
+static NSColor *MenuetColorFromDict(NSDictionary *dict) {
+	if (!dict) return nil;
+	NSNumber *r = dict[@"R"];
+	NSNumber *g = dict[@"G"];
+	NSNumber *b = dict[@"B"];
+	NSNumber *a = dict[@"A"];
+	if (!r || !g || !b || !a) return nil;
+	if (r.intValue == 0 && g.intValue == 0 && b.intValue == 0 && a.intValue == 0) {
+		return nil;
+	}
+	return [NSColor colorWithRed:r.floatValue / 255.0
+	                       green:g.floatValue / 255.0
+	                        blue:b.floatValue / 255.0
+	                       alpha:a.floatValue / 255.0];
+}
+
+static NSFont *MenuetFont(CGFloat size, CGFloat weight, BOOL mono) {
+	if (size <= 0) size = 14;
+	if (mono) {
+		return [NSFont monospacedSystemFontOfSize:size weight:weight];
+	}
+	return [NSFont monospacedDigitSystemFontOfSize:size weight:weight];
+}
+
+static NSAttributedString *MenuetBuildAttributedTitle(NSString *text,
+                                                      NSArray *runs,
+                                                      CGFloat itemFontSize,
+                                                      CGFloat itemFontWeight,
+                                                      NSDictionary *itemColorDict,
+                                                      BOOL itemMono) {
+	NSColor *itemColor = MenuetColorFromDict(itemColorDict);
+	if (![runs isKindOfClass:[NSArray class]] || runs.count == 0) {
+		NSMutableDictionary *attrs = [NSMutableDictionary new];
+		attrs[NSFontAttributeName] = MenuetFont(itemFontSize, itemFontWeight, itemMono);
+		if (itemColor) attrs[NSForegroundColorAttributeName] = itemColor;
+		return [[NSAttributedString alloc] initWithString:(text ?: @"") attributes:attrs];
+	}
+	NSMutableAttributedString *result = [NSMutableAttributedString new];
+	for (NSDictionary *run in runs) {
+		if (![run isKindOfClass:[NSDictionary class]]) continue;
+		NSString *segText = run[@"Text"] ?: @"";
+		if (segText.length == 0) continue;
+		NSNumber *fsNum = run[@"FontSize"];
+		NSNumber *fwNum = run[@"FontWeight"];
+		BOOL runMono = [run[@"Monospaced"] boolValue] || itemMono;
+		CGFloat fs = fsNum.intValue > 0 ? fsNum.floatValue : itemFontSize;
+		CGFloat fw = fwNum.floatValue != 0 ? fwNum.floatValue : itemFontWeight;
+		NSColor *runColor = MenuetColorFromDict(run[@"Color"]) ?: itemColor;
+		NSMutableDictionary *attrs = [NSMutableDictionary new];
+		attrs[NSFontAttributeName] = MenuetFont(fs, fw, runMono);
+		if (runColor) attrs[NSForegroundColorAttributeName] = runColor;
+		[result appendAttributedString:[[NSAttributedString alloc] initWithString:segText
+		                                                              attributes:attrs]];
+	}
+	return result;
+}
+
 @implementation MenuetMenu
 - (id)init {
 	self = [super init];
@@ -121,9 +186,12 @@ MenuetMenu *_rootMenu;
 		}
 		NSString *unique = dict[@"Unique"];
 		NSString *text = dict[@"Text"];
+		NSArray *runs = dict[@"Runs"];
 		NSString *imageName = dict[@"Image"];
 		NSNumber *fontSize = dict[@"FontSize"];
 		NSNumber *fontWeight = dict[@"FontWeight"];
+		NSDictionary *itemColor = dict[@"Color"];
+		BOOL itemMono = [dict[@"Monospaced"] boolValue];
 		BOOL state = [dict[@"State"] boolValue];
 		BOOL hasChildren = [dict[@"HasChildren"] boolValue];
 		BOOL clickable = [dict[@"Clickable"] boolValue];
@@ -131,17 +199,9 @@ MenuetMenu *_rootMenu;
 			item =
 				[self insertItemWithTitle:@"" action:nil keyEquivalent:@"" atIndex:i];
 		}
-		NSMutableDictionary *attributes = [NSMutableDictionary new];
-		float size = fontSize.floatValue;
-		if (fontSize == 0) {
-			size = 14;
-		}
-		attributes[NSFontAttributeName] =
-			[NSFont monospacedDigitSystemFontOfSize:size
-			 weight:fontWeight.floatValue];
-		item.attributedTitle =
-			[[NSMutableAttributedString alloc] initWithString:text
-			 attributes:attributes];
+		item.attributedTitle = MenuetBuildAttributedTitle(
+		    text, runs, fontSize.floatValue, fontWeight.floatValue,
+		    itemColor, itemMono);
 		item.target = self;
 		if (clickable) {
 			item.action = @selector(press:);

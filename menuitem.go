@@ -17,11 +17,18 @@ type MenuItem interface {
 
 // Regular is a standard menu row. Set Text and optionally Clicked
 // (callback when activated) and Children (returns a submenu).
+//
+// For mixed styling within a single row — e.g. "Status: FAILED" where
+// FAILED is red and bold — set Runs to a slice of TextRun. Runs takes
+// precedence over Text when non-empty.
 type Regular struct {
 	Text       string
-	Image      string // In Resources dir or URL, should have height 16
-	FontSize   int    // Default: 14
+	Runs       []TextRun // when non-empty, overrides Text
+	Image      string    // In Resources dir or URL, should have height 16
+	FontSize   int       // Default: 14
 	FontWeight FontWeight
+	Color      Color // zero = system default
+	Monospaced bool
 	State      bool // shows checkmark when set
 
 	Clicked  func()
@@ -66,9 +73,12 @@ type internalItem struct {
 	// MenuItem types — it just reads Type and the matching fields.
 	Type        string
 	Text        string
+	Runs        []TextRun `json:",omitempty"`
 	Image       string
 	FontSize    int
 	FontWeight  FontWeight
+	Color       Color `json:",omitempty"`
+	Monospaced  bool  `json:",omitempty"`
 	State       bool
 	HasChildren bool
 	Clickable   bool
@@ -83,9 +93,12 @@ func buildInternalItem(item MenuItem, unique, parentUnique string) internalItem 
 	switch v := item.(type) {
 	case Regular:
 		out.Text = v.Text
+		out.Runs = v.Runs
 		out.Image = v.Image
 		out.FontSize = v.FontSize
 		out.FontWeight = v.FontWeight
+		out.Color = v.Color
+		out.Monospaced = v.Monospaced
 		out.State = v.State
 		out.Clickable = v.Clicked != nil
 		out.HasChildren = v.Children != nil
