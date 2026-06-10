@@ -41,9 +41,12 @@ requirements are enforced by macOS, not by menuet:
   no-op for a loose executable. The app also needs to be code-signed —
   ad-hoc signing is not enough; you need a Developer ID signature (or full
   notarization for distribution).
-* **Start at Login** writes a launchd plist that points at the executable
-  path. You'll typically want that path to be the binary inside your `.app`
-  bundle, not a `go run` temp directory.
+* **Start at Login** prefers the macOS 13+ Service Management framework
+  (`SMAppService`) when available, which puts the app under System
+  Settings → Login Items so the user can revoke it from the standard
+  place. For older macOS or unsigned dev builds the older LaunchAgent
+  plist path is used as a fallback. Either backend wants the app to be
+  bundled.
 * **Auto-update** moves a new `.app` bundle on top of the running one, so it
   obviously needs a bundle to update.
 

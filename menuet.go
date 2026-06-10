@@ -2,7 +2,7 @@ package menuet
 
 /*
 #cgo CFLAGS: -x objective-c
-#cgo LDFLAGS: -framework Cocoa -framework Carbon
+#cgo LDFLAGS: -framework Cocoa -framework Carbon -framework ServiceManagement
 
 #import <Cocoa/Cocoa.h>
 

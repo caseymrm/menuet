@@ -1,5 +1,12 @@
 package menuet
 
+/*
+int menuetSMAppServiceRegister(void);
+int menuetSMAppServiceUnregister(void);
+int menuetSMAppServiceStatus(void);
+*/
+import "C"
+
 import (
 	"bytes"
 	"log"
@@ -9,6 +16,27 @@ import (
 	"sync"
 	"text/template"
 )
+
+// smAppServiceRegister attempts the macOS 13+ Service Management path.
+// Returns true on success. Returns false if the API is unavailable
+// (older macOS) or if registration failed (e.g. the bundle isn't signed
+// in a way SMAppService accepts) — caller should fall back to the
+// LaunchAgent path.
+func smAppServiceRegister() bool {
+	return int(C.menuetSMAppServiceRegister()) == 0
+}
+
+func smAppServiceUnregister() bool {
+	return int(C.menuetSMAppServiceUnregister()) == 0
+}
+
+// smAppServiceEnabled reports whether the SMAppService backend currently
+// considers this app registered (enabled OR requires-approval — both
+// mean "set up via SMAppService"). Returns false if the API is
+// unavailable or the app isn't registered.
+func smAppServiceEnabled() bool {
+	return int(C.menuetSMAppServiceStatus()) == 1
+}
 
 func (a *Application) getStartupPath() string {
 	if a.Label == "" {
@@ -24,6 +52,12 @@ func (a *Application) getStartupPath() string {
 }
 
 func (a *Application) runningAtStartup() bool {
+	// SMAppService is the modern (macOS 13+) backend and what users
+	// expect: the System Settings → Login Items panel reflects it. Check
+	// it first; fall back to looking for our LaunchAgent plist.
+	if smAppServiceEnabled() {
+		return true
+	}
 	path := a.getStartupPath()
 	if path == "" {
 		return false
@@ -33,11 +67,15 @@ func (a *Application) runningAtStartup() bool {
 }
 
 func (a *Application) removeStartupItem() {
+	// Remove from both backends so we don't leave stale entries behind
+	// if the user previously used one and now the other (or both got
+	// registered during a transitional period).
+	smAppServiceUnregister()
 	path := a.getStartupPath()
 	if path == "" {
 		return
 	}
-	if err := os.Remove(path); err != nil {
+	if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
 		log.Printf("os.Remove: %v", err)
 	}
 }
@@ -63,6 +101,17 @@ func renderLaunchdPlist(data launchdPlistData) (string, error) {
 }
 
 func (a *Application) addStartupItem() {
+	// macOS 13+ Service Management. Shows the app under System Settings
+	// → Login Items so the user can revoke it from the standard place.
+	// Requires the bundle to be signed in a way SMAppService accepts
+	// (Developer ID or App Store); ad-hoc-signed dev builds will fail
+	// here and we fall through to the LaunchAgent path.
+	if smAppServiceRegister() {
+		return
+	}
+
+	// Legacy LaunchAgent plist. Works for unsigned/ad-hoc dev builds and
+	// for macOS 12 and earlier (where SMAppService doesn't exist).
 	path := a.getStartupPath()
 	if path == "" {
 		return
