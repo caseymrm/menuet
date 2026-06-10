@@ -243,8 +243,39 @@ static NSEventModifierFlags MenuetModifierMaskFromCarbon(uint32_t carbon) {
 // A run's zero-value Color/FontSize/FontWeight means "inherit from the
 // item-level value" so callers can change just one attribute per run
 // without re-specifying the rest.
+// Map a Color.Semantic string to an AppKit dynamic NSColor that re-
+// resolves per appearance. Returns nil for unknown names so callers
+// fall through to the RGBA path.
+static NSColor *MenuetColorFromSemantic(NSString *name) {
+	if (name.length == 0) return nil;
+	if ([name isEqualToString:@"labelColor"])           return [NSColor labelColor];
+	if ([name isEqualToString:@"secondaryLabelColor"])  return [NSColor secondaryLabelColor];
+	if ([name isEqualToString:@"tertiaryLabelColor"])   return [NSColor tertiaryLabelColor];
+	if ([name isEqualToString:@"quaternaryLabelColor"]) return [NSColor quaternaryLabelColor];
+	if ([name isEqualToString:@"systemRedColor"])       return [NSColor systemRedColor];
+	if ([name isEqualToString:@"systemGreenColor"])     return [NSColor systemGreenColor];
+	if ([name isEqualToString:@"systemYellowColor"])    return [NSColor systemYellowColor];
+	if ([name isEqualToString:@"systemBlueColor"])      return [NSColor systemBlueColor];
+	if ([name isEqualToString:@"systemOrangeColor"])    return [NSColor systemOrangeColor];
+	if ([name isEqualToString:@"systemPurpleColor"])    return [NSColor systemPurpleColor];
+	if ([name isEqualToString:@"systemPinkColor"])      return [NSColor systemPinkColor];
+	if ([name isEqualToString:@"systemGrayColor"])      return [NSColor systemGrayColor];
+	if ([name isEqualToString:@"systemBrownColor"])     return [NSColor systemBrownColor];
+	if ([name isEqualToString:@"systemTealColor"])      return [NSColor systemTealColor];
+	if ([name isEqualToString:@"systemIndigoColor"])    return [NSColor systemIndigoColor];
+	if ([name isEqualToString:@"systemMintColor"]) {
+		if (@available(macOS 12.0, *)) return [NSColor systemMintColor];
+	}
+	if ([name isEqualToString:@"systemCyanColor"]) {
+		if (@available(macOS 12.0, *)) return [NSColor systemCyanColor];
+	}
+	return nil;
+}
+
 static NSColor *MenuetColorFromDict(NSDictionary *dict) {
 	if (!dict) return nil;
+	NSColor *semantic = MenuetColorFromSemantic(dict[@"Semantic"]);
+	if (semantic) return semantic;
 	NSNumber *r = dict[@"R"];
 	NSNumber *g = dict[@"G"];
 	NSNumber *b = dict[@"B"];
@@ -257,6 +288,33 @@ static NSColor *MenuetColorFromDict(NSDictionary *dict) {
 	                       green:g.floatValue / 255.0
 	                        blue:b.floatValue / 255.0
 	                       alpha:a.floatValue / 255.0];
+}
+
+// Pre-render a rounded-pill badge for a TextRun{Badge: true}: rounded
+// rectangle filled with fillColor, with the text drawn in white-on-fill
+// at 9pt bold uppercase. The image's size matches the badge geometry
+// from the design handoff (h14, padX5, radius7).
+static NSImage *MenuetBadgeImage(NSString *text, NSColor *fillColor) {
+	NSString *upper = [text uppercaseString];
+	NSDictionary *attrs = @{
+	    NSFontAttributeName: [NSFont boldSystemFontOfSize:9],
+	    NSForegroundColorAttributeName: [NSColor whiteColor],
+	    NSKernAttributeName: @(0.4),
+	};
+	NSSize textSize = [upper sizeWithAttributes:attrs];
+	CGFloat width = ceil(textSize.width) + 10; // 5pt padding each side
+	CGFloat height = 14;
+	NSImage *img = [[NSImage alloc] initWithSize:NSMakeSize(width, height)];
+	[img lockFocus];
+	NSBezierPath *path = [NSBezierPath bezierPathWithRoundedRect:NSMakeRect(0, 0, width, height)
+	                                                    xRadius:7
+	                                                    yRadius:7];
+	[(fillColor ?: [NSColor tertiaryLabelColor]) setFill];
+	[path fill];
+	[upper drawAtPoint:NSMakePoint(5, (height - textSize.height) / 2.0)
+	    withAttributes:attrs];
+	[img unlockFocus];
+	return img;
 }
 
 static NSFont *MenuetFont(CGFloat size, CGFloat weight, BOOL mono) {
@@ -285,6 +343,15 @@ static NSAttributedString *MenuetBuildAttributedTitle(NSString *text,
 		if (![run isKindOfClass:[NSDictionary class]]) continue;
 		NSString *segText = run[@"Text"] ?: @"";
 		if (segText.length == 0) continue;
+		// Badge: render as a rounded-pill image attachment in line.
+		if ([run[@"Badge"] boolValue]) {
+			NSColor *fill = MenuetColorFromDict(run[@"Color"]) ?: [NSColor tertiaryLabelColor];
+			NSTextAttachment *attachment = [NSTextAttachment new];
+			attachment.image = MenuetBadgeImage(segText, fill);
+			[result appendAttributedString:
+			    [NSAttributedString attributedStringWithAttachment:attachment]];
+			continue;
+		}
 		NSNumber *fsNum = run[@"FontSize"];
 		NSNumber *fwNum = run[@"FontWeight"];
 		BOOL runMono = [run[@"Monospaced"] boolValue] || itemMono;
@@ -298,6 +365,19 @@ static NSAttributedString *MenuetBuildAttributedTitle(NSString *text,
 		                                                              attributes:attrs]];
 	}
 	return result;
+}
+
+// Concatenate just the text content of a Runs array — useful when the
+// platform's native subtitle slot only accepts a plain string.
+static NSString *MenuetPlainTextFromRuns(NSArray *runs) {
+	if (![runs isKindOfClass:[NSArray class]] || runs.count == 0) return nil;
+	NSMutableString *out = [NSMutableString new];
+	for (NSDictionary *run in runs) {
+		if (![run isKindOfClass:[NSDictionary class]]) continue;
+		NSString *t = run[@"Text"] ?: @"";
+		[out appendString:t];
+	}
+	return out;
 }
 
 @implementation MenuetMenu
@@ -389,6 +469,14 @@ static NSAttributedString *MenuetBuildAttributedTitle(NSString *text,
 		item.attributedTitle = MenuetBuildAttributedTitle(
 		    text, runs, fontSize.floatValue, fontWeight.floatValue,
 		    itemColor, itemMono);
+		// Two-line layout (macOS 14+ only). On older systems
+		// NSMenuItem.subtitle doesn't exist and the second line is
+		// silently dropped — see Subtitle's doc comment.
+		NSArray *subtitleRuns = dict[@"Subtitle"];
+		if (@available(macOS 14.0, *)) {
+			NSString *subtitleText = MenuetPlainTextFromRuns(subtitleRuns);
+			item.subtitle = subtitleText ?: @"";
+		}
 		// Shortcut display in the menu (⌘N etc.). The global hotkey
 		// registration happens Go-side in buildInternalItem.
 		NSDictionary *shortcut = dict[@"Shortcut"];
@@ -776,13 +864,17 @@ void setState(const char *jsonString) {
 	                       options:0
 	                       error:nil];
 	dispatch_async(dispatch_get_main_queue(), ^{
-		_statusItem.button.attributedTitle = [[NSAttributedString alloc]
-		                                      initWithString:state[@"Title"]
-		                                      attributes:@{
-		                                              NSFontAttributeName :
-		                                              [NSFont monospacedDigitSystemFontOfSize:14
-		                                               weight:NSFontWeightRegular]
-		}];
+		// Build the title via the same runs→attributed-string path the
+		// dropdown rows use. When Runs is empty, MenuetBuildAttributedTitle
+		// falls back to plain Title, preserving the pre-runs behavior.
+		NSString *title = state[@"Title"] ?: @"";
+		NSArray *titleRuns = state[@"Runs"];
+		_statusItem.button.attributedTitle = MenuetBuildAttributedTitle(
+		    title, titleRuns,
+		    /*itemFontSize=*/14,
+		    /*itemFontWeight=*/NSFontWeightRegular,
+		    /*itemColorDict=*/nil,
+		    /*itemMono=*/NO);
 		NSString *imageName = state[@"Image"];
 		NSImage *image = [NSImage imageFromName:imageName withHeight:22];
 		_statusItem.button.image = image;

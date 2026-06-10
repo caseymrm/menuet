@@ -52,6 +52,13 @@ func (a *Application) getStartupPath() string {
 }
 
 func (a *Application) runningAtStartup() bool {
+	// If the consumer hasn't even set a Label, they haven't opted into
+	// startup-item management. Return false rather than reporting on the
+	// host process's general SMAppService status (the test binary on a
+	// developer's machine may otherwise see a stale "registered" answer).
+	if a.Label == "" {
+		return false
+	}
 	// SMAppService is the modern (macOS 13+) backend and what users
 	// expect: the System Settings → Login Items panel reflects it. Check
 	// it first; fall back to looking for our LaunchAgent plist.
