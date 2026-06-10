@@ -1,11 +1,60 @@
 #import <Cocoa/Cocoa.h>
 #import <UserNotifications/UserNotifications.h>
 #import <Carbon/Carbon.h>
+#import <ServiceManagement/ServiceManagement.h>
 
 #import "NSImage+Resize.h"
 #import "menuet.h"
 
 void hotkeyFired(uint32_t id);
+
+// SMAppService is macOS 13+. The wrapper functions return:
+//   -1 = API unavailable on this macOS
+//    0 = success / not registered
+//    1 = registered / requires user approval
+//    2 = registration error (e.g. unsigned bundle — caller should fall back)
+//    3 = not found (status only)
+int menuetSMAppServiceRegister(void) {
+	if (@available(macOS 13.0, *)) {
+		SMAppService *service = [SMAppService mainAppService];
+		NSError *err = nil;
+		BOOL ok = [service registerAndReturnError:&err];
+		if (ok) return 0;
+		if (err) {
+			NSLog(@"menuet: SMAppService register failed: %@", err);
+		}
+		return 2;
+	}
+	return -1;
+}
+
+int menuetSMAppServiceUnregister(void) {
+	if (@available(macOS 13.0, *)) {
+		SMAppService *service = [SMAppService mainAppService];
+		NSError *err = nil;
+		BOOL ok = [service unregisterAndReturnError:&err];
+		if (ok) return 0;
+		if (err) {
+			NSLog(@"menuet: SMAppService unregister failed: %@", err);
+		}
+		return 2;
+	}
+	return -1;
+}
+
+int menuetSMAppServiceStatus(void) {
+	if (@available(macOS 13.0, *)) {
+		SMAppService *service = [SMAppService mainAppService];
+		switch (service.status) {
+			case SMAppServiceStatusEnabled:           return 1;
+			case SMAppServiceStatusRequiresApproval:  return 1;
+			case SMAppServiceStatusNotRegistered:     return 0;
+			case SMAppServiceStatusNotFound:          return 3;
+		}
+		return 0;
+	}
+	return -1;
+}
 
 void itemClicked(const char *);
 void notificationRespond(const char *, const char *);
