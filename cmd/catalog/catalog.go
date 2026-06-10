@@ -124,6 +124,54 @@ func menuItems() []menuet.MenuItem {
 			Text:     "Search",
 			Children: searchDemo,
 		},
+		menuet.Regular{
+			Text:     "Rich text",
+			Children: richTextDemo,
+		},
+	}
+}
+
+func richTextDemo() []menuet.MenuItem {
+	return []menuet.MenuItem{
+		menuet.Regular{
+			Text:  "Item-level color (red)",
+			Color: menuet.Red,
+		},
+		menuet.Regular{
+			Text:       "Monospaced",
+			Monospaced: true,
+		},
+		menuet.Regular{
+			Text:       "Mono + bold",
+			Monospaced: true,
+			FontWeight: menuet.WeightBold,
+		},
+		menuet.Regular{
+			Runs: []menuet.TextRun{
+				{Text: "Status: "},
+				{Text: "FAILED", Color: menuet.Red, FontWeight: menuet.WeightBold},
+			},
+		},
+		menuet.Regular{
+			Runs: []menuet.TextRun{
+				{Text: "Status: "},
+				{Text: "OK", Color: menuet.Green, FontWeight: menuet.WeightBold},
+			},
+		},
+		menuet.Regular{
+			Runs: []menuet.TextRun{
+				{Text: "Build "},
+				{Text: "#1234 ", Color: menuet.Gray, Monospaced: true},
+				{Text: "passed in "},
+				{Text: "42.3s", FontWeight: menuet.WeightSemibold},
+			},
+		},
+		menuet.Regular{
+			Runs: []menuet.TextRun{
+				{Text: "$ ", Color: menuet.Gray, Monospaced: true},
+				{Text: "make release", Monospaced: true},
+			},
+		},
 	}
 }
 
