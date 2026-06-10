@@ -128,6 +128,32 @@ func menuItems() []menuet.MenuItem {
 			Text:     "Rich text",
 			Children: richTextDemo,
 		},
+		menuet.Regular{
+			Text:     "Hotkeys",
+			Children: hotkeysDemo,
+		},
+	}
+}
+
+var hotkeyFireCount int
+
+func hotkeysDemo() []menuet.MenuItem {
+	return []menuet.MenuItem{
+		menuet.Regular{
+			Text:     fmt.Sprintf("Cmd+Shift+M fired %d time(s)", hotkeyFireCount),
+			Shortcut: &menuet.Shortcut{KeyCode: menuet.KeyM, Modifiers: menuet.ModCmd | menuet.ModShift},
+			Clicked: func() {
+				hotkeyFireCount++
+				menuet.App().MenuChanged()
+			},
+		},
+		menuet.Regular{
+			Text:     "Cmd+Alt+1 → flash an alert",
+			Shortcut: &menuet.Shortcut{KeyCode: menuet.Key1, Modifiers: menuet.ModCmd | menuet.ModAlt},
+			Clicked: func() {
+				menuet.App().Alert(menuet.Alert{MessageText: "Cmd+Alt+1 fired"})
+			},
+		},
 	}
 }
 

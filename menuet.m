@@ -1,8 +1,11 @@
 #import <Cocoa/Cocoa.h>
 #import <UserNotifications/UserNotifications.h>
+#import <Carbon/Carbon.h>
 
 #import "NSImage+Resize.h"
 #import "menuet.h"
+
+void hotkeyFired(uint32_t id);
 
 void itemClicked(const char *);
 void notificationRespond(const char *, const char *);
@@ -23,6 +26,60 @@ void topLevelClicked();
 // clears items with this tag before rebuilding so a menu refresh doesn't
 // confuse search results with user-supplied items.
 #define MENUET_SEARCH_RESULT_TAG 31337
+
+// Global-hotkey Carbon plumbing. Each Shortcut registered from Go gets an
+// EventHotKeyRef stored here keyed by the Go-assigned uint32 ID, so we can
+// unregister on demand. The shared event handler dispatches incoming
+// kEventHotKeyPressed events back into Go via hotkeyFired().
+static NSMutableDictionary<NSNumber *, NSValue *> *MenuetHotkeyRefs;
+static EventHandlerRef MenuetHotkeyHandler;
+
+static OSStatus MenuetHotkeyEventCallback(EventHandlerCallRef handler,
+                                          EventRef event,
+                                          void *userData) {
+	EventHotKeyID id;
+	OSStatus status = GetEventParameter(event, kEventParamDirectObject,
+	                                     typeEventHotKeyID, NULL,
+	                                     sizeof(id), NULL, &id);
+	if (status != noErr) return status;
+	hotkeyFired(id.id);
+	return noErr;
+}
+
+static void MenuetEnsureHotkeyHandler(void) {
+	if (MenuetHotkeyHandler) return;
+	MenuetHotkeyRefs = [NSMutableDictionary new];
+	EventTypeSpec evt = { kEventClassKeyboard, kEventHotKeyPressed };
+	InstallApplicationEventHandler(MenuetHotkeyEventCallback, 1, &evt,
+	                                NULL, &MenuetHotkeyHandler);
+}
+
+void registerHotkey(uint32_t goID, uint32_t keyCode, uint32_t modifiers) {
+	dispatch_async(dispatch_get_main_queue(), ^{
+		MenuetEnsureHotkeyHandler();
+		EventHotKeyID hkID = { .signature = 'menu', .id = goID };
+		EventHotKeyRef ref = NULL;
+		OSStatus status = RegisterEventHotKey(keyCode, modifiers, hkID,
+		                                       GetApplicationEventTarget(),
+		                                       0, &ref);
+		if (status != noErr) {
+			NSLog(@"menuet: RegisterEventHotKey failed (status=%d) for id=%u",
+			       (int)status, goID);
+			return;
+		}
+		MenuetHotkeyRefs[@(goID)] = [NSValue valueWithPointer:ref];
+	});
+}
+
+void unregisterHotkey(uint32_t goID) {
+	dispatch_async(dispatch_get_main_queue(), ^{
+		NSValue *boxed = MenuetHotkeyRefs[@(goID)];
+		if (!boxed) return;
+		EventHotKeyRef ref = (EventHotKeyRef)boxed.pointerValue;
+		UnregisterEventHotKey(ref);
+		[MenuetHotkeyRefs removeObjectForKey:@(goID)];
+	});
+}
 
 @class MenuetMenu;
 
@@ -47,6 +104,87 @@ MenuetMenu *_rootMenu;
 @property(nonatomic, assign) BOOL open;
 
 @end
+
+// Convert one of Apple's virtual key codes (the same KeyCode values our
+// Go-side Key constants use) to the NSString form NSMenuItem.keyEquivalent
+// expects. Returns @"" for codes we don't have a printable mapping for.
+static NSString *MenuetKeyEquivalentStringForCode(int keyCode) {
+	// Letter keys, layout-independent — match the Go-side constants.
+	switch (keyCode) {
+		case 0:  return @"a";
+		case 11: return @"b";
+		case 8:  return @"c";
+		case 2:  return @"d";
+		case 14: return @"e";
+		case 3:  return @"f";
+		case 5:  return @"g";
+		case 4:  return @"h";
+		case 34: return @"i";
+		case 38: return @"j";
+		case 40: return @"k";
+		case 37: return @"l";
+		case 46: return @"m";
+		case 45: return @"n";
+		case 31: return @"o";
+		case 35: return @"p";
+		case 12: return @"q";
+		case 15: return @"r";
+		case 1:  return @"s";
+		case 17: return @"t";
+		case 32: return @"u";
+		case 9:  return @"v";
+		case 13: return @"w";
+		case 7:  return @"x";
+		case 16: return @"y";
+		case 6:  return @"z";
+
+		case 29: return @"0";
+		case 18: return @"1";
+		case 19: return @"2";
+		case 20: return @"3";
+		case 21: return @"4";
+		case 23: return @"5";
+		case 22: return @"6";
+		case 26: return @"7";
+		case 28: return @"8";
+		case 25: return @"9";
+
+		case 49: return @" ";                      // space
+		case 36: return [NSString stringWithFormat:@"%C", (unichar)NSCarriageReturnCharacter];
+		case 48: return @"\t";
+		case 53: return [NSString stringWithFormat:@"%C", (unichar)0x1B]; // escape
+
+		case 122: return [NSString stringWithFormat:@"%C", (unichar)NSF1FunctionKey];
+		case 120: return [NSString stringWithFormat:@"%C", (unichar)NSF2FunctionKey];
+		case 99:  return [NSString stringWithFormat:@"%C", (unichar)NSF3FunctionKey];
+		case 118: return [NSString stringWithFormat:@"%C", (unichar)NSF4FunctionKey];
+		case 96:  return [NSString stringWithFormat:@"%C", (unichar)NSF5FunctionKey];
+		case 97:  return [NSString stringWithFormat:@"%C", (unichar)NSF6FunctionKey];
+		case 98:  return [NSString stringWithFormat:@"%C", (unichar)NSF7FunctionKey];
+		case 100: return [NSString stringWithFormat:@"%C", (unichar)NSF8FunctionKey];
+		case 101: return [NSString stringWithFormat:@"%C", (unichar)NSF9FunctionKey];
+		case 109: return [NSString stringWithFormat:@"%C", (unichar)NSF10FunctionKey];
+		case 103: return [NSString stringWithFormat:@"%C", (unichar)NSF11FunctionKey];
+		case 111: return [NSString stringWithFormat:@"%C", (unichar)NSF12FunctionKey];
+
+		case 123: return [NSString stringWithFormat:@"%C", (unichar)NSLeftArrowFunctionKey];
+		case 124: return [NSString stringWithFormat:@"%C", (unichar)NSRightArrowFunctionKey];
+		case 125: return [NSString stringWithFormat:@"%C", (unichar)NSDownArrowFunctionKey];
+		case 126: return [NSString stringWithFormat:@"%C", (unichar)NSUpArrowFunctionKey];
+	}
+	return @"";
+}
+
+// Convert the Carbon-bit modifier mask we use in Go to the AppKit
+// NSEventModifierFlag bits NSMenuItem.keyEquivalentModifierMask expects.
+static NSEventModifierFlags MenuetModifierMaskFromCarbon(uint32_t carbon) {
+	NSEventModifierFlags mask = 0;
+	if (carbon & cmdKey)     mask |= NSEventModifierFlagCommand;
+	if (carbon & shiftKey)   mask |= NSEventModifierFlagShift;
+	if (carbon & optionKey)  mask |= NSEventModifierFlagOption;
+	if (carbon & controlKey) mask |= NSEventModifierFlagControl;
+	return mask;
+}
 
 // Build an NSAttributedString for a menu item's title. If runs is non-nil
 // and non-empty, each run is appended with its own per-segment attributes
@@ -202,6 +340,18 @@ static NSAttributedString *MenuetBuildAttributedTitle(NSString *text,
 		item.attributedTitle = MenuetBuildAttributedTitle(
 		    text, runs, fontSize.floatValue, fontWeight.floatValue,
 		    itemColor, itemMono);
+		// Shortcut display in the menu (⌘N etc.). The global hotkey
+		// registration happens Go-side in buildInternalItem.
+		NSDictionary *shortcut = dict[@"Shortcut"];
+		if ([shortcut isKindOfClass:[NSDictionary class]]) {
+			int kc = [shortcut[@"KeyCode"] intValue];
+			uint32_t mods = [shortcut[@"Modifiers"] unsignedIntValue];
+			item.keyEquivalent = MenuetKeyEquivalentStringForCode(kc);
+			item.keyEquivalentModifierMask = MenuetModifierMaskFromCarbon(mods);
+		} else {
+			item.keyEquivalent = @"";
+			item.keyEquivalentModifierMask = 0;
+		}
 		item.target = self;
 		if (clickable) {
 			item.action = @selector(press:);
