@@ -363,9 +363,13 @@ static NSAttributedString *MenuetBuildAttributedTitle(NSString *text,
 		if (runColor) attrs[NSForegroundColorAttributeName] = runColor;
 		if ([run[@"Underline"] boolValue]) {
 			attrs[NSUnderlineStyleAttributeName] = @(NSUnderlineStyleSingle);
+			NSColor *uc = MenuetColorFromDict(run[@"UnderlineColor"]);
+			if (uc) attrs[NSUnderlineColorAttributeName] = uc;
 		}
 		if ([run[@"Strikethrough"] boolValue]) {
 			attrs[NSStrikethroughStyleAttributeName] = @(NSUnderlineStyleSingle);
+			NSColor *sc = MenuetColorFromDict(run[@"StrikethroughColor"]);
+			if (sc) attrs[NSStrikethroughColorAttributeName] = sc;
 		}
 		NSColor *bg = MenuetColorFromDict(run[@"Background"]);
 		if (bg) attrs[NSBackgroundColorAttributeName] = bg;

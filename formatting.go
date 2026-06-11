@@ -71,16 +71,25 @@ var (
 // attributes — useful for marking winners/losers, "marker-pen" style
 // highlights, and trophy-glow celebrations.
 type TextRun struct {
-	Text          string
-	Color         Color      // zero = system default
-	FontSize      int        // 0 = inherit from item
-	FontWeight    FontWeight // 0 = default
-	Monospaced    bool       // true = system monospace font
-	Badge         bool       // true = render as rounded-pill badge
-	Underline     bool       // single underline in the run's foreground color
-	Strikethrough bool       // single strike through the text
-	Background    Color      // zero = none; non-zero = colored highlight behind text
-	Shadow        *Shadow    // nil = no shadow; set for a drop-shadow or glow
+	Text       string
+	Color      Color      // zero = system default
+	FontSize   int        // 0 = inherit from item
+	FontWeight FontWeight // 0 = default
+	Monospaced bool       // true = system monospace font
+	Badge      bool       // true = render as rounded-pill badge
+
+	// Underline draws a single underline. By default it uses the run's
+	// foreground Color; set UnderlineColor for an independent color.
+	Underline      bool
+	UnderlineColor Color // zero = follow foreground
+
+	// Strikethrough draws a single strike. By default it uses the run's
+	// foreground Color; set StrikethroughColor for an independent color.
+	Strikethrough      bool
+	StrikethroughColor Color // zero = follow foreground
+
+	Background Color   // zero = none; non-zero = colored highlight behind text
+	Shadow     *Shadow // nil = no shadow; set for a drop-shadow or glow
 }
 
 // Shadow is a drop-shadow or glow rendered behind a TextRun. Set Blur

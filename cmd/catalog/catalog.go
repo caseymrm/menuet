@@ -185,6 +185,23 @@ func richTextDemo() []menuet.MenuItem {
 		},
 		menuet.Regular{
 			Runs: []menuet.TextRun{
+				{Text: "Underline color independent of text: "},
+				{
+					Text:           "misspelled",
+					Underline:      true,
+					UnderlineColor: menuet.SystemRed,
+				},
+				{Text: "  /  "},
+				{
+					Text:               "outdated",
+					Color:              menuet.LabelSecondary,
+					Strikethrough:      true,
+					StrikethroughColor: menuet.SystemRed,
+				},
+			},
+		},
+		menuet.Regular{
+			Runs: []menuet.TextRun{
 				{Text: "Semantic ", Color: menuet.LabelPrimary},
 				{Text: "colors ", Color: menuet.LabelSecondary},
 				{Text: "adapt ", Color: menuet.LabelTertiary},

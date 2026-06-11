@@ -56,6 +56,45 @@ func TestShadowRunSerializes(t *testing.T) {
 	}
 }
 
+func TestUnderlineColorIndependent(t *testing.T) {
+	// Spell-checker style: gray text, red underline.
+	r := TextRun{
+		Text:           "misspelled",
+		Color:          Gray,
+		Underline:      true,
+		UnderlineColor: SystemRed,
+	}
+	b, _ := json.Marshal(r)
+	got := string(b)
+	if !strings.Contains(got, `"Underline":true`) {
+		t.Errorf("Underline missing: %s", got)
+	}
+	// UnderlineColor must serialize as its own Color object (not merged
+	// with the run's foreground) so the ObjC bridge sees it separately.
+	if !strings.Contains(got, `"UnderlineColor":`) ||
+		!strings.Contains(got, `"Semantic":"systemRedColor"`) {
+		t.Errorf("UnderlineColor missing or wrong shape: %s", got)
+	}
+}
+
+func TestStrikethroughColorIndependent(t *testing.T) {
+	r := TextRun{
+		Text:               "outdated",
+		Color:              LabelSecondary,
+		Strikethrough:      true,
+		StrikethroughColor: SystemRed,
+	}
+	b, _ := json.Marshal(r)
+	got := string(b)
+	if !strings.Contains(got, `"Strikethrough":true`) {
+		t.Errorf("Strikethrough missing: %s", got)
+	}
+	if !strings.Contains(got, `"StrikethroughColor":`) ||
+		!strings.Contains(got, `"Semantic":"systemRedColor"`) {
+		t.Errorf("StrikethroughColor missing or wrong shape: %s", got)
+	}
+}
+
 func TestPlainRunOmitsEmphasisFields(t *testing.T) {
 	// Without using the omitempty pattern in this PR (kept additive for
 	// schema stability), a plain run still serializes its boolean zeros.
