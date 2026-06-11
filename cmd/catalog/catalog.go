@@ -161,6 +161,30 @@ func richTextDemo() []menuet.MenuItem {
 	return []menuet.MenuItem{
 		menuet.Regular{
 			Runs: []menuet.TextRun{
+				{Text: "🏆 ", FontSize: 16},
+				{
+					Text:       "LAL WINS",
+					FontWeight: menuet.WeightHeavy,
+					FontSize:   15,
+					Color:      menuet.Color{R: 230, G: 180, B: 30, A: 255},
+					Shadow: &menuet.Shadow{
+						Color: menuet.Color{R: 255, G: 220, B: 80, A: 220},
+						Blur:  8,
+					},
+				},
+			},
+		},
+		menuet.Regular{
+			Runs: []menuet.TextRun{
+				{Text: "Underline", Underline: true},
+				{Text: "  ·  "},
+				{Text: "Strikethrough", Strikethrough: true, Color: menuet.LabelSecondary},
+				{Text: "  ·  "},
+				{Text: " marker ", Background: menuet.Color{R: 255, G: 240, B: 130, A: 255}},
+			},
+		},
+		menuet.Regular{
+			Runs: []menuet.TextRun{
 				{Text: "Semantic ", Color: menuet.LabelPrimary},
 				{Text: "colors ", Color: menuet.LabelSecondary},
 				{Text: "adapt ", Color: menuet.LabelTertiary},
