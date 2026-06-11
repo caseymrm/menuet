@@ -361,6 +361,24 @@ static NSAttributedString *MenuetBuildAttributedTitle(NSString *text,
 		NSMutableDictionary *attrs = [NSMutableDictionary new];
 		attrs[NSFontAttributeName] = MenuetFont(fs, fw, runMono);
 		if (runColor) attrs[NSForegroundColorAttributeName] = runColor;
+		if ([run[@"Underline"] boolValue]) {
+			attrs[NSUnderlineStyleAttributeName] = @(NSUnderlineStyleSingle);
+		}
+		if ([run[@"Strikethrough"] boolValue]) {
+			attrs[NSStrikethroughStyleAttributeName] = @(NSUnderlineStyleSingle);
+		}
+		NSColor *bg = MenuetColorFromDict(run[@"Background"]);
+		if (bg) attrs[NSBackgroundColorAttributeName] = bg;
+		NSDictionary *shadowDict = run[@"Shadow"];
+		if ([shadowDict isKindOfClass:[NSDictionary class]]) {
+			NSShadow *shadow = [NSShadow new];
+			NSColor *shadowColor = MenuetColorFromDict(shadowDict[@"Color"]);
+			shadow.shadowColor = shadowColor ?: [NSColor colorWithWhite:0 alpha:0.6];
+			shadow.shadowBlurRadius = [shadowDict[@"Blur"] doubleValue];
+			shadow.shadowOffset = NSMakeSize([shadowDict[@"OffsetX"] doubleValue],
+			                                  [shadowDict[@"OffsetY"] doubleValue]);
+			attrs[NSShadowAttributeName] = shadow;
+		}
 		[result appendAttributedString:[[NSAttributedString alloc] initWithString:segText
 		                                                              attributes:attrs]];
 	}

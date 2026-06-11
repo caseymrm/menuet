@@ -66,13 +66,32 @@ var (
 // When Badge is true the run renders as a filled, rounded pill rather
 // than text: Color becomes the fill color and Text appears in white-on-
 // fill at small size. Useful for "LIVE" / "NEW" pills next to a row.
+//
+// Underline, Strikethrough, Background, and Shadow are common emphasis
+// attributes — useful for marking winners/losers, "marker-pen" style
+// highlights, and trophy-glow celebrations.
 type TextRun struct {
-	Text       string
-	Color      Color      // zero = system default
-	FontSize   int        // 0 = inherit from item
-	FontWeight FontWeight // 0 = default
-	Monospaced bool       // true = system monospace font
-	Badge      bool       // true = render as rounded-pill badge
+	Text          string
+	Color         Color      // zero = system default
+	FontSize      int        // 0 = inherit from item
+	FontWeight    FontWeight // 0 = default
+	Monospaced    bool       // true = system monospace font
+	Badge         bool       // true = render as rounded-pill badge
+	Underline     bool       // single underline in the run's foreground color
+	Strikethrough bool       // single strike through the text
+	Background    Color      // zero = none; non-zero = colored highlight behind text
+	Shadow        *Shadow    // nil = no shadow; set for a drop-shadow or glow
+}
+
+// Shadow is a drop-shadow or glow rendered behind a TextRun. Set Blur
+// alone (with the default zero offset) for a glow effect; set OffsetX
+// and OffsetY for a directional drop shadow. Color of zero defaults to
+// translucent black at draw time.
+type Shadow struct {
+	Color   Color
+	Blur    float64 // blur radius in points; 0 = sharp
+	OffsetX float64 // horizontal offset in points
+	OffsetY float64 // vertical offset in points (AppKit: positive = up)
 }
 
 // FontWeight represents the weight of the font
