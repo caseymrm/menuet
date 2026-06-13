@@ -104,3 +104,16 @@ $(PLIST):
 .PHONY: sign
 sign: $(BINARY) $(PLIST)
 	codesign -f -s "$(IDENTITY)" $(ESCAPED_APP).app --deep
+
+# `make web-preview` writes menuet-demo.json — a JSON snapshot of the
+# current MenuState and resolved menu items — by re-running the binary
+# in snapshot mode. The snapshot is safe to commit to your repo;
+# menuet.app fetches it to render a faithful HTML mockup of your menu.
+#
+# Default delay is 2s; override with MENUET_SNAPSHOT_DELAY=5s when your
+# app fetches data on startup and you want the menu to reflect real
+# values in the demo.
+.PHONY: web-preview
+web-preview: $(BINARY) $(PLIST)
+	MENUET_SNAPSHOT_PATH=menuet-demo.json ./$(BINARY)
+	@echo "Wrote menuet-demo.json"

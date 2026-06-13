@@ -85,8 +85,17 @@ func App() *Application {
 	return appInstance
 }
 
-// RunApplication does not return
+// RunApplication does not return, unless MENUET_SNAPSHOT_PATH is set —
+// in which case it writes a JSON snapshot of the current MenuState and
+// resolved top-level Children (with submenus recursively expanded) and
+// returns without entering the AppKit run loop. See snapshot.go for the
+// snapshot format; the `web-preview` Makefile target is the intended
+// driver. Also honors MENUET_SNAPSHOT_DELAY (default 2s) to give startup
+// goroutines time to populate state.
 func (a *Application) RunApplication() {
+	if a.maybeWriteSnapshot() {
+		return
+	}
 	if a.AutoUpdate.Version != "" && a.AutoUpdate.Repo != "" {
 		go a.checkForUpdates()
 	}
