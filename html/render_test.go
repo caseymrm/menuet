@@ -2,6 +2,7 @@ package html
 
 import (
 	"encoding/json"
+	"fmt"
 	"strings"
 	"testing"
 
@@ -76,6 +77,62 @@ func TestRendersSubmenuChevron(t *testing.T) {
 	}), Options{})
 	if !strings.Contains(got, "<polyline") {
 		t.Errorf("submenu chevron missing: %s", got)
+	}
+	// Default Options should NOT expand submenus — child text stays hidden.
+	if strings.Contains(got, ">Lakers<") {
+		t.Errorf("submenu child rendered without ExpandSubmenus: %s", got)
+	}
+}
+
+func TestExpandSubmenusRendersChildrenInline(t *testing.T) {
+	got := Render(snap(nil, menuet.SnapshotItem{
+		Type: "regular", Text: "Favorites",
+		Children: []menuet.SnapshotItem{
+			{Type: "regular", Text: "Lakers"},
+			{Type: "regular", Text: "Warriors"},
+		},
+	}), Options{ExpandSubmenus: true})
+	for _, want := range []string{"Favorites", "Lakers", "Warriors"} {
+		if !strings.Contains(got, ">"+want+"<") {
+			t.Errorf("missing %q in expanded output: %s", want, got)
+		}
+	}
+}
+
+func TestExpandSubmenusCapsItemsPerLevel(t *testing.T) {
+	var children []menuet.SnapshotItem
+	for i := 0; i < 10; i++ {
+		children = append(children, menuet.SnapshotItem{Type: "regular", Text: fmt.Sprintf("Team %d", i)})
+	}
+	got := Render(snap(nil, menuet.SnapshotItem{
+		Type: "regular", Text: "Teams", Children: children,
+	}), Options{ExpandSubmenus: true, MaxSubmenuItems: 3})
+	// First 3 visible.
+	for _, want := range []string{"Team 0", "Team 1", "Team 2"} {
+		if !strings.Contains(got, want) {
+			t.Errorf("missing %q in capped output: %s", want, got)
+		}
+	}
+	// Excess truncated.
+	if strings.Contains(got, "Team 7") {
+		t.Errorf("over-cap item leaked: %s", got)
+	}
+	if !strings.Contains(got, "+7 more") {
+		t.Errorf("truncation hint missing: %s", got)
+	}
+}
+
+func TestExpandSubmenusCapsDepth(t *testing.T) {
+	// Three levels deep: parent → child → grandchild.
+	gc := menuet.SnapshotItem{Type: "regular", Text: "Grandchild"}
+	child := menuet.SnapshotItem{Type: "regular", Text: "Child", Children: []menuet.SnapshotItem{gc}}
+	parent := menuet.SnapshotItem{Type: "regular", Text: "Parent", Children: []menuet.SnapshotItem{child}}
+	got := Render(snap(nil, parent), Options{ExpandSubmenus: true, MaxSubmenuDepth: 1})
+	if !strings.Contains(got, ">Child<") {
+		t.Errorf("first-level child missing: %s", got)
+	}
+	if strings.Contains(got, ">Grandchild<") {
+		t.Errorf("grandchild leaked past MaxSubmenuDepth=1: %s", got)
 	}
 }
 

@@ -30,7 +30,9 @@ const (
 	ThemeDark
 )
 
-// Options tweaks rendering. Zero value renders a light-theme mockup.
+// Options tweaks rendering. Zero value renders a light-theme mockup
+// with the same shape as the design's static MenuMock — chevrons mark
+// submenu items, but their contents aren't shown.
 type Options struct {
 	Theme Theme
 
@@ -40,6 +42,37 @@ type Options struct {
 	// the theme default (#007aff light / #0a84ff dark). Must be a
 	// 7-char "#rrggbb" string; other values are dropped.
 	AccentHex string
+
+	// ExpandSubmenus renders submenu items inline, indented below their
+	// parent row, instead of just showing the submenu chevron. Useful in
+	// static showcases where hover-to-open isn't available. Capped by
+	// MaxSubmenuDepth and MaxSubmenuItems so a deep or wide tree (the
+	// catalog app has both) doesn't blow up the output.
+	ExpandSubmenus bool
+
+	// MaxSubmenuDepth caps how deep ExpandSubmenus recurses. 0 = default 2
+	// (parent, grandchild). Set negative to disable the cap; the snapshot's
+	// own depth limit still bounds the tree.
+	MaxSubmenuDepth int
+
+	// MaxSubmenuItems caps visible items per submenu level when
+	// ExpandSubmenus is true. 0 = default 5. Excess items get a "+N more"
+	// hint at the end of the level.
+	MaxSubmenuItems int
+}
+
+func (o Options) maxSubmenuDepth() int {
+	if o.MaxSubmenuDepth == 0 {
+		return 2
+	}
+	return o.MaxSubmenuDepth
+}
+
+func (o Options) maxSubmenuItems() int {
+	if o.MaxSubmenuItems == 0 {
+		return 5
+	}
+	return o.MaxSubmenuItems
 }
 
 // Render produces an HTML fragment for the snapshot using the given
@@ -62,7 +95,7 @@ func Render(snap menuet.Snapshot, opts Options) string {
 	}
 	b.WriteString(`<div style="font-family: -apple-system, BlinkMacSystemFont, system-ui, 'SF Pro Text', sans-serif; width: 332px; display: flex; flex-direction: column; align-items: flex-end; gap: 7px; -webkit-font-smoothing: antialiased;">`)
 	renderBar(&b, snap.State)
-	renderPanel(&b, snap.Items)
+	renderPanel(&b, snap.Items, opts)
 	b.WriteString(`</div></div>`)
 	return b.String()
 }
@@ -153,15 +186,15 @@ func renderBar(b *strings.Builder, state *menuet.MenuState) {
 	b.WriteString(`</div>`)
 }
 
-func renderPanel(b *strings.Builder, items []menuet.SnapshotItem) {
+func renderPanel(b *strings.Builder, items []menuet.SnapshotItem, opts Options) {
 	b.WriteString(`<div style="width: 320px; background: var(--panel-bg); -webkit-backdrop-filter: blur(34px) saturate(1.7); backdrop-filter: blur(34px) saturate(1.7); border: 0.5px solid var(--panel-border); border-radius: 11px; box-shadow: var(--shadow); padding: 5px 0;">`)
 	for _, item := range items {
-		renderItem(b, item)
+		renderItem(b, item, opts, 0)
 	}
 	b.WriteString(`</div>`)
 }
 
-func renderItem(b *strings.Builder, item menuet.SnapshotItem) {
+func renderItem(b *strings.Builder, item menuet.SnapshotItem, opts Options, depth int) {
 	switch item.Type {
 	case "separator":
 		b.WriteString(`<div style="height: 1px; background: var(--sep); margin: 5px 12px;"></div>`)
@@ -178,11 +211,37 @@ func renderItem(b *strings.Builder, item menuet.SnapshotItem) {
 		b.WriteString(`</div>`)
 		// Search results render below the field as ordinary rows.
 		for _, child := range item.Children {
-			renderItem(b, child)
+			renderItem(b, child, opts, depth)
 		}
 	default:
 		renderRegular(b, item)
+		if opts.ExpandSubmenus && len(item.Children) > 0 && depth < opts.maxSubmenuDepth() {
+			renderSubmenuBlock(b, item.Children, opts, depth+1)
+		}
 	}
+}
+
+// renderSubmenuBlock renders a Regular's children inline, indented from
+// the parent row with a left border to mark the hierarchy. Capped by
+// MaxSubmenuItems; truncation gets a "+N more" footer.
+func renderSubmenuBlock(b *strings.Builder, children []menuet.SnapshotItem, opts Options, depth int) {
+	max := opts.maxSubmenuItems()
+	visible := children
+	truncated := 0
+	if max > 0 && len(visible) > max {
+		truncated = len(visible) - max
+		visible = visible[:max]
+	}
+	// Container indented past the parent's checkmark gutter, with a left
+	// border tracing the menu hierarchy.
+	b.WriteString(`<div style="margin: 2px 5px 4px 18px; border-left: 1.5px solid var(--sep); padding-left: 2px;">`)
+	for _, c := range visible {
+		renderItem(b, c, opts, depth)
+	}
+	if truncated > 0 {
+		fmt.Fprintf(b, `<div style="margin: 2px 5px 0; padding: 0 9px 0 7px; font-size: 11.5px; color: var(--text-3); font-style: italic;">+%d more…</div>`, truncated)
+	}
+	b.WriteString(`</div>`)
 }
 
 func renderRegular(b *strings.Builder, item menuet.SnapshotItem) {
