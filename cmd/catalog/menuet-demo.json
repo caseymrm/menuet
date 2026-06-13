@@ -1,0 +1,2311 @@
+{
+  "schema": "menuet-snapshot/v1",
+  "state": {
+    "Title": "Catalog",
+    "Runs": null,
+    "Image": ""
+  },
+  "items": [
+    {
+      "type": "regular",
+      "text": "Show Alert",
+      "color": {
+        "R": 0,
+        "G": 0,
+        "B": 0,
+        "A": 0
+      },
+      "children": [
+        {
+          "type": "regular",
+          "text": "Just MessageText",
+          "color": {
+            "R": 0,
+            "G": 0,
+            "B": 0,
+            "A": 0
+          }
+        },
+        {
+          "type": "regular",
+          "text": "Just InformativeText",
+          "color": {
+            "R": 0,
+            "G": 0,
+            "B": 0,
+            "A": 0
+          }
+        },
+        {
+          "type": "regular",
+          "text": "MessageText and InformativeText",
+          "color": {
+            "R": 0,
+            "G": 0,
+            "B": 0,
+            "A": 0
+          }
+        },
+        {
+          "type": "regular",
+          "text": "Message and two buttons",
+          "color": {
+            "R": 0,
+            "G": 0,
+            "B": 0,
+            "A": 0
+          }
+        },
+        {
+          "type": "regular",
+          "text": "Message and input",
+          "color": {
+            "R": 0,
+            "G": 0,
+            "B": 0,
+            "A": 0
+          }
+        },
+        {
+          "type": "regular",
+          "text": "Message, InformativeText, Button, and Input",
+          "color": {
+            "R": 0,
+            "G": 0,
+            "B": 0,
+            "A": 0
+          }
+        },
+        {
+          "type": "regular",
+          "text": "Message and two inputs",
+          "color": {
+            "R": 0,
+            "G": 0,
+            "B": 0,
+            "A": 0
+          }
+        },
+        {
+          "type": "regular",
+          "text": "Login form",
+          "color": {
+            "R": 0,
+            "G": 0,
+            "B": 0,
+            "A": 0
+          }
+        }
+      ]
+    },
+    {
+      "type": "regular",
+      "text": "Send Notification",
+      "color": {
+        "R": 0,
+        "G": 0,
+        "B": 0,
+        "A": 0
+      },
+      "children": [
+        {
+          "type": "regular",
+          "text": "Just a title",
+          "color": {
+            "R": 0,
+            "G": 0,
+            "B": 0,
+            "A": 0
+          }
+        },
+        {
+          "type": "regular",
+          "text": "Just a subtitle",
+          "color": {
+            "R": 0,
+            "G": 0,
+            "B": 0,
+            "A": 0
+          }
+        },
+        {
+          "type": "regular",
+          "text": "Just a message",
+          "color": {
+            "R": 0,
+            "G": 0,
+            "B": 0,
+            "A": 0
+          }
+        },
+        {
+          "type": "regular",
+          "text": "Title and subtitle",
+          "color": {
+            "R": 0,
+            "G": 0,
+            "B": 0,
+            "A": 0
+          }
+        },
+        {
+          "type": "regular",
+          "text": "Title and message",
+          "color": {
+            "R": 0,
+            "G": 0,
+            "B": 0,
+            "A": 0
+          }
+        },
+        {
+          "type": "regular",
+          "text": "Subtitle and message (this is the subtitle)",
+          "color": {
+            "R": 0,
+            "G": 0,
+            "B": 0,
+            "A": 0
+          }
+        },
+        {
+          "type": "regular",
+          "text": "Title, subtitle, and message",
+          "color": {
+            "R": 0,
+            "G": 0,
+            "B": 0,
+            "A": 0
+          }
+        },
+        {
+          "type": "regular",
+          "text": "Action button",
+          "color": {
+            "R": 0,
+            "G": 0,
+            "B": 0,
+            "A": 0
+          }
+        },
+        {
+          "type": "regular",
+          "text": "Close button",
+          "color": {
+            "R": 0,
+            "G": 0,
+            "B": 0,
+            "A": 0
+          }
+        },
+        {
+          "type": "regular",
+          "text": "ResponsePlaceholder ",
+          "color": {
+            "R": 0,
+            "G": 0,
+            "B": 0,
+            "A": 0
+          }
+        },
+        {
+          "type": "regular",
+          "text": "Identifier set",
+          "color": {
+            "R": 0,
+            "G": 0,
+            "B": 0,
+            "A": 0
+          }
+        },
+        {
+          "type": "regular",
+          "text": "Remove from notification center",
+          "color": {
+            "R": 0,
+            "G": 0,
+            "B": 0,
+            "A": 0
+          }
+        }
+      ]
+    },
+    {
+      "type": "regular",
+      "text": "Change Title",
+      "color": {
+        "R": 0,
+        "G": 0,
+        "B": 0,
+        "A": 0
+      },
+      "children": [
+        {
+          "type": "regular",
+          "text": "Text only",
+          "color": {
+            "R": 0,
+            "G": 0,
+            "B": 0,
+            "A": 0
+          }
+        },
+        {
+          "type": "regular",
+          "text": "Image only",
+          "color": {
+            "R": 0,
+            "G": 0,
+            "B": 0,
+            "A": 0
+          }
+        },
+        {
+          "type": "regular",
+          "text": "Text and Image",
+          "color": {
+            "R": 0,
+            "G": 0,
+            "B": 0,
+            "A": 0
+          }
+        },
+        {
+          "type": "regular",
+          "text": "Runs in the title (live score)",
+          "color": {
+            "R": 0,
+            "G": 0,
+            "B": 0,
+            "A": 0
+          }
+        }
+      ]
+    },
+    {
+      "type": "regular",
+      "text": "Menu Items",
+      "color": {
+        "R": 0,
+        "G": 0,
+        "B": 0,
+        "A": 0
+      },
+      "children": [
+        {
+          "type": "regular",
+          "text": "Just text",
+          "color": {
+            "R": 0,
+            "G": 0,
+            "B": 0,
+            "A": 0
+          }
+        },
+        {
+          "type": "regular",
+          "text": "FontSizes",
+          "color": {
+            "R": 0,
+            "G": 0,
+            "B": 0,
+            "A": 0
+          },
+          "children": [
+            {
+              "type": "regular",
+              "text": "FontSize 2",
+              "fontSize": 2,
+              "color": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              }
+            },
+            {
+              "type": "regular",
+              "text": "FontSize 4",
+              "fontSize": 4,
+              "color": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              }
+            },
+            {
+              "type": "regular",
+              "text": "FontSize 6",
+              "fontSize": 6,
+              "color": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              }
+            },
+            {
+              "type": "regular",
+              "text": "FontSize 8",
+              "fontSize": 8,
+              "color": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              }
+            },
+            {
+              "type": "regular",
+              "text": "FontSize 10",
+              "fontSize": 10,
+              "color": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              }
+            },
+            {
+              "type": "regular",
+              "text": "FontSize 12",
+              "fontSize": 12,
+              "color": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              }
+            },
+            {
+              "type": "regular",
+              "text": "FontSize 14",
+              "fontSize": 14,
+              "color": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              }
+            },
+            {
+              "type": "regular",
+              "text": "FontSize 16",
+              "fontSize": 16,
+              "color": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              }
+            },
+            {
+              "type": "regular",
+              "text": "FontSize 18",
+              "fontSize": 18,
+              "color": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              }
+            },
+            {
+              "type": "regular",
+              "text": "FontSize 20",
+              "fontSize": 20,
+              "color": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              }
+            },
+            {
+              "type": "regular",
+              "text": "FontSize 22",
+              "fontSize": 22,
+              "color": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              }
+            },
+            {
+              "type": "regular",
+              "text": "FontSize 24",
+              "fontSize": 24,
+              "color": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              }
+            },
+            {
+              "type": "regular",
+              "text": "FontSize 26",
+              "fontSize": 26,
+              "color": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              }
+            }
+          ]
+        },
+        {
+          "type": "regular",
+          "text": "FontWeights",
+          "color": {
+            "R": 0,
+            "G": 0,
+            "B": 0,
+            "A": 0
+          },
+          "children": [
+            {
+              "type": "regular",
+              "text": "WeightUltraLight",
+              "fontWeight": -0.8,
+              "color": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              }
+            },
+            {
+              "type": "regular",
+              "text": "WeightThin",
+              "fontWeight": -0.6,
+              "color": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              }
+            },
+            {
+              "type": "regular",
+              "text": "WeightLight",
+              "fontWeight": -0.4,
+              "color": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              }
+            },
+            {
+              "type": "regular",
+              "text": "WeightRegular",
+              "color": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              }
+            },
+            {
+              "type": "regular",
+              "text": "WeightMedium",
+              "fontWeight": 0.23,
+              "color": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              }
+            },
+            {
+              "type": "regular",
+              "text": "WeightSemibold",
+              "fontWeight": 0.3,
+              "color": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              }
+            },
+            {
+              "type": "regular",
+              "text": "WeightBold",
+              "fontWeight": 0.4,
+              "color": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              }
+            },
+            {
+              "type": "regular",
+              "text": "WeightHeavy",
+              "fontWeight": 0.56,
+              "color": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              }
+            },
+            {
+              "type": "regular",
+              "text": "WeightBlack",
+              "fontWeight": 0.62,
+              "color": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              }
+            }
+          ]
+        },
+        {
+          "type": "regular",
+          "text": "State = true",
+          "color": {
+            "R": 0,
+            "G": 0,
+            "B": 0,
+            "A": 0
+          },
+          "state": true
+        },
+        {
+          "type": "regular",
+          "text": "Text and Clicked",
+          "color": {
+            "R": 0,
+            "G": 0,
+            "B": 0,
+            "A": 0
+          }
+        },
+        {
+          "type": "regular",
+          "text": "Text and Children",
+          "color": {
+            "R": 0,
+            "G": 0,
+            "B": 0,
+            "A": 0
+          },
+          "children": [
+            {
+              "type": "regular",
+              "text": "Hello",
+              "color": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              }
+            },
+            {
+              "type": "regular",
+              "text": "Inline",
+              "color": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              }
+            },
+            {
+              "type": "regular",
+              "text": "Children",
+              "color": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              }
+            }
+          ]
+        },
+        {
+          "type": "regular",
+          "text": "Text, Image, and Clicked",
+          "image": "clipboard",
+          "color": {
+            "R": 0,
+            "G": 0,
+            "B": 0,
+            "A": 0
+          }
+        },
+        {
+          "type": "regular",
+          "text": "Text, Image, and Children",
+          "image": "clipboard",
+          "color": {
+            "R": 0,
+            "G": 0,
+            "B": 0,
+            "A": 0
+          },
+          "children": [
+            {
+              "type": "regular",
+              "text": "Hello",
+              "color": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              }
+            },
+            {
+              "type": "regular",
+              "text": "Inline",
+              "color": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              }
+            },
+            {
+              "type": "regular",
+              "text": "Children",
+              "color": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              }
+            }
+          ]
+        },
+        {
+          "type": "regular",
+          "text": "Image and Text",
+          "image": "clipboard",
+          "color": {
+            "R": 0,
+            "G": 0,
+            "B": 0,
+            "A": 0
+          }
+        },
+        {
+          "type": "regular",
+          "image": "clipboard",
+          "color": {
+            "R": 0,
+            "G": 0,
+            "B": 0,
+            "A": 0
+          }
+        }
+      ]
+    },
+    {
+      "type": "regular",
+      "text": "Left-click handler",
+      "color": {
+        "R": 0,
+        "G": 0,
+        "B": 0,
+        "A": 0
+      },
+      "children": [
+        {
+          "type": "regular",
+          "text": "Enabled (left click counts; right click still opens menu)",
+          "color": {
+            "R": 0,
+            "G": 0,
+            "B": 0,
+            "A": 0
+          }
+        }
+      ]
+    },
+    {
+      "type": "regular",
+      "text": "Search",
+      "color": {
+        "R": 0,
+        "G": 0,
+        "B": 0,
+        "A": 0
+      },
+      "children": [
+        {
+          "type": "search",
+          "text": "Filter US states…",
+          "color": {
+            "R": 0,
+            "G": 0,
+            "B": 0,
+            "A": 0
+          },
+          "children": [
+            {
+              "type": "regular",
+              "text": "Alabama",
+              "color": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              }
+            },
+            {
+              "type": "regular",
+              "text": "Alaska",
+              "color": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              }
+            },
+            {
+              "type": "regular",
+              "text": "Arizona",
+              "color": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              }
+            },
+            {
+              "type": "regular",
+              "text": "Arkansas",
+              "color": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              }
+            },
+            {
+              "type": "regular",
+              "text": "California",
+              "color": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              }
+            },
+            {
+              "type": "regular",
+              "text": "Colorado",
+              "color": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              }
+            },
+            {
+              "type": "regular",
+              "text": "Connecticut",
+              "color": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              }
+            },
+            {
+              "type": "regular",
+              "text": "Delaware",
+              "color": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              }
+            },
+            {
+              "type": "regular",
+              "text": "Florida",
+              "color": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              }
+            },
+            {
+              "type": "regular",
+              "text": "Georgia",
+              "color": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              }
+            },
+            {
+              "type": "regular",
+              "text": "Hawaii",
+              "color": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              }
+            },
+            {
+              "type": "regular",
+              "text": "Idaho",
+              "color": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              }
+            },
+            {
+              "type": "regular",
+              "text": "Illinois",
+              "color": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              }
+            },
+            {
+              "type": "regular",
+              "text": "Indiana",
+              "color": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              }
+            },
+            {
+              "type": "regular",
+              "text": "Iowa",
+              "color": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              }
+            },
+            {
+              "type": "regular",
+              "text": "Kansas",
+              "color": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              }
+            },
+            {
+              "type": "regular",
+              "text": "Kentucky",
+              "color": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              }
+            },
+            {
+              "type": "regular",
+              "text": "Louisiana",
+              "color": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              }
+            },
+            {
+              "type": "regular",
+              "text": "Maine",
+              "color": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              }
+            },
+            {
+              "type": "regular",
+              "text": "Maryland",
+              "color": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "regular",
+      "text": "Rich text",
+      "color": {
+        "R": 0,
+        "G": 0,
+        "B": 0,
+        "A": 0
+      },
+      "children": [
+        {
+          "type": "regular",
+          "runs": [
+            {
+              "Text": "🏆 ",
+              "Color": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "FontSize": 16,
+              "FontWeight": 0,
+              "Monospaced": false,
+              "Badge": false,
+              "Underline": false,
+              "UnderlineColor": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Strikethrough": false,
+              "StrikethroughColor": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Background": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Shadow": null
+            },
+            {
+              "Text": "LAL WINS",
+              "Color": {
+                "R": 230,
+                "G": 180,
+                "B": 30,
+                "A": 255
+              },
+              "FontSize": 15,
+              "FontWeight": 0.56,
+              "Monospaced": false,
+              "Badge": false,
+              "Underline": false,
+              "UnderlineColor": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Strikethrough": false,
+              "StrikethroughColor": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Background": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Shadow": {
+                "Color": {
+                  "R": 255,
+                  "G": 220,
+                  "B": 80,
+                  "A": 220
+                },
+                "Blur": 8,
+                "OffsetX": 0,
+                "OffsetY": 0
+              }
+            }
+          ],
+          "color": {
+            "R": 0,
+            "G": 0,
+            "B": 0,
+            "A": 0
+          }
+        },
+        {
+          "type": "regular",
+          "runs": [
+            {
+              "Text": "Underline",
+              "Color": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "FontSize": 0,
+              "FontWeight": 0,
+              "Monospaced": false,
+              "Badge": false,
+              "Underline": true,
+              "UnderlineColor": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Strikethrough": false,
+              "StrikethroughColor": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Background": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Shadow": null
+            },
+            {
+              "Text": "  ·  ",
+              "Color": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "FontSize": 0,
+              "FontWeight": 0,
+              "Monospaced": false,
+              "Badge": false,
+              "Underline": false,
+              "UnderlineColor": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Strikethrough": false,
+              "StrikethroughColor": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Background": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Shadow": null
+            },
+            {
+              "Text": "Strikethrough",
+              "Color": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0,
+                "Semantic": "secondaryLabelColor"
+              },
+              "FontSize": 0,
+              "FontWeight": 0,
+              "Monospaced": false,
+              "Badge": false,
+              "Underline": false,
+              "UnderlineColor": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Strikethrough": true,
+              "StrikethroughColor": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Background": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Shadow": null
+            },
+            {
+              "Text": "  ·  ",
+              "Color": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "FontSize": 0,
+              "FontWeight": 0,
+              "Monospaced": false,
+              "Badge": false,
+              "Underline": false,
+              "UnderlineColor": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Strikethrough": false,
+              "StrikethroughColor": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Background": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Shadow": null
+            },
+            {
+              "Text": " marker ",
+              "Color": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "FontSize": 0,
+              "FontWeight": 0,
+              "Monospaced": false,
+              "Badge": false,
+              "Underline": false,
+              "UnderlineColor": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Strikethrough": false,
+              "StrikethroughColor": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Background": {
+                "R": 255,
+                "G": 240,
+                "B": 130,
+                "A": 255
+              },
+              "Shadow": null
+            }
+          ],
+          "color": {
+            "R": 0,
+            "G": 0,
+            "B": 0,
+            "A": 0
+          }
+        },
+        {
+          "type": "regular",
+          "runs": [
+            {
+              "Text": "Underline color independent of text: ",
+              "Color": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "FontSize": 0,
+              "FontWeight": 0,
+              "Monospaced": false,
+              "Badge": false,
+              "Underline": false,
+              "UnderlineColor": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Strikethrough": false,
+              "StrikethroughColor": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Background": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Shadow": null
+            },
+            {
+              "Text": "misspelled",
+              "Color": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "FontSize": 0,
+              "FontWeight": 0,
+              "Monospaced": false,
+              "Badge": false,
+              "Underline": true,
+              "UnderlineColor": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0,
+                "Semantic": "systemRedColor"
+              },
+              "Strikethrough": false,
+              "StrikethroughColor": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Background": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Shadow": null
+            },
+            {
+              "Text": "  /  ",
+              "Color": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "FontSize": 0,
+              "FontWeight": 0,
+              "Monospaced": false,
+              "Badge": false,
+              "Underline": false,
+              "UnderlineColor": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Strikethrough": false,
+              "StrikethroughColor": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Background": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Shadow": null
+            },
+            {
+              "Text": "outdated",
+              "Color": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0,
+                "Semantic": "secondaryLabelColor"
+              },
+              "FontSize": 0,
+              "FontWeight": 0,
+              "Monospaced": false,
+              "Badge": false,
+              "Underline": false,
+              "UnderlineColor": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Strikethrough": true,
+              "StrikethroughColor": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0,
+                "Semantic": "systemRedColor"
+              },
+              "Background": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Shadow": null
+            }
+          ],
+          "color": {
+            "R": 0,
+            "G": 0,
+            "B": 0,
+            "A": 0
+          }
+        },
+        {
+          "type": "regular",
+          "runs": [
+            {
+              "Text": "Semantic ",
+              "Color": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0,
+                "Semantic": "labelColor"
+              },
+              "FontSize": 0,
+              "FontWeight": 0,
+              "Monospaced": false,
+              "Badge": false,
+              "Underline": false,
+              "UnderlineColor": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Strikethrough": false,
+              "StrikethroughColor": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Background": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Shadow": null
+            },
+            {
+              "Text": "colors ",
+              "Color": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0,
+                "Semantic": "secondaryLabelColor"
+              },
+              "FontSize": 0,
+              "FontWeight": 0,
+              "Monospaced": false,
+              "Badge": false,
+              "Underline": false,
+              "UnderlineColor": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Strikethrough": false,
+              "StrikethroughColor": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Background": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Shadow": null
+            },
+            {
+              "Text": "adapt ",
+              "Color": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0,
+                "Semantic": "tertiaryLabelColor"
+              },
+              "FontSize": 0,
+              "FontWeight": 0,
+              "Monospaced": false,
+              "Badge": false,
+              "Underline": false,
+              "UnderlineColor": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Strikethrough": false,
+              "StrikethroughColor": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Background": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Shadow": null
+            },
+            {
+              "Text": "to dark mode",
+              "Color": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0,
+                "Semantic": "quaternaryLabelColor"
+              },
+              "FontSize": 0,
+              "FontWeight": 0,
+              "Monospaced": false,
+              "Badge": false,
+              "Underline": false,
+              "UnderlineColor": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Strikethrough": false,
+              "StrikethroughColor": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Background": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Shadow": null
+            }
+          ],
+          "color": {
+            "R": 0,
+            "G": 0,
+            "B": 0,
+            "A": 0
+          }
+        },
+        {
+          "type": "regular",
+          "runs": [
+            {
+              "Text": "Status: ",
+              "Color": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0,
+                "Semantic": "secondaryLabelColor"
+              },
+              "FontSize": 0,
+              "FontWeight": 0,
+              "Monospaced": false,
+              "Badge": false,
+              "Underline": false,
+              "UnderlineColor": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Strikethrough": false,
+              "StrikethroughColor": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Background": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Shadow": null
+            },
+            {
+              "Text": "FAILED",
+              "Color": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0,
+                "Semantic": "systemRedColor"
+              },
+              "FontSize": 0,
+              "FontWeight": 0.4,
+              "Monospaced": false,
+              "Badge": false,
+              "Underline": false,
+              "UnderlineColor": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Strikethrough": false,
+              "StrikethroughColor": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Background": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Shadow": null
+            }
+          ],
+          "color": {
+            "R": 0,
+            "G": 0,
+            "B": 0,
+            "A": 0
+          }
+        },
+        {
+          "type": "regular",
+          "runs": [
+            {
+              "Text": "GSW 71 – 68 MIN  ",
+              "Color": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "FontSize": 0,
+              "FontWeight": 0,
+              "Monospaced": false,
+              "Badge": false,
+              "Underline": false,
+              "UnderlineColor": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Strikethrough": false,
+              "StrikethroughColor": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Background": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Shadow": null
+            },
+            {
+              "Text": "LIVE",
+              "Color": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0,
+                "Semantic": "systemRedColor"
+              },
+              "FontSize": 0,
+              "FontWeight": 0,
+              "Monospaced": false,
+              "Badge": true,
+              "Underline": false,
+              "UnderlineColor": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Strikethrough": false,
+              "StrikethroughColor": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Background": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Shadow": null
+            }
+          ],
+          "subtitle": [
+            {
+              "Text": "NBA · Q3 5:42",
+              "Color": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "FontSize": 0,
+              "FontWeight": 0,
+              "Monospaced": false,
+              "Badge": false,
+              "Underline": false,
+              "UnderlineColor": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Strikethrough": false,
+              "StrikethroughColor": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Background": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Shadow": null
+            }
+          ],
+          "color": {
+            "R": 0,
+            "G": 0,
+            "B": 0,
+            "A": 0
+          }
+        },
+        {
+          "type": "regular",
+          "runs": [
+            {
+              "Text": "$ ",
+              "Color": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0,
+                "Semantic": "tertiaryLabelColor"
+              },
+              "FontSize": 0,
+              "FontWeight": 0,
+              "Monospaced": true,
+              "Badge": false,
+              "Underline": false,
+              "UnderlineColor": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Strikethrough": false,
+              "StrikethroughColor": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Background": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Shadow": null
+            },
+            {
+              "Text": "make release",
+              "Color": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "FontSize": 0,
+              "FontWeight": 0,
+              "Monospaced": true,
+              "Badge": false,
+              "Underline": false,
+              "UnderlineColor": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Strikethrough": false,
+              "StrikethroughColor": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Background": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Shadow": null
+            }
+          ],
+          "subtitle": [
+            {
+              "Text": "Builds + signs + uploads zip to GitHub",
+              "Color": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "FontSize": 0,
+              "FontWeight": 0,
+              "Monospaced": false,
+              "Badge": false,
+              "Underline": false,
+              "UnderlineColor": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Strikethrough": false,
+              "StrikethroughColor": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Background": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Shadow": null
+            }
+          ],
+          "color": {
+            "R": 0,
+            "G": 0,
+            "B": 0,
+            "A": 0
+          }
+        },
+        {
+          "type": "regular",
+          "text": "Item-level color (red)",
+          "color": {
+            "R": 220,
+            "G": 50,
+            "B": 50,
+            "A": 255
+          }
+        },
+        {
+          "type": "regular",
+          "text": "Monospaced",
+          "color": {
+            "R": 0,
+            "G": 0,
+            "B": 0,
+            "A": 0
+          },
+          "monospaced": true
+        },
+        {
+          "type": "regular",
+          "text": "Mono + bold",
+          "fontWeight": 0.4,
+          "color": {
+            "R": 0,
+            "G": 0,
+            "B": 0,
+            "A": 0
+          },
+          "monospaced": true
+        },
+        {
+          "type": "regular",
+          "runs": [
+            {
+              "Text": "Status: ",
+              "Color": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "FontSize": 0,
+              "FontWeight": 0,
+              "Monospaced": false,
+              "Badge": false,
+              "Underline": false,
+              "UnderlineColor": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Strikethrough": false,
+              "StrikethroughColor": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Background": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Shadow": null
+            },
+            {
+              "Text": "FAILED",
+              "Color": {
+                "R": 220,
+                "G": 50,
+                "B": 50,
+                "A": 255
+              },
+              "FontSize": 0,
+              "FontWeight": 0.4,
+              "Monospaced": false,
+              "Badge": false,
+              "Underline": false,
+              "UnderlineColor": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Strikethrough": false,
+              "StrikethroughColor": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Background": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Shadow": null
+            }
+          ],
+          "color": {
+            "R": 0,
+            "G": 0,
+            "B": 0,
+            "A": 0
+          }
+        },
+        {
+          "type": "regular",
+          "runs": [
+            {
+              "Text": "Status: ",
+              "Color": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "FontSize": 0,
+              "FontWeight": 0,
+              "Monospaced": false,
+              "Badge": false,
+              "Underline": false,
+              "UnderlineColor": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Strikethrough": false,
+              "StrikethroughColor": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Background": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Shadow": null
+            },
+            {
+              "Text": "OK",
+              "Color": {
+                "R": 30,
+                "G": 160,
+                "B": 60,
+                "A": 255
+              },
+              "FontSize": 0,
+              "FontWeight": 0.4,
+              "Monospaced": false,
+              "Badge": false,
+              "Underline": false,
+              "UnderlineColor": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Strikethrough": false,
+              "StrikethroughColor": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Background": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Shadow": null
+            }
+          ],
+          "color": {
+            "R": 0,
+            "G": 0,
+            "B": 0,
+            "A": 0
+          }
+        },
+        {
+          "type": "regular",
+          "runs": [
+            {
+              "Text": "Build ",
+              "Color": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "FontSize": 0,
+              "FontWeight": 0,
+              "Monospaced": false,
+              "Badge": false,
+              "Underline": false,
+              "UnderlineColor": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Strikethrough": false,
+              "StrikethroughColor": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Background": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Shadow": null
+            },
+            {
+              "Text": "#1234 ",
+              "Color": {
+                "R": 128,
+                "G": 128,
+                "B": 128,
+                "A": 255
+              },
+              "FontSize": 0,
+              "FontWeight": 0,
+              "Monospaced": true,
+              "Badge": false,
+              "Underline": false,
+              "UnderlineColor": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Strikethrough": false,
+              "StrikethroughColor": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Background": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Shadow": null
+            },
+            {
+              "Text": "passed in ",
+              "Color": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "FontSize": 0,
+              "FontWeight": 0,
+              "Monospaced": false,
+              "Badge": false,
+              "Underline": false,
+              "UnderlineColor": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Strikethrough": false,
+              "StrikethroughColor": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Background": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Shadow": null
+            },
+            {
+              "Text": "42.3s",
+              "Color": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "FontSize": 0,
+              "FontWeight": 0.3,
+              "Monospaced": false,
+              "Badge": false,
+              "Underline": false,
+              "UnderlineColor": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Strikethrough": false,
+              "StrikethroughColor": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Background": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Shadow": null
+            }
+          ],
+          "color": {
+            "R": 0,
+            "G": 0,
+            "B": 0,
+            "A": 0
+          }
+        },
+        {
+          "type": "regular",
+          "runs": [
+            {
+              "Text": "$ ",
+              "Color": {
+                "R": 128,
+                "G": 128,
+                "B": 128,
+                "A": 255
+              },
+              "FontSize": 0,
+              "FontWeight": 0,
+              "Monospaced": true,
+              "Badge": false,
+              "Underline": false,
+              "UnderlineColor": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Strikethrough": false,
+              "StrikethroughColor": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Background": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Shadow": null
+            },
+            {
+              "Text": "make release",
+              "Color": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "FontSize": 0,
+              "FontWeight": 0,
+              "Monospaced": true,
+              "Badge": false,
+              "Underline": false,
+              "UnderlineColor": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Strikethrough": false,
+              "StrikethroughColor": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Background": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Shadow": null
+            }
+          ],
+          "color": {
+            "R": 0,
+            "G": 0,
+            "B": 0,
+            "A": 0
+          }
+        }
+      ]
+    },
+    {
+      "type": "regular",
+      "text": "Hotkeys",
+      "color": {
+        "R": 0,
+        "G": 0,
+        "B": 0,
+        "A": 0
+      },
+      "children": [
+        {
+          "type": "regular",
+          "text": "Cmd+Shift+M fired 0 time(s)",
+          "color": {
+            "R": 0,
+            "G": 0,
+            "B": 0,
+            "A": 0
+          },
+          "shortcut": {
+            "KeyCode": 46,
+            "Modifiers": 768
+          }
+        },
+        {
+          "type": "regular",
+          "text": "Cmd+Alt+1 → flash an alert",
+          "color": {
+            "R": 0,
+            "G": 0,
+            "B": 0,
+            "A": 0
+          },
+          "shortcut": {
+            "KeyCode": 18,
+            "Modifiers": 2304
+          }
+        }
+      ]
+    }
+  ]
+}
