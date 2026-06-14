@@ -199,20 +199,28 @@ func renderItem(b *strings.Builder, item menuet.SnapshotItem, opts Options, dept
 	case "separator":
 		b.WriteString(`<div style="height: 1px; background: var(--sep); margin: 5px 12px;"></div>`)
 	case "search":
-		b.WriteString(`<div style="margin: 1px 8px 5px; display: flex; align-items: center; gap: 6px; height: 27px; padding: 0 9px; background: var(--field-bg); border-radius: 6px; color: var(--text-3); font-size: 13px;">`)
-		b.WriteString(`<svg width="13" height="13" viewBox="0 0 13 13" fill="none" style="flex: none;"><circle cx="5.4" cy="5.4" r="3.9" stroke="currentColor" stroke-width="1.3"></circle><line x1="8.4" y1="8.4" x2="11.3" y2="11.3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"></line></svg>`)
 		placeholder := item.Text
 		if placeholder == "" {
 			placeholder = "Search…"
 		}
-		b.WriteString(`<span>`)
-		b.WriteString(stdhtml.EscapeString(placeholder))
-		b.WriteString(`</span>`)
+		b.WriteString(`<div class="menuet-search">`)
+		b.WriteString(`<div style="margin: 1px 8px 5px; display: flex; align-items: center; gap: 6px; height: 27px; padding: 0 9px; background: var(--field-bg); border-radius: 6px; color: var(--text-3); font-size: 13px;">`)
+		b.WriteString(`<svg width="13" height="13" viewBox="0 0 13 13" fill="none" style="flex: none;"><circle cx="5.4" cy="5.4" r="3.9" stroke="currentColor" stroke-width="1.3"></circle><line x1="8.4" y1="8.4" x2="11.3" y2="11.3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"></line></svg>`)
+		// Real <input> so host-page JS can wire keystroke-driven filtering of
+		// the snapshotted results. We use a transparent input that inherits
+		// the field's color and clears the user-agent box styling.
+		fmt.Fprintf(b, `<input type="text" placeholder="%s" style="flex: 1; background: transparent; border: 0; outline: 0; padding: 0; font: inherit; color: var(--text);" />`,
+			stdhtml.EscapeString(placeholder))
 		b.WriteString(`</div>`)
-		// Search results render below the field as ordinary rows.
+		// Result rows render inside a wrapper that the host JS uses to scope
+		// its filter — only direct children of .menuet-search-results count
+		// as results, so nested submenu rows aren't matched against the query.
+		b.WriteString(`<div class="menuet-search-results">`)
 		for _, child := range item.Children {
 			renderItem(b, child, opts, depth)
 		}
+		b.WriteString(`</div>`)
+		b.WriteString(`</div>`)
 	default:
 		renderRegular(b, item, opts, depth)
 	}

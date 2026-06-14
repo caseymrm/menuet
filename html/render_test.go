@@ -148,9 +148,40 @@ func TestExpandSubmenusCapsDepth(t *testing.T) {
 }
 
 func TestRendersSearchField(t *testing.T) {
-	got := Render(snap(nil, menuet.SnapshotItem{Type: "search", Text: "Search teams…"}), Options{})
+	got := Render(snap(nil, menuet.SnapshotItem{
+		Type: "search", Text: "Search teams…",
+		Children: []menuet.SnapshotItem{
+			{Type: "regular", Text: "Lakers"},
+			{Type: "regular", Text: "Warriors"},
+		},
+	}), Options{})
 	if !strings.Contains(got, "Search teams…") {
 		t.Errorf("search placeholder missing: %s", got)
+	}
+	// Real <input> so host JS can filter results on keystroke.
+	if !strings.Contains(got, `<input type="text"`) {
+		t.Errorf("search input missing: %s", got)
+	}
+	// Wrapper classes the host JS keys off of.
+	if !strings.Contains(got, `class="menuet-search"`) {
+		t.Errorf("menuet-search wrapper missing: %s", got)
+	}
+	if !strings.Contains(got, `class="menuet-search-results"`) {
+		t.Errorf("menuet-search-results wrapper missing: %s", got)
+	}
+	// Results still render below the field.
+	if !strings.Contains(got, ">Lakers<") || !strings.Contains(got, ">Warriors<") {
+		t.Errorf("search results missing: %s", got)
+	}
+}
+
+func TestSearchPlaceholderEscaped(t *testing.T) {
+	// Untrusted placeholder text must not break out of the input attribute.
+	got := Render(snap(nil, menuet.SnapshotItem{
+		Type: "search", Text: `" onfocus="alert(1)`,
+	}), Options{})
+	if strings.Contains(got, `onfocus="alert`) {
+		t.Fatalf("placeholder attribute injection leaked: %s", got)
 	}
 }
 
