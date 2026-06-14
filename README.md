@@ -1,6 +1,8 @@
 # Menuet
 Golang library to create menubar apps- programs that live only in OSX's NSStatusBar
 
+**Docs, guides, and a live app showcase: [menuet.app](https://menuet.app)**
+
 ## Development Status
 
 Under active development. API still changing rapidly.
@@ -12,7 +14,8 @@ menuet requires OS X.
 
 ## Documentation
 
-https://godoc.org/github.com/caseymrm/menuet
+* **[menuet.app](https://menuet.app)** — guides, API tour, and a live showcase of apps built with menuet (each rendered from a real `menuet-demo.json` snapshot — see `make web-preview` below)
+* **[pkg.go.dev/github.com/caseymrm/menuet/v2](https://pkg.go.dev/github.com/caseymrm/menuet/v2)** — generated API reference
 
 ## Left-click handler
 
@@ -67,6 +70,8 @@ To sign the bundle for notifications and distribution, set `IDENTITY` to a
 Developer ID Application certificate from your Keychain and run `make sign`.
 
 ## Apps built with Menuet
+
+Browse the live showcase at **[menuet.app/apps](https://menuet.app/apps/)** — each app's menu is rendered from its committed snapshot. The list below is a subset:
 
 * [Why Awake?](https://github.com/caseymrm/whyawake) - shows why your Mac can't sleep, and lets you force it awake
 
