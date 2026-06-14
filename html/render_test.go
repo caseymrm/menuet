@@ -84,7 +84,7 @@ func TestRendersSubmenuChevron(t *testing.T) {
 	}
 }
 
-func TestExpandSubmenusRendersChildrenInline(t *testing.T) {
+func TestExpandSubmenusRendersAsHoverPopover(t *testing.T) {
 	got := Render(snap(nil, menuet.SnapshotItem{
 		Type: "regular", Text: "Favorites",
 		Children: []menuet.SnapshotItem{
@@ -96,6 +96,17 @@ func TestExpandSubmenusRendersChildrenInline(t *testing.T) {
 		if !strings.Contains(got, ">"+want+"<") {
 			t.Errorf("missing %q in expanded output: %s", want, got)
 		}
+	}
+	// Submenu must be hidden by default — host CSS reveals on :hover.
+	if !strings.Contains(got, `class="menu-submenu"`) {
+		t.Errorf("submenu wrapper class missing: %s", got)
+	}
+	if !strings.Contains(got, "display: none") {
+		t.Errorf("submenu not hidden by default: %s", got)
+	}
+	// Parent row must be position:relative so the submenu anchors to it.
+	if !strings.Contains(got, "position: relative") {
+		t.Errorf("parent row missing position:relative anchor: %s", got)
 	}
 }
 

@@ -214,17 +214,21 @@ func renderItem(b *strings.Builder, item menuet.SnapshotItem, opts Options, dept
 			renderItem(b, child, opts, depth)
 		}
 	default:
-		renderRegular(b, item)
-		if opts.ExpandSubmenus && len(item.Children) > 0 && depth < opts.maxSubmenuDepth() {
-			renderSubmenuBlock(b, item.Children, opts, depth+1)
-		}
+		renderRegular(b, item, opts, depth)
 	}
 }
 
-// renderSubmenuBlock renders a Regular's children inline, indented from
-// the parent row with a left border to mark the hierarchy. Capped by
-// MaxSubmenuItems; truncation gets a "+N more" footer.
-func renderSubmenuBlock(b *strings.Builder, children []menuet.SnapshotItem, opts Options, depth int) {
+// renderHoverSubmenu emits a hidden-by-default submenu popover inside
+// the parent .menu-row. The host page is expected to reveal it on hover:
+//
+//	.menumock .menu-row:hover > .menu-submenu { display: block; }
+//
+// This matches macOS's behavior: the menu stays a flat top-level list
+// until you hover an item, at which point its submenu opens flush to
+// the right. `left: 100%; padding-left: 4px;` keeps the hover area
+// bridged across the visual gap so the popover doesn't blink off when
+// the cursor crosses into it.
+func renderHoverSubmenu(b *strings.Builder, children []menuet.SnapshotItem, opts Options, depth int) {
 	max := opts.maxSubmenuItems()
 	visible := children
 	truncated := 0
@@ -232,25 +236,31 @@ func renderSubmenuBlock(b *strings.Builder, children []menuet.SnapshotItem, opts
 		truncated = len(visible) - max
 		visible = visible[:max]
 	}
-	// Container indented past the parent's checkmark gutter, with a left
-	// border tracing the menu hierarchy.
-	b.WriteString(`<div style="margin: 2px 5px 4px 18px; border-left: 1.5px solid var(--sep); padding-left: 2px;">`)
+	b.WriteString(`<div class="menu-submenu" style="display: none; position: absolute; left: 100%; top: -5px; padding-left: 4px; z-index: 20;">`)
+	b.WriteString(`<div style="width: 260px; background: var(--panel-bg); -webkit-backdrop-filter: blur(34px) saturate(1.7); backdrop-filter: blur(34px) saturate(1.7); border: 0.5px solid var(--panel-border); border-radius: 11px; box-shadow: var(--shadow); padding: 5px 0;">`)
 	for _, c := range visible {
 		renderItem(b, c, opts, depth)
 	}
 	if truncated > 0 {
 		fmt.Fprintf(b, `<div style="margin: 2px 5px 0; padding: 0 9px 0 7px; font-size: 11.5px; color: var(--text-3); font-style: italic;">+%d more…</div>`, truncated)
 	}
-	b.WriteString(`</div>`)
+	b.WriteString(`</div></div>`)
 }
 
-func renderRegular(b *strings.Builder, item menuet.SnapshotItem) {
+func renderRegular(b *strings.Builder, item menuet.SnapshotItem, opts Options, depth int) {
 	hasSubtitle := len(item.Subtitle) > 0
 	hasChildren := len(item.Children) > 0
+	needsSubmenu := opts.ExpandSubmenus && hasChildren && depth < opts.maxSubmenuDepth()
+	// position:relative anchors the absolute-positioned .menu-submenu
+	// child to this row.
+	posStyle := ""
+	if needsSubmenu {
+		posStyle = "position: relative; "
+	}
 	if hasSubtitle {
-		b.WriteString(`<div class="menu-row" style="margin: 0 5px; padding: 5px 9px 6px 7px; border-radius: 6px; display: flex; align-items: flex-start; gap: 7px;">`)
+		fmt.Fprintf(b, `<div class="menu-row" style="%smargin: 0 5px; padding: 5px 9px 6px 7px; border-radius: 6px; display: flex; align-items: flex-start; gap: 7px;">`, posStyle)
 	} else {
-		b.WriteString(`<div class="menu-row" style="margin: 0 5px; padding: 0 9px 0 7px; min-height: 24px; border-radius: 6px; display: flex; align-items: center; gap: 7px; font-size: 13.5px; color: var(--text);">`)
+		fmt.Fprintf(b, `<div class="menu-row" style="%smargin: 0 5px; padding: 0 9px 0 7px; min-height: 24px; border-radius: 6px; display: flex; align-items: center; gap: 7px; font-size: 13.5px; color: var(--text);">`, posStyle)
 	}
 
 	// Checkmark gutter, always 14px wide so labels line up whether or not
@@ -283,6 +293,9 @@ func renderRegular(b *strings.Builder, item menuet.SnapshotItem) {
 		} else if hasChildren {
 			b.WriteString(`<svg width="7" height="11" viewBox="0 0 7 11" fill="none" style="opacity: 0.5;"><polyline points="1,1 6,5.5 1,10" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"></polyline></svg>`)
 		}
+	}
+	if needsSubmenu {
+		renderHoverSubmenu(b, item.Children, opts, depth+1)
 	}
 	b.WriteString(`</div>`)
 }
