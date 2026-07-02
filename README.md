@@ -1,6 +1,10 @@
 # Menuet
 Golang library to create menubar apps- programs that live only in OSX's NSStatusBar
 
+> **This is the legacy v1 module.** Active development happens on
+> [menuet v2](https://github.com/caseymrm/menuet) — install it with
+> `go get github.com/caseymrm/menuet/v2`. v1 receives no further updates.
+
 ## Development Status
 
 Under active development. API still changing rapidly.
