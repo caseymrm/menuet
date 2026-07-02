@@ -59,8 +59,11 @@ app directory, create a `Makefile` like:
 ```make
 APP=My App
 IDENTIFIER=com.example.myapp
-include $(GOPATH)/src/github.com/caseymrm/menuet/menuet.mk
+include $(shell go list -m -f '{{.Dir}}' github.com/caseymrm/menuet)/menuet.mk
 ```
+
+(`go list -m` locates menuet in the module cache; the old
+`$(GOPATH)/src/...` path only works for pre-modules GOPATH checkouts.)
 
 Then `make run` builds the binary into `My App.app/Contents/MacOS/myapp`,
 generates `My App.app/Contents/Info.plist` with your `CFBundleIdentifier`,
