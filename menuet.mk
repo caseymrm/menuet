@@ -16,6 +16,11 @@
 # To sign your app, set IDENTITY:
 #   IDENTITY=Developer ID Application: Hello World LLC (AP2AFA8XAX)
 #
+# With a real (non ad-hoc) IDENTITY, `make sign` applies the hardened
+# runtime and a secure timestamp, and `make notarize` submits the zip to
+# Apple's notary service and staples the ticket — see the notarize target
+# below for the one-time credential setup.
+#
 # To release your app, `make release` builds + zips the bundle and uploads
 # it to GitHub via the gh CLI (install with `brew install gh`; authenticate
 # once with `gh auth login`). The zip asset is what menuet's AutoUpdate
@@ -43,8 +48,10 @@ $(BINARY): $(SOURCES)
 
 ZIPFILE = $(ESCAPED_APP).zip
 
+# ditto (not zip -r) preserves symlinks, extended attributes, and the
+# stapled notarization ticket — Apple's documented archiver for app zips.
 $(ZIPFILE): sign $(BINARY) $(PLIST)
-	zip -r $(ZIPFILE) $(ESCAPED_APP).app
+	ditto -c -k --keepParent $(ESCAPED_APP).app $(ZIPFILE)
 
 clean:
 	rm -f $(BINARY) $(PLIST) $(ZIPFILE)
@@ -101,9 +108,34 @@ $(PLIST):
 	@echo '</dict>' >> $(PLIST)
 	@echo '</plist>' >> $(PLIST)
 
+# Hardened runtime + secure timestamp are required for notarization, but
+# both need a real signing certificate — ad-hoc signatures ("-", the
+# default in some apps) can't produce a timestamp, so only add the flags
+# for a real identity.
+ifeq ($(IDENTITY),-)
+SIGNFLAGS =
+else
+SIGNFLAGS = --options runtime --timestamp
+endif
+
 .PHONY: sign
 sign: $(BINARY) $(PLIST)
-	codesign -f -s "$(IDENTITY)" $(ESCAPED_APP).app --deep
+	codesign -f $(SIGNFLAGS) -s "$(IDENTITY)" $(ESCAPED_APP).app --deep
+
+# Notarize the signed zip, staple the ticket to the .app, and re-zip so
+# the release artifact carries the ticket (Gatekeeper then clears the app
+# even offline). One-time setup for the keychain profile:
+#   xcrun notarytool store-credentials AC_NOTARY
+# (prompts for Apple ID, team ID, and an app-specific password from
+# appleid.apple.com). Override the profile name with NOTARY_PROFILE.
+NOTARY_PROFILE ?= AC_NOTARY
+
+.PHONY: notarize
+notarize: $(ZIPFILE)
+	xcrun notarytool submit $(ZIPFILE) --keychain-profile $(NOTARY_PROFILE) --wait
+	xcrun stapler staple $(ESCAPED_APP).app
+	rm -f $(ZIPFILE)
+	ditto -c -k --keepParent $(ESCAPED_APP).app $(ZIPFILE)
 
 # `make web-preview` writes menuet-demo.json — a JSON snapshot of the
 # current MenuState and resolved menu items — by re-running the binary
