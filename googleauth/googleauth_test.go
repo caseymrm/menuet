@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -84,18 +85,20 @@ func TestCallbackHandler(t *testing.T) {
 		name       string
 		path       string
 		wantStatus int
-		wantCode   string // non-empty means we expect delivery on the channel
+		wantCode   string // non-empty means we expect a code delivered
+		wantErr    bool   // true means we expect an error result delivered
 	}{
-		{"correct state and code", "/callback?state=expected-state-value&code=abc123", http.StatusOK, "abc123"},
-		{"wrong state", "/callback?state=nope&code=abc123", http.StatusBadRequest, ""},
-		{"missing state", "/callback?code=abc123", http.StatusBadRequest, ""},
-		{"missing code", "/callback?state=expected-state-value", http.StatusBadRequest, ""},
-		{"wrong path", "/somewhere-else?state=expected-state-value&code=abc123", http.StatusNotFound, ""},
+		{"correct state and code", "/callback?state=expected-state-value&code=abc123", http.StatusOK, "abc123", false},
+		{"oauth error redirect", "/callback?state=expected-state-value&error=access_denied&error_description=denied", http.StatusOK, "", true},
+		{"wrong state", "/callback?state=nope&code=abc123", http.StatusBadRequest, "", false},
+		{"missing state", "/callback?code=abc123", http.StatusBadRequest, "", false},
+		{"missing code and error", "/callback?state=expected-state-value", http.StatusBadRequest, "", false},
+		{"wrong path", "/somewhere-else?state=expected-state-value&code=abc123", http.StatusNotFound, "", false},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			handler, codeCh := newCallbackHandler(state)
+			handler, resultCh := newCallbackHandler(state)
 			rec := httptest.NewRecorder()
 			req := httptest.NewRequest(http.MethodGet, tt.path, nil)
 			handler.ServeHTTP(rec, req)
@@ -104,16 +107,20 @@ func TestCallbackHandler(t *testing.T) {
 				t.Fatalf("status = %d, want %d", rec.Code, tt.wantStatus)
 			}
 			select {
-			case got := <-codeCh:
-				if tt.wantCode == "" {
-					t.Fatalf("unexpected code delivered: %q", got)
-				}
-				if got != tt.wantCode {
-					t.Fatalf("code = %q, want %q", got, tt.wantCode)
+			case got := <-resultCh:
+				switch {
+				case tt.wantErr:
+					if got.err == nil {
+						t.Fatalf("expected error result, got code %q", got.code)
+					}
+				case tt.wantCode == "":
+					t.Fatalf("unexpected result delivered: %+v", got)
+				case got.code != tt.wantCode:
+					t.Fatalf("code = %q, want %q", got.code, tt.wantCode)
 				}
 			default:
-				if tt.wantCode != "" {
-					t.Fatalf("expected code %q, none delivered", tt.wantCode)
+				if tt.wantCode != "" || tt.wantErr {
+					t.Fatalf("expected a delivered result, none came")
 				}
 			}
 		})
@@ -122,7 +129,7 @@ func TestCallbackHandler(t *testing.T) {
 
 func TestCallbackHandlerOneShot(t *testing.T) {
 	const state = "one-shot-state"
-	handler, codeCh := newCallbackHandler(state)
+	handler, resultCh := newCallbackHandler(state)
 
 	// First valid hit captures the code.
 	rec1 := httptest.NewRecorder()
@@ -130,8 +137,8 @@ func TestCallbackHandlerOneShot(t *testing.T) {
 	if rec1.Code != http.StatusOK {
 		t.Fatalf("first request status = %d, want 200", rec1.Code)
 	}
-	if got := <-codeCh; got != "first" {
-		t.Fatalf("first code = %q, want %q", got, "first")
+	if got := <-resultCh; got.code != "first" {
+		t.Fatalf("first code = %q, want %q", got.code, "first")
 	}
 
 	// Second valid request is not served (410 Gone) and delivers nothing.
@@ -141,8 +148,8 @@ func TestCallbackHandlerOneShot(t *testing.T) {
 		t.Fatalf("second request status = %d, want 410", rec2.Code)
 	}
 	select {
-	case got := <-codeCh:
-		t.Fatalf("second request should deliver nothing, got %q", got)
+	case got := <-resultCh:
+		t.Fatalf("second request should deliver nothing, got %+v", got)
 	default:
 	}
 }
@@ -151,7 +158,7 @@ func TestCallbackHandlerOneShot(t *testing.T) {
 // callbacks: exactly one must win, and no handler goroutine may block.
 func TestCallbackHandlerConcurrent(t *testing.T) {
 	const state = "concurrent-state"
-	handler, codeCh := newCallbackHandler(state)
+	handler, resultCh := newCallbackHandler(state)
 
 	const n = 20
 	var wg sync.WaitGroup
@@ -188,8 +195,8 @@ func TestCallbackHandlerConcurrent(t *testing.T) {
 	if okCount != 1 {
 		t.Fatalf("expected exactly one 200, got %d", okCount)
 	}
-	if len(codeCh) != 1 {
-		t.Fatalf("expected exactly one code delivered, got %d", len(codeCh))
+	if len(resultCh) != 1 {
+		t.Fatalf("expected exactly one result delivered, got %d", len(resultCh))
 	}
 }
 
@@ -327,6 +334,42 @@ func TestExchangeCode(t *testing.T) {
 			t.Errorf("error should mention the Google error code: %v", err)
 		}
 	})
+
+	t.Run("200 with no access_token is an error", func(t *testing.T) {
+		// A misbehaving endpoint that returns 200 with an empty body must not
+		// be accepted as a successful sign-in.
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(map[string]interface{}{})
+		}))
+		defer srv.Close()
+
+		cfg := Config{ClientID: wantClientID, TokenURL: srv.URL}
+		_, err := exchangeCode(context.Background(), cfg, wantCode, wantVerifier, redirectURI)
+		if err == nil {
+			t.Fatal("expected error for 200 response with no access_token, got nil")
+		}
+	})
+
+	t.Run("malformed id_token is an error", func(t *testing.T) {
+		// A well-formed token response whose id_token can't be decoded is a
+		// real problem — it must surface, not be silently dropped.
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"access_token": "a",
+				"id_token":     "not-a-jwt",
+				"expires_in":   3600,
+			})
+		}))
+		defer srv.Close()
+
+		cfg := Config{ClientID: wantClientID, TokenURL: srv.URL}
+		_, err := exchangeCode(context.Background(), cfg, wantCode, wantVerifier, redirectURI)
+		if err == nil {
+			t.Fatal("expected error for malformed id_token, got nil")
+		}
+	})
 }
 
 func TestBuildAuthURL(t *testing.T) {
@@ -334,7 +377,7 @@ func TestBuildAuthURL(t *testing.T) {
 		ClientID: "cid",
 		Scopes:   []string{"openid", "email", "profile"},
 	}
-	raw := buildAuthURL(cfg, "http://127.0.0.1:1234/callback", "the-challenge", "the-state")
+	raw := buildAuthURL(cfg, "http://127.0.0.1:1234/callback", "the-challenge", "the-state", "the-nonce")
 	u, err := url.Parse(raw)
 	if err != nil {
 		t.Fatalf("parse auth url: %v", err)
@@ -351,6 +394,7 @@ func TestBuildAuthURL(t *testing.T) {
 		"code_challenge":        "the-challenge",
 		"code_challenge_method": "S256",
 		"state":                 "the-state",
+		"nonce":                 "the-nonce",
 		"access_type":           "offline",
 		"prompt":                "select_account",
 	}
@@ -358,6 +402,18 @@ func TestBuildAuthURL(t *testing.T) {
 		if got := q.Get(k); got != v {
 			t.Errorf("query[%s] = %q, want %q", k, got, v)
 		}
+	}
+}
+
+func TestBuildAuthURLPromptOverride(t *testing.T) {
+	cfg := Config{ClientID: "cid", Scopes: []string{"openid"}, Prompt: "consent"}
+	raw := buildAuthURL(cfg, "http://127.0.0.1:1/callback", "c", "s", "n")
+	u, err := url.Parse(raw)
+	if err != nil {
+		t.Fatalf("parse auth url: %v", err)
+	}
+	if got := u.Query().Get("prompt"); got != "consent" {
+		t.Errorf("prompt = %q, want consent", got)
 	}
 }
 
@@ -380,12 +436,14 @@ func TestSignInHappyPath(t *testing.T) {
 
 	// The injected "browser" parses the auth URL, extracts redirect_uri + state,
 	// and calls the callback exactly as Google would after consent.
+	var sentNonce string
 	openURL := func(authURL string) error {
 		u, err := url.Parse(authURL)
 		if err != nil {
 			return err
 		}
 		q := u.Query()
+		sentNonce = q.Get("nonce")
 		cb := q.Get("redirect_uri") + "?state=" + url.QueryEscape(q.Get("state")) + "&code=fake-auth-code"
 		go func() {
 			resp, err := http.Get(cb)
@@ -415,6 +473,66 @@ func TestSignInHappyPath(t *testing.T) {
 	}
 	if res.AccessToken != "access-tok" || res.RefreshToken != "refresh-tok" {
 		t.Errorf("tokens missing: %+v", res)
+	}
+	// A nonce must be generated, sent in the auth request, and surfaced so the
+	// backend can bind the id_token to this sign-in.
+	if sentNonce == "" {
+		t.Error("no nonce sent in auth request")
+	}
+	if res.Nonce != sentNonce {
+		t.Errorf("Result.Nonce = %q, want %q (the nonce sent to Google)", res.Nonce, sentNonce)
+	}
+}
+
+func TestSignInRequiresScopes(t *testing.T) {
+	_, err := SignIn(context.Background(), Config{
+		ClientID: "cid",
+		OpenURL:  func(string) error { return nil },
+	})
+	if err == nil {
+		t.Fatal("expected error when Scopes is empty")
+	}
+}
+
+// TestSignInUserCancelled drives the flow but has the injected browser return
+// Google's error redirect (as if the user clicked Deny). SignIn must return
+// promptly with a typed *AuthError, not hang until the timeout.
+func TestSignInUserCancelled(t *testing.T) {
+	openURL := func(authURL string) error {
+		u, err := url.Parse(authURL)
+		if err != nil {
+			return err
+		}
+		q := u.Query()
+		cb := q.Get("redirect_uri") + "?state=" + url.QueryEscape(q.Get("state")) +
+			"&error=access_denied&error_description=" + url.QueryEscape("user denied consent")
+		go func() {
+			resp, err := http.Get(cb)
+			if err == nil {
+				resp.Body.Close()
+			}
+		}()
+		return nil
+	}
+
+	cfg := Config{ClientID: "cid", Scopes: []string{"openid"}, OpenURL: openURL}
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	start := time.Now()
+	_, err := SignIn(ctx, cfg)
+	if err == nil {
+		t.Fatal("expected an error when the user cancels consent")
+	}
+	var authErr *AuthError
+	if !errors.As(err, &authErr) {
+		t.Fatalf("expected *AuthError, got %T: %v", err, err)
+	}
+	if authErr.Code != "access_denied" {
+		t.Errorf("AuthError.Code = %q, want access_denied", authErr.Code)
+	}
+	if elapsed := time.Since(start); elapsed > 2*time.Second {
+		t.Fatalf("SignIn hung for %v after cancel; should return promptly", elapsed)
 	}
 }
 

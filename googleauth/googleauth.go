@@ -29,6 +29,7 @@ import (
 	"net/http"
 	"net/url"
 	"os/exec"
+	"runtime"
 	"strings"
 	"sync"
 	"time"
@@ -40,7 +41,29 @@ const (
 
 	// defaultTimeout bounds the flow when the caller's context has no deadline.
 	defaultTimeout = 3 * time.Minute
+
+	// exchangeTimeout bounds the token exchange. It is deliberately separate
+	// from the callback wait: once the browser redirect arrives, the exchange
+	// is a fast machine-to-machine call that should not inherit whatever little
+	// time is left on the (human-paced) consent deadline.
+	exchangeTimeout = 30 * time.Second
 )
+
+// AuthError is returned by SignIn when Google redirects to the callback with an
+// OAuth error rather than a code — most commonly the user declining consent
+// (Code == "access_denied"). Callers can distinguish it with errors.As to, for
+// example, treat a cancellation differently from a real failure.
+type AuthError struct {
+	Code        string // OAuth error code, e.g. "access_denied".
+	Description string // Human-readable detail, may be empty.
+}
+
+func (e *AuthError) Error() string {
+	if e.Description != "" {
+		return fmt.Sprintf("%s: %s", e.Code, e.Description)
+	}
+	return e.Code
+}
 
 // Config configures a single sign-in attempt.
 type Config struct {
@@ -53,7 +76,18 @@ type Config struct {
 	ClientSecret string
 
 	// Scopes are the OAuth scopes to request, e.g. {"openid","email","profile"}.
+	// At least one is required.
 	Scopes []string
+
+	// Prompt sets Google's prompt parameter. Defaults to "select_account".
+	//
+	// If your app needs a RefreshToken for offline access, set this to
+	// "consent": Google issues a refresh token only on the first consent for an
+	// account, so under the "select_account" default a repeat sign-in of an
+	// already-consented account returns an empty RefreshToken. "consent"
+	// re-shows the consent screen every time, so only use it when you actually
+	// store and use the refresh token.
+	Prompt string
 
 	// AuthURL optionally overrides the Google authorization endpoint.
 	AuthURL string
@@ -62,8 +96,8 @@ type Config struct {
 	TokenURL string
 
 	// OpenURL optionally overrides how the authorization URL is opened. The
-	// default execs `open <url>` (macOS). Injectable so tests need not launch a
-	// real browser.
+	// default opens the system browser (open on macOS, xdg-open on Linux,
+	// rundll32 on Windows). Injectable so tests need not launch a real browser.
 	OpenURL func(string) error
 }
 
@@ -74,6 +108,12 @@ type Result struct {
 	RefreshToken string
 	Email        string
 	Expiry       time.Time
+
+	// Nonce is the OIDC nonce that was sent in the auth request. Your backend
+	// must verify the id_token's "nonce" claim equals this value; otherwise an
+	// unexpired id_token captured elsewhere could be replayed. Always set on a
+	// successful sign-in (generation failure aborts the flow).
+	Nonce string
 }
 
 func (c Config) authURL() string {
@@ -94,8 +134,26 @@ func (c Config) openURL() func(string) error {
 	if c.OpenURL != nil {
 		return c.OpenURL
 	}
-	return func(u string) error {
+	return openBrowser
+}
+
+func (c Config) prompt() string {
+	if c.Prompt != "" {
+		return c.Prompt
+	}
+	return "select_account"
+}
+
+// openBrowser opens u in the user's default browser using the platform's
+// standard launcher.
+func openBrowser(u string) error {
+	switch runtime.GOOS {
+	case "darwin":
 		return exec.Command("open", u).Run()
+	case "windows":
+		return exec.Command("rundll32", "url.dll,FileProtocolHandler", u).Run()
+	default:
+		return exec.Command("xdg-open", u).Run()
 	}
 }
 
@@ -107,6 +165,9 @@ func (c Config) openURL() func(string) error {
 func SignIn(ctx context.Context, cfg Config) (*Result, error) {
 	if cfg.ClientID == "" {
 		return nil, errors.New("googleauth: ClientID is required")
+	}
+	if len(cfg.Scopes) == 0 {
+		return nil, errors.New("googleauth: at least one scope is required")
 	}
 
 	// Bound the flow if the caller supplied no deadline of their own.
@@ -127,6 +188,13 @@ func SignIn(ctx context.Context, cfg Config) (*Result, error) {
 		return nil, fmt.Errorf("googleauth: generating state: %w", err)
 	}
 
+	// A random OIDC nonce, echoed by Google in the id_token, lets the backend
+	// reject replayed tokens. randomState produces a suitable high-entropy value.
+	nonce, err := randomState()
+	if err != nil {
+		return nil, fmt.Errorf("googleauth: generating nonce: %w", err)
+	}
+
 	// Bind explicitly to 127.0.0.1 (never 0.0.0.0) so the callback server is
 	// only reachable from this machine.
 	listener, err := net.Listen("tcp", "127.0.0.1:0")
@@ -138,12 +206,18 @@ func SignIn(ctx context.Context, cfg Config) (*Result, error) {
 	port := listener.Addr().(*net.TCPAddr).Port
 	redirectURI := fmt.Sprintf("http://127.0.0.1:%d/callback", port)
 
-	handler, codeCh := newCallbackHandler(state)
+	handler, resultCh := newCallbackHandler(state)
 	server := &http.Server{Handler: handler}
 	go server.Serve(listener)
-	defer server.Close()
+	// Shutdown (not Close) lets an in-flight callback finish writing its page to
+	// the browser before the server tears down; Close would sever it mid-write.
+	defer func() {
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+		defer cancel()
+		_ = server.Shutdown(shutdownCtx)
+	}()
 
-	authURL := buildAuthURL(cfg, redirectURI, challenge, state)
+	authURL := buildAuthURL(cfg, redirectURI, challenge, state, nonce)
 	if err := cfg.openURL()(authURL); err != nil {
 		return nil, fmt.Errorf("googleauth: opening browser: %w", err)
 	}
@@ -151,13 +225,24 @@ func SignIn(ctx context.Context, cfg Config) (*Result, error) {
 	select {
 	case <-ctx.Done():
 		return nil, fmt.Errorf("googleauth: waiting for callback: %w", ctx.Err())
-	case code := <-codeCh:
-		return exchangeCode(ctx, cfg, code, verifier, redirectURI)
+	case res := <-resultCh:
+		if res.err != nil {
+			return nil, fmt.Errorf("googleauth: sign-in failed: %w", res.err)
+		}
+		// Give the exchange its own budget, decoupled from the consent wait.
+		exchangeCtx, cancel := context.WithTimeout(context.Background(), exchangeTimeout)
+		defer cancel()
+		result, err := exchangeCode(exchangeCtx, cfg, res.code, verifier, redirectURI)
+		if err != nil {
+			return nil, err
+		}
+		result.Nonce = nonce
+		return result, nil
 	}
 }
 
 // buildAuthURL constructs the Google authorization URL.
-func buildAuthURL(cfg Config, redirectURI, challenge, state string) string {
+func buildAuthURL(cfg Config, redirectURI, challenge, state, nonce string) string {
 	q := url.Values{}
 	q.Set("client_id", cfg.ClientID)
 	q.Set("redirect_uri", redirectURI)
@@ -166,17 +251,27 @@ func buildAuthURL(cfg Config, redirectURI, challenge, state string) string {
 	q.Set("code_challenge", challenge)
 	q.Set("code_challenge_method", "S256")
 	q.Set("state", state)
+	q.Set("nonce", nonce)
 	q.Set("access_type", "offline")
-	q.Set("prompt", "select_account")
+	q.Set("prompt", cfg.prompt())
 	return cfg.authURL() + "?" + q.Encode()
 }
 
+// callbackResult is what a valid /callback delivers: either an authorization
+// code, or an err when Google reported an OAuth error (e.g. the user declined).
+type callbackResult struct {
+	code string
+	err  error
+}
+
 // newCallbackHandler returns a one-shot handler that serves only /callback with
-// the expected state. The first valid request delivers its code on the returned
-// channel; every other request (wrong path, wrong/missing state, or any request
-// after the first valid one) gets an error status and delivers nothing.
-func newCallbackHandler(state string) (http.Handler, <-chan string) {
-	codeCh := make(chan string, 1)
+// the expected state. The first valid request delivers a callbackResult on the
+// returned channel; every other request (wrong path, wrong/missing state, or
+// any request after the first valid one) gets an error status and delivers
+// nothing. A callback carrying an OAuth error (rather than a code) is a valid,
+// terminal outcome — it claims the one-shot and delivers an *AuthError.
+func newCallbackHandler(state string) (http.Handler, <-chan callbackResult) {
+	resultCh := make(chan callbackResult, 1)
 
 	// http.Server may run handlers concurrently, so claiming the one-shot must be
 	// atomic: without the mutex two simultaneous callbacks could both pass the
@@ -186,12 +281,16 @@ func newCallbackHandler(state string) (http.Handler, <-chan string) {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/callback", func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Query().Get("state") != state {
+		q := r.URL.Query()
+		if q.Get("state") != state {
 			http.Error(w, "invalid state", http.StatusBadRequest)
 			return
 		}
-		code := r.URL.Query().Get("code")
-		if code == "" {
+		oauthErr := q.Get("error")
+		code := q.Get("code")
+		if oauthErr == "" && code == "" {
+			// Neither a code nor an error: a malformed callback. Don't burn the
+			// one-shot on it — the real redirect may still be coming.
 			http.Error(w, "missing code", http.StatusBadRequest)
 			return
 		}
@@ -205,13 +304,20 @@ func newCallbackHandler(state string) (http.Handler, <-chan string) {
 			http.Error(w, "sign-in already completed", http.StatusGone)
 			return
 		}
-		codeCh <- code
 
+		if oauthErr != "" {
+			resultCh <- callbackResult{err: &AuthError{Code: oauthErr, Description: q.Get("error_description")}}
+			w.Header().Set("Content-Type", "text/html; charset=utf-8")
+			io.WriteString(w, failurePage)
+			return
+		}
+
+		resultCh <- callbackResult{code: code}
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		io.WriteString(w, callbackPage)
 	})
 
-	return mux, codeCh
+	return mux, resultCh
 }
 
 const callbackPage = `<!DOCTYPE html>
@@ -219,6 +325,13 @@ const callbackPage = `<!DOCTYPE html>
 <body style="font-family:-apple-system,sans-serif;text-align:center;padding-top:4rem">
 <h2>You're signed in.</h2>
 <p>You can close this tab and return to the app.</p>
+</body></html>`
+
+const failurePage = `<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>Sign-in failed</title></head>
+<body style="font-family:-apple-system,sans-serif;text-align:center;padding-top:4rem">
+<h2>Sign-in didn't complete.</h2>
+<p>You can close this tab and return to the app to try again.</p>
 </body></html>`
 
 // tokenResponse mirrors the JSON returned by Google's token endpoint.
@@ -275,6 +388,12 @@ func exchangeCode(ctx context.Context, cfg Config, code, verifier, redirectURI s
 		return nil, fmt.Errorf("googleauth: token exchange failed (status %d): %s", resp.StatusCode, strings.TrimSpace(string(body)))
 	}
 
+	// A 200 with no access_token is not a successful exchange — guard against a
+	// misbehaving endpoint returning an empty or partial body as success.
+	if tr.AccessToken == "" {
+		return nil, fmt.Errorf("googleauth: token response missing access_token (status %d)", resp.StatusCode)
+	}
+
 	result := &Result{
 		IDToken:      tr.IDToken,
 		AccessToken:  tr.AccessToken,
@@ -285,10 +404,15 @@ func exchangeCode(ctx context.Context, cfg Config, code, verifier, redirectURI s
 	}
 	if tr.IDToken != "" {
 		// Extract email from the ID token payload. The signature is NOT verified
-		// here — that is the backend's responsibility.
-		if email, err := emailFromIDToken(tr.IDToken); err == nil {
-			result.Email = email
+		// here — that is the backend's responsibility. A decode failure means the
+		// id_token is malformed, which is a real problem, so surface it rather
+		// than returning a blank identity. (A well-formed token that simply lacks
+		// an email claim yields "" with no error.)
+		email, err := emailFromIDToken(tr.IDToken)
+		if err != nil {
+			return nil, fmt.Errorf("googleauth: extracting email from id_token: %w", err)
 		}
+		result.Email = email
 	}
 
 	return result, nil
