@@ -217,7 +217,22 @@ func SignIn(ctx context.Context, cfg Config) (*Result, error) {
 	port := listener.Addr().(*net.TCPAddr).Port
 	redirectURI := fmt.Sprintf("http://127.0.0.1:%d/callback", port)
 
-	handler, resultCh := newCallbackHandler(state)
+	// The exchange runs inside the callback handler (below) so the page the
+	// browser sees reflects the true outcome — a failed exchange shows the
+	// failure page, not an optimistic "signed in". It gets its own budget,
+	// decoupled from the human-paced consent wait.
+	exchange := func(code string) (*Result, error) {
+		exchangeCtx, cancel := context.WithTimeout(context.Background(), exchangeTimeout)
+		defer cancel()
+		result, err := exchangeCode(exchangeCtx, cfg, code, verifier, redirectURI)
+		if err != nil {
+			return nil, err
+		}
+		result.Nonce = nonce
+		return result, nil
+	}
+
+	handler, resultCh := newCallbackHandler(state, exchange)
 	server := &http.Server{Handler: handler}
 	go server.Serve(listener)
 	// Shutdown (not Close) lets an in-flight callback finish writing its page to
@@ -237,18 +252,7 @@ func SignIn(ctx context.Context, cfg Config) (*Result, error) {
 	case <-ctx.Done():
 		return nil, fmt.Errorf("googleauth: waiting for callback: %w", ctx.Err())
 	case res := <-resultCh:
-		if res.err != nil {
-			return nil, fmt.Errorf("googleauth: sign-in failed: %w", res.err)
-		}
-		// Give the exchange its own budget, decoupled from the consent wait.
-		exchangeCtx, cancel := context.WithTimeout(context.Background(), exchangeTimeout)
-		defer cancel()
-		result, err := exchangeCode(exchangeCtx, cfg, res.code, verifier, redirectURI)
-		if err != nil {
-			return nil, err
-		}
-		result.Nonce = nonce
-		return result, nil
+		return res.result, res.err
 	}
 }
 
@@ -270,20 +274,26 @@ func buildAuthURL(cfg Config, redirectURI, challenge, state, nonce string) strin
 	return cfg.authURL() + "?" + q.Encode()
 }
 
-// callbackResult is what a valid /callback delivers: either an authorization
-// code, or an err when Google reported an OAuth error (e.g. the user declined).
+// callbackResult is the sign-in's terminal outcome, delivered once: either a
+// completed Result (code received and exchanged for tokens) or an err (the user
+// declined consent, or the exchange failed).
 type callbackResult struct {
-	code string
-	err  error
+	result *Result
+	err    error
 }
 
+// exchangeFunc turns an authorization code into a Result. The handler calls it
+// before rendering, so the page the browser sees matches the real outcome.
+type exchangeFunc func(code string) (*Result, error)
+
 // newCallbackHandler returns a one-shot handler that serves only /callback with
-// the expected state. The first valid request delivers a callbackResult on the
-// returned channel; every other request (wrong path, wrong/missing state, or
-// any request after the first valid one) gets an error status and delivers
-// nothing. A callback carrying an OAuth error (rather than a code) is a valid,
-// terminal outcome — it claims the one-shot and delivers an *AuthError.
-func newCallbackHandler(state string) (http.Handler, <-chan callbackResult) {
+// the expected state. On the first valid request it runs exchange, renders the
+// matching page, and delivers the outcome on the returned channel; every other
+// request (wrong path, wrong/missing state, or any request after the first
+// valid one) gets an error status and delivers nothing. A callback carrying an
+// OAuth error (rather than a code) is a valid, terminal outcome — it claims the
+// one-shot and delivers an *AuthError without running exchange.
+func newCallbackHandler(state string, exchange exchangeFunc) (http.Handler, <-chan callbackResult) {
 	resultCh := make(chan callbackResult, 1)
 
 	// http.Server may run handlers concurrently, so claiming the one-shot must be
@@ -319,18 +329,32 @@ func newCallbackHandler(state string) (http.Handler, <-chan callbackResult) {
 		}
 
 		if oauthErr != "" {
-			resultCh <- callbackResult{err: &AuthError{Code: oauthErr, Description: q.Get("error_description")}}
-			w.Header().Set("Content-Type", "text/html; charset=utf-8")
-			io.WriteString(w, failurePage)
+			renderCallbackPage(w, false)
+			resultCh <- callbackResult{err: fmt.Errorf("googleauth: sign-in failed: %w",
+				&AuthError{Code: oauthErr, Description: q.Get("error_description")})}
 			return
 		}
 
-		resultCh <- callbackResult{code: code}
-		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		io.WriteString(w, callbackPage)
+		// Exchange first, then render the page that matches the outcome — the
+		// browser must not claim success if the exchange failed. Render before
+		// delivering so the page is written while this handler is still active
+		// and the deferred server.Shutdown waits for it to flush.
+		result, err := exchange(code)
+		renderCallbackPage(w, err == nil)
+		resultCh <- callbackResult{result: result, err: err}
 	})
 
 	return mux, resultCh
+}
+
+// renderCallbackPage writes the success or failure page to the browser.
+func renderCallbackPage(w http.ResponseWriter, ok bool) {
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	if ok {
+		io.WriteString(w, callbackPage)
+	} else {
+		io.WriteString(w, failurePage)
+	}
 }
 
 const callbackPage = `<!DOCTYPE html>

@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -81,12 +82,18 @@ func TestRandomState(t *testing.T) {
 func TestCallbackHandler(t *testing.T) {
 	const state = "expected-state-value"
 
+	// Injected exchange echoes the code into the Result so the test can assert
+	// it flowed through (and that exchange ran at all).
+	exchange := func(code string) (*Result, error) {
+		return &Result{AccessToken: "exchanged:" + code}, nil
+	}
+
 	tests := []struct {
 		name       string
 		path       string
 		wantStatus int
-		wantCode   string // non-empty means we expect a code delivered
-		wantErr    bool   // true means we expect an error result delivered
+		wantCode   string // non-empty: expect a Result whose token carries this code
+		wantErr    bool   // true: expect an error result delivered
 	}{
 		{"correct state and code", "/callback?state=expected-state-value&code=abc123", http.StatusOK, "abc123", false},
 		{"oauth error redirect", "/callback?state=expected-state-value&error=access_denied&error_description=denied", http.StatusOK, "", true},
@@ -98,7 +105,7 @@ func TestCallbackHandler(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			handler, resultCh := newCallbackHandler(state)
+			handler, resultCh := newCallbackHandler(state, exchange)
 			rec := httptest.NewRecorder()
 			req := httptest.NewRequest(http.MethodGet, tt.path, nil)
 			handler.ServeHTTP(rec, req)
@@ -111,12 +118,12 @@ func TestCallbackHandler(t *testing.T) {
 				switch {
 				case tt.wantErr:
 					if got.err == nil {
-						t.Fatalf("expected error result, got code %q", got.code)
+						t.Fatalf("expected error result, got %+v", got.result)
 					}
 				case tt.wantCode == "":
 					t.Fatalf("unexpected result delivered: %+v", got)
-				case got.code != tt.wantCode:
-					t.Fatalf("code = %q, want %q", got.code, tt.wantCode)
+				case got.result == nil || got.result.AccessToken != "exchanged:"+tt.wantCode:
+					t.Fatalf("result = %+v, want token exchanged:%s", got.result, tt.wantCode)
 				}
 			default:
 				if tt.wantCode != "" || tt.wantErr {
@@ -129,16 +136,17 @@ func TestCallbackHandler(t *testing.T) {
 
 func TestCallbackHandlerOneShot(t *testing.T) {
 	const state = "one-shot-state"
-	handler, resultCh := newCallbackHandler(state)
+	exchange := func(code string) (*Result, error) { return &Result{AccessToken: code}, nil }
+	handler, resultCh := newCallbackHandler(state, exchange)
 
-	// First valid hit captures the code.
+	// First valid hit runs the exchange and delivers the result.
 	rec1 := httptest.NewRecorder()
 	handler.ServeHTTP(rec1, httptest.NewRequest(http.MethodGet, "/callback?state=one-shot-state&code=first", nil))
 	if rec1.Code != http.StatusOK {
 		t.Fatalf("first request status = %d, want 200", rec1.Code)
 	}
-	if got := <-resultCh; got.code != "first" {
-		t.Fatalf("first code = %q, want %q", got.code, "first")
+	if got := <-resultCh; got.result == nil || got.result.AccessToken != "first" {
+		t.Fatalf("first result = %+v, want token first", got.result)
 	}
 
 	// Second valid request is not served (410 Gone) and delivers nothing.
@@ -158,7 +166,9 @@ func TestCallbackHandlerOneShot(t *testing.T) {
 // callbacks: exactly one must win, and no handler goroutine may block.
 func TestCallbackHandlerConcurrent(t *testing.T) {
 	const state = "concurrent-state"
-	handler, resultCh := newCallbackHandler(state)
+	handler, resultCh := newCallbackHandler(state, func(code string) (*Result, error) {
+		return &Result{AccessToken: code}, nil
+	})
 
 	const n = 20
 	var wg sync.WaitGroup
@@ -520,6 +530,62 @@ func TestSignInHappyPath(t *testing.T) {
 	}
 	if res.Nonce != sentNonce {
 		t.Errorf("Result.Nonce = %q, want %q (the nonce sent to Google)", res.Nonce, sentNonce)
+	}
+}
+
+// TestSignInExchangeFailureRendersFailurePage is the F5 regression: when the
+// token exchange fails after a valid redirect, the browser must see the failure
+// page, not an optimistic "You're signed in."
+func TestSignInExchangeFailureRendersFailurePage(t *testing.T) {
+	tokenSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"error":             "invalid_grant",
+			"error_description": "code expired",
+		})
+	}))
+	defer tokenSrv.Close()
+
+	pageCh := make(chan string, 1)
+	openURL := func(authURL string) error {
+		u, err := url.Parse(authURL)
+		if err != nil {
+			return err
+		}
+		q := u.Query()
+		cb := q.Get("redirect_uri") + "?state=" + url.QueryEscape(q.Get("state")) + "&code=fake-auth-code"
+		go func() {
+			resp, err := http.Get(cb)
+			if err != nil {
+				pageCh <- "GET error: " + err.Error()
+				return
+			}
+			defer resp.Body.Close()
+			body, _ := io.ReadAll(resp.Body)
+			pageCh <- string(body)
+		}()
+		return nil
+	}
+
+	cfg := Config{ClientID: "cid", Scopes: []string{"openid"}, TokenURL: tokenSrv.URL, OpenURL: openURL}
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	if _, err := SignIn(ctx, cfg); err == nil {
+		t.Fatal("expected an error when the exchange fails")
+	}
+
+	select {
+	case page := <-pageCh:
+		if strings.Contains(page, "You're signed in") {
+			t.Errorf("browser shown the success page despite a failed exchange:\n%s", page)
+		}
+		if !strings.Contains(page, "didn't complete") {
+			t.Errorf("expected the failure page, got:\n%s", page)
+		}
+	case <-time.After(3 * time.Second):
+		t.Fatal("browser never received a page")
 	}
 }
 
