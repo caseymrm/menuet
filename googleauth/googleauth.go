@@ -79,14 +79,21 @@ type Config struct {
 	// At least one is required.
 	Scopes []string
 
-	// Prompt sets Google's prompt parameter. Defaults to "select_account".
+	// Offline requests offline access — a RefreshToken usable to call Google
+	// APIs on the user's behalf when they are not present. Defaults to false:
+	// most sign-in flows only need identity (verify the IDToken and you know
+	// who the user is), and a refresh token is a powerful long-lived credential
+	// you'd otherwise have to store and protect for no reason.
 	//
-	// If your app needs a RefreshToken for offline access, set this to
-	// "consent": Google issues a refresh token only on the first consent for an
-	// account, so under the "select_account" default a repeat sign-in of an
-	// already-consented account returns an empty RefreshToken. "consent"
-	// re-shows the consent screen every time, so only use it when you actually
-	// store and use the refresh token.
+	// When true, this also forces prompt=consent, because Google issues a
+	// refresh token only on the first consent for an account — under the normal
+	// "select_account" prompt a repeat sign-in returns an empty RefreshToken.
+	// Tying the two together means you can't accidentally ask for offline
+	// access and silently not get a refresh token. Set Prompt to override.
+	Offline bool
+
+	// Prompt overrides Google's prompt parameter. Defaults to "select_account",
+	// or "consent" when Offline is true.
 	Prompt string
 
 	// AuthURL optionally overrides the Google authorization endpoint.
@@ -105,7 +112,7 @@ type Config struct {
 type Result struct {
 	IDToken      string // JWT — send to your backend to verify identity.
 	AccessToken  string
-	RefreshToken string
+	RefreshToken string // empty unless Config.Offline was set.
 	Email        string
 	Expiry       time.Time
 
@@ -140,6 +147,10 @@ func (c Config) openURL() func(string) error {
 func (c Config) prompt() string {
 	if c.Prompt != "" {
 		return c.Prompt
+	}
+	if c.Offline {
+		// Only "consent" reliably yields a refresh token on repeat sign-ins.
+		return "consent"
 	}
 	return "select_account"
 }
@@ -252,7 +263,9 @@ func buildAuthURL(cfg Config, redirectURI, challenge, state, nonce string) strin
 	q.Set("code_challenge_method", "S256")
 	q.Set("state", state)
 	q.Set("nonce", nonce)
-	q.Set("access_type", "offline")
+	if cfg.Offline {
+		q.Set("access_type", "offline")
+	}
 	q.Set("prompt", cfg.prompt())
 	return cfg.authURL() + "?" + q.Encode()
 }
