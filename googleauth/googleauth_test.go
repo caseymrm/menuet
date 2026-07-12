@@ -395,13 +395,17 @@ func TestBuildAuthURL(t *testing.T) {
 		"code_challenge_method": "S256",
 		"state":                 "the-state",
 		"nonce":                 "the-nonce",
-		"access_type":           "offline",
 		"prompt":                "select_account",
 	}
 	for k, v := range want {
 		if got := q.Get(k); got != v {
 			t.Errorf("query[%s] = %q, want %q", k, got, v)
 		}
+	}
+	// The default is identity-only: no offline access is requested, so no
+	// refresh token is issued and there is nothing long-lived to store.
+	if _, ok := q["access_type"]; ok {
+		t.Errorf("default must not request access_type=offline, got %q", q.Get("access_type"))
 	}
 }
 
@@ -414,6 +418,41 @@ func TestBuildAuthURLPromptOverride(t *testing.T) {
 	}
 	if got := u.Query().Get("prompt"); got != "consent" {
 		t.Errorf("prompt = %q, want consent", got)
+	}
+}
+
+func TestBuildAuthURLOffline(t *testing.T) {
+	// Offline opt-in must set access_type=offline AND force prompt=consent, so
+	// Google reliably returns a refresh token (select_account only issues one on
+	// first consent). The two flags travel together — the caller can't land in
+	// the incoherent offline+select_account middle.
+	cfg := Config{ClientID: "cid", Scopes: []string{"openid"}, Offline: true}
+	raw := buildAuthURL(cfg, "http://127.0.0.1:1/callback", "c", "s", "n")
+	u, err := url.Parse(raw)
+	if err != nil {
+		t.Fatalf("parse auth url: %v", err)
+	}
+	q := u.Query()
+	if got := q.Get("access_type"); got != "offline" {
+		t.Errorf("access_type = %q, want offline", got)
+	}
+	if got := q.Get("prompt"); got != "consent" {
+		t.Errorf("prompt = %q, want consent when Offline", got)
+	}
+}
+
+func TestBuildAuthURLOfflinePromptStillOverridable(t *testing.T) {
+	// An explicit Prompt wins even with Offline, for callers who know what they
+	// want (e.g. offline access without re-consent on every sign-in).
+	cfg := Config{ClientID: "cid", Scopes: []string{"openid"}, Offline: true, Prompt: "select_account"}
+	raw := buildAuthURL(cfg, "http://127.0.0.1:1/callback", "c", "s", "n")
+	u, _ := url.Parse(raw)
+	q := u.Query()
+	if got := q.Get("access_type"); got != "offline" {
+		t.Errorf("access_type = %q, want offline", got)
+	}
+	if got := q.Get("prompt"); got != "select_account" {
+		t.Errorf("prompt = %q, want select_account (explicit override)", got)
 	}
 }
 
