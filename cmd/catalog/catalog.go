@@ -1,8 +1,19 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
+	"image"
+	"image/color"
+	"image/draw"
+	"image/png"
+	"log"
+	"os"
+	"os/exec"
+	"path/filepath"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/caseymrm/menuet/v2"
 )
@@ -132,7 +143,217 @@ func menuItems() []menuet.MenuItem {
 			Text:     "Hotkeys",
 			Children: hotkeysDemo,
 		},
+		menuet.Regular{
+			Text:     "Images",
+			Children: imageDemo,
+		},
 	}
+}
+
+// ---------------------------------------------------------------------------
+// Images
+//
+// menuet.Image is a row that draws a picture instead of text. As the only
+// child of a Regular it makes a submenu that *is* an image.
+//
+// The pictures below are generated in Go, which is also the point: menuet
+// never fetches an image itself (that would run on the thread building the
+// menu, and couldn't carry an auth header). Whatever your app can produce or
+// download — an authenticated screenshot, a chart — it hands over as Data or
+// a Path.
+// ---------------------------------------------------------------------------
+
+var (
+	chartOnce sync.Once
+	chartData []byte
+
+	shotOnce sync.Once
+	shotData []byte
+	shotPath string
+
+	imageClicks int
+)
+
+func imageDemo() []menuet.MenuItem {
+	return []menuet.MenuItem{
+		// The headline: the whole submenu is one picture.
+		menuet.Regular{
+			Text: "Submenu that is an image",
+			Children: func() []menuet.MenuItem {
+				return []menuet.MenuItem{
+					menuet.Image{Data: chartPNG(), MaxWidth: 400},
+				}
+			},
+		},
+
+		// The shape a real app usually wants: picture, caption, action.
+		menuet.Regular{
+			Text: "Picture, caption, action",
+			Children: func() []menuet.MenuItem {
+				return []menuet.MenuItem{
+					menuet.Image{Data: screenshotPNG(), MaxWidth: 480},
+					menuet.Regular{Runs: []menuet.TextRun{
+						{Text: "Captured ", Color: menuet.LabelSecondary, FontSize: 11},
+						{Text: time.Now().Format("3:04:05 PM"),
+							Color: menuet.LabelSecondary, FontSize: 11, Monospaced: true},
+					}},
+					menuet.Separator{},
+					menuet.Regular{Text: "Open full size", Clicked: openFullSize},
+				}
+			},
+		},
+
+		// Clicked makes the picture itself a button: it highlights under the
+		// pointer and dismisses the menu on click, like any other row.
+		menuet.Regular{
+			Text: "Clickable image",
+			Children: func() []menuet.MenuItem {
+				return []menuet.MenuItem{
+					menuet.Image{
+						Data:     chartPNG(),
+						MaxWidth: 320,
+						Clicked: func() {
+							imageClicks++
+							menuet.App().MenuChanged()
+						},
+					},
+					menuet.Regular{Runs: []menuet.TextRun{
+						{Text: fmt.Sprintf("Clicked %d time(s) — click the chart",
+							imageClicks), Color: menuet.LabelSecondary, FontSize: 11},
+					}},
+				}
+			},
+		},
+
+		// Path source. For a big image only the path crosses the cgo bridge,
+		// rather than ~1MB of base64 on every single menu open.
+		menuet.Regular{
+			Text: "From a file path",
+			Children: func() []menuet.MenuItem {
+				path := screenshotFilePath()
+				if path == "" {
+					return []menuet.MenuItem{
+						menuet.Regular{Text: "couldn't write the temp file"},
+					}
+				}
+				return []menuet.MenuItem{
+					menuet.Image{Path: path, MaxWidth: 480},
+					menuet.Regular{Runs: []menuet.TextRun{
+						{Text: path, Color: menuet.LabelTertiary, FontSize: 10, Monospaced: true},
+					}},
+				}
+			},
+		},
+
+		// One 1440x900 source, three bounds. It only ever scales *down* —
+		// never up — so the aspect ratio always survives.
+		menuet.Regular{
+			Text: "Scale to fit (one 1440×900 source)",
+			Children: func() []menuet.MenuItem {
+				label := func(s string) menuet.MenuItem {
+					return menuet.Regular{Runs: []menuet.TextRun{
+						{Text: s, Color: menuet.LabelSecondary, FontSize: 11, Monospaced: true},
+					}}
+				}
+				return []menuet.MenuItem{
+					label("MaxWidth: 160"),
+					menuet.Image{Data: screenshotPNG(), MaxWidth: 160},
+					label("MaxWidth: 300"),
+					menuet.Image{Data: screenshotPNG(), MaxWidth: 300},
+					label("default bound (480×360)"),
+					menuet.Image{Data: screenshotPNG()},
+				}
+			},
+		},
+	}
+}
+
+func openFullSize() {
+	if path := screenshotFilePath(); path != "" {
+		exec.Command("open", path).Run()
+	}
+}
+
+// chartPNG renders a small bar chart. Built once: Children runs on every menu
+// open, and re-encoding a PNG each time would be wasted work.
+func chartPNG() []byte {
+	chartOnce.Do(func() {
+		const w, h = 400, 160
+		img := image.NewRGBA(image.Rect(0, 0, w, h))
+		fill(img, img.Bounds(), color.RGBA{0x1c, 0x1c, 0x20, 0xff})
+		bars := []int{40, 95, 62, 130, 78, 110, 55}
+		barW := w / (len(bars)*2 + 1)
+		for i, v := range bars {
+			c := color.RGBA{0x0a, 0x84, 0xff, 0xff}
+			if v == 130 {
+				c = color.RGBA{0x30, 0xd1, 0x58, 0xff} // the peak
+			}
+			x := barW + i*2*barW
+			fill(img, image.Rect(x, h-v-12, x+barW, h-12), c)
+		}
+		chartData = encodePNG(img)
+	})
+	return chartData
+}
+
+// screenshotPNG renders a 1440x900 stand-in for a real screen capture — big
+// enough that the scale-to-fit path is doing real work.
+func screenshotPNG() []byte {
+	shotOnce.Do(buildScreenshot)
+	return shotData
+}
+
+// screenshotFilePath is the same picture on disk, for the Path source.
+func screenshotFilePath() string {
+	shotOnce.Do(buildScreenshot)
+	return shotPath
+}
+
+func buildScreenshot() {
+	const w, h = 1440, 900
+	img := image.NewRGBA(image.Rect(0, 0, w, h))
+	for y := 0; y < h; y++ {
+		for x := 0; x < w; x++ {
+			img.SetRGBA(x, y, color.RGBA{
+				R: uint8(30 + 90*x/w),
+				G: uint8(40 + 60*y/h),
+				B: uint8(120 + 100*(w-x)/w),
+				A: 0xff,
+			})
+		}
+	}
+	// A few "windows", so the downscaled picture still reads as a screen.
+	for i, r := range []image.Rectangle{
+		image.Rect(80, 90, 700, 520),
+		image.Rect(420, 300, 1180, 780),
+		image.Rect(900, 80, 1360, 380),
+	} {
+		shade := uint8(235 - 45*i)
+		fill(img, r, color.RGBA{shade, shade, shade, 0xff})
+		fill(img, image.Rect(r.Min.X, r.Min.Y, r.Max.X, r.Min.Y+30),
+			color.RGBA{0x3a, 0x3a, 0x42, 0xff})
+	}
+	shotData = encodePNG(img)
+
+	path := filepath.Join(os.TempDir(), "menuet-catalog-screenshot.png")
+	if err := os.WriteFile(path, shotData, 0o600); err != nil {
+		log.Printf("catalog: writing demo screenshot: %v", err)
+		return
+	}
+	shotPath = path
+}
+
+func fill(img *image.RGBA, r image.Rectangle, c color.RGBA) {
+	draw.Draw(img, r, &image.Uniform{C: c}, image.Point{}, draw.Src)
+}
+
+func encodePNG(img image.Image) []byte {
+	var buf bytes.Buffer
+	if err := png.Encode(&buf, img); err != nil {
+		log.Printf("catalog: encoding png: %v", err)
+		return nil
+	}
+	return buf.Bytes()
 }
 
 var hotkeyFireCount int

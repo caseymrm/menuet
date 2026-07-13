@@ -2,6 +2,7 @@
 #import <UserNotifications/UserNotifications.h>
 #import <Carbon/Carbon.h>
 #import <ServiceManagement/ServiceManagement.h>
+#import <CommonCrypto/CommonDigest.h>
 
 #import "NSImage+Resize.h"
 #import "menuet.h"
@@ -294,6 +295,204 @@ static NSColor *MenuetColorFromDict(NSDictionary *dict) {
 // rectangle filled with fillColor, with the text drawn in white-on-fill
 // at 9pt bold uppercase. The image's size matches the badge geometry
 // from the design handoff (h14, padX5, radius7).
+// ---------------------------------------------------------------------------
+// Image menu rows (the "image" item type).
+//
+// Decoding and rescaling a full-size screenshot on every menu open is the
+// expensive part, so results are cached. The cache key must change when the
+// picture does: for Data that's a digest of the bytes, for Path it's the
+// path plus its modification time (a screenshot rewritten to the same path
+// must not serve the stale image).
+// ---------------------------------------------------------------------------
+
+static const CGFloat kMenuetImagePadX = 20; // roughly the menu's text inset
+static const CGFloat kMenuetImagePadY = 5;
+
+static NSCache *MenuetImageCache(void) {
+	static NSCache *cache;
+	static dispatch_once_t once;
+	dispatch_once(&once, ^{
+		cache = [[NSCache alloc] init];
+		cache.countLimit = 32;
+	});
+	return cache;
+}
+
+static NSString *MenuetSHA256Hex(NSData *data) {
+	unsigned char digest[CC_SHA256_DIGEST_LENGTH];
+	CC_SHA256(data.bytes, (CC_LONG)data.length, digest);
+	NSMutableString *hex = [NSMutableString stringWithCapacity:CC_SHA256_DIGEST_LENGTH * 2];
+	for (int i = 0; i < CC_SHA256_DIGEST_LENGTH; i++) {
+		[hex appendFormat:@"%02x", digest[i]];
+	}
+	return hex;
+}
+
+// Scale to fit inside maxW x maxH, preserving aspect ratio. Never upscales —
+// a 32pt avatar in a 480pt box stays 32pt rather than turning to mush.
+static NSImage *MenuetScaledImage(NSImage *src, CGFloat maxW, CGFloat maxH) {
+	if (!src || !src.isValid) {
+		return nil;
+	}
+	NSSize size = src.size;
+	if (size.width <= 0 || size.height <= 0) {
+		return nil;
+	}
+	CGFloat scale = 1.0;
+	if (maxW > 0 && size.width > maxW) {
+		scale = MIN(scale, maxW / size.width);
+	}
+	if (maxH > 0 && size.height > maxH) {
+		scale = MIN(scale, maxH / size.height);
+	}
+	if (scale >= 1.0) {
+		return src;
+	}
+	NSSize newSize = NSMakeSize(floor(size.width * scale), floor(size.height * scale));
+	NSImage *out = [[NSImage alloc] initWithSize:newSize];
+	[out lockFocus];
+	[[NSGraphicsContext currentContext]
+	 setImageInterpolation:NSImageInterpolationHigh];
+	[src drawInRect:NSMakeRect(0, 0, newSize.width, newSize.height)
+	       fromRect:NSZeroRect
+	      operation:NSCompositingOperationSourceOver
+	       fraction:1.0];
+	[out unlockFocus];
+	return out;
+}
+
+static NSImage *MenuetImageForRow(NSData *data, NSString *path, CGFloat maxW, CGFloat maxH) {
+	NSString *key = nil;
+	if (data.length > 0) {
+		key = [NSString stringWithFormat:@"d:%@/%.0fx%.0f",
+		       MenuetSHA256Hex(data), maxW, maxH];
+	} else if (path.length > 0) {
+		NSDictionary *attrs =
+			[[NSFileManager defaultManager] attributesOfItemAtPath:path error:nil];
+		NSDate *mtime = attrs[NSFileModificationDate];
+		key = [NSString stringWithFormat:@"p:%@/%f/%.0fx%.0f", path,
+		       mtime.timeIntervalSince1970, maxW, maxH];
+	} else {
+		return nil;
+	}
+
+	NSImage *cached = [MenuetImageCache() objectForKey:key];
+	if (cached) {
+		return cached;
+	}
+
+	NSImage *src = data.length > 0
+		? [[NSImage alloc] initWithData:data]
+		: [[NSImage alloc] initWithContentsOfFile:path];
+	if (!src) {
+		NSLog(@"menuet: could not decode image (%@)",
+		      data.length > 0 ? @"Data" : path);
+		return nil;
+	}
+	NSImage *scaled = MenuetScaledImage(src, maxW, maxH);
+	if (scaled) {
+		[MenuetImageCache() setObject:scaled forKey:key];
+	}
+	return scaled;
+}
+
+// MenuetImageView is an NSMenuItem.view that draws a picture as the row. Same
+// mechanism as the search field. A custom view gets none of NSMenuItem's
+// highlight or click behavior for free, so when the row is clickable we track
+// the pointer ourselves, draw the selection background, and on mouseUp fire
+// the item's action and dismiss the menu.
+@interface MenuetImageView : NSView
+@property(nonatomic, strong) NSImage *image;
+@property(nonatomic, assign) BOOL clickable;
+@property(nonatomic, assign) BOOL hovered;
+@property(nonatomic, strong) NSTrackingArea *tracking;
+- (instancetype)initWithImage:(NSImage *)image clickable:(BOOL)clickable;
+- (void)updateImage:(NSImage *)image clickable:(BOOL)clickable;
+@end
+
+@implementation MenuetImageView
+
+- (instancetype)initWithImage:(NSImage *)image clickable:(BOOL)clickable {
+	NSSize size = image ? image.size : NSMakeSize(120, 60);
+	self = [super initWithFrame:NSMakeRect(0, 0,
+	                                       size.width + 2 * kMenuetImagePadX,
+	                                       size.height + 2 * kMenuetImagePadY)];
+	if (self) {
+		_image = image;
+		_clickable = clickable;
+	}
+	return self;
+}
+
+- (void)updateImage:(NSImage *)image clickable:(BOOL)clickable {
+	self.image = image;
+	self.clickable = clickable;
+	NSSize size = image ? image.size : NSMakeSize(120, 60);
+	NSRect frame = self.frame;
+	frame.size = NSMakeSize(size.width + 2 * kMenuetImagePadX,
+	                        size.height + 2 * kMenuetImagePadY);
+	self.frame = frame;
+	[self setNeedsDisplay:YES];
+}
+
+- (void)updateTrackingAreas {
+	[super updateTrackingAreas];
+	if (self.tracking) {
+		[self removeTrackingArea:self.tracking];
+	}
+	self.tracking = [[NSTrackingArea alloc]
+	                 initWithRect:self.bounds
+	                      options:NSTrackingMouseEnteredAndExited |
+	                              NSTrackingActiveInActiveApp
+	                        owner:self
+	                     userInfo:nil];
+	[self addTrackingArea:self.tracking];
+}
+
+- (void)mouseEntered:(NSEvent *)event {
+	if (self.clickable && !self.hovered) {
+		self.hovered = YES;
+		[self setNeedsDisplay:YES];
+	}
+}
+
+- (void)mouseExited:(NSEvent *)event {
+	if (self.hovered) {
+		self.hovered = NO;
+		[self setNeedsDisplay:YES];
+	}
+}
+
+- (void)mouseUp:(NSEvent *)event {
+	if (!self.clickable) {
+		return;
+	}
+	NSMenuItem *item = self.enclosingMenuItem;
+	if (item.action) {
+		[NSApp sendAction:item.action to:item.target from:item];
+	}
+	[item.menu cancelTracking];
+}
+
+- (void)drawRect:(NSRect)dirtyRect {
+	if (self.clickable && self.hovered) {
+		[[NSColor selectedContentBackgroundColor] setFill];
+		NSRect r = NSInsetRect(self.bounds, 5, 1);
+		[[NSBezierPath bezierPathWithRoundedRect:r xRadius:5 yRadius:5] fill];
+	}
+	if (!self.image) {
+		return;
+	}
+	[self.image drawInRect:NSMakeRect(kMenuetImagePadX, kMenuetImagePadY,
+	                                  self.image.size.width,
+	                                  self.image.size.height)
+	              fromRect:NSZeroRect
+	             operation:NSCompositingOperationSourceOver
+	              fraction:1.0];
+}
+
+@end
+
 static NSImage *MenuetBadgeImage(NSString *text, NSColor *fillColor) {
 	NSString *upper = [text uppercaseString];
 	NSDictionary *attrs = @{
@@ -450,6 +649,45 @@ static NSString *MenuetPlainTextFromRuns(NSArray *runs) {
 			if (!item || !item.isSeparatorItem) {
 				[self insertItem:[NSMenuItem separatorItem] atIndex:i];
 			}
+			continue;
+		}
+		if ([type isEqualTo:@"image"]) {
+			// encoding/json base64s a Go []byte, so ImageData arrives as a string.
+			NSString *b64 = dict[@"ImageData"];
+			NSData *imageData = [b64 isKindOfClass:[NSString class]] && b64.length > 0
+				? [[NSData alloc] initWithBase64EncodedString:b64 options:0]
+				: nil;
+			NSString *imagePath = dict[@"ImagePath"] ?: @"";
+			CGFloat maxW = [dict[@"MaxWidth"] doubleValue];
+			CGFloat maxH = [dict[@"MaxHeight"] doubleValue];
+			// Zero means "use the default bound for that axis" — an unscaled
+			// screenshot would otherwise run off the screen.
+			if (maxW <= 0) maxW = 480;
+			if (maxH <= 0) maxH = 360;
+
+			NSImage *picture = MenuetImageForRow(imageData, imagePath, maxW, maxH);
+			BOOL imageClickable = [dict[@"Clickable"] boolValue];
+			NSString *imageUnique = dict[@"Unique"];
+
+			BOOL reuseImage = item && [item.view isKindOfClass:NSClassFromString(@"MenuetImageView")];
+			if (!reuseImage) {
+				if (item) [self removeItemAtIndex:i];
+				item = [self insertItemWithTitle:@"" action:nil keyEquivalent:@"" atIndex:i];
+				item.view = [[MenuetImageView alloc] initWithImage:picture
+				                                         clickable:imageClickable];
+			} else {
+				[(MenuetImageView *)item.view updateImage:picture
+				                                clickable:imageClickable];
+			}
+			item.target = self;
+			if (imageClickable) {
+				item.action = @selector(press:);
+				item.representedObject = imageUnique;
+			} else {
+				item.action = nil;
+				item.representedObject = nil;
+			}
+			item.enabled = imageClickable;
 			continue;
 		}
 		if ([type isEqualTo:@"search"]) {

@@ -178,8 +178,15 @@ func (a *Application) clicked(unique string) {
 		log.Printf("Item not found for click: %s", unique)
 		return
 	}
-	if reg, ok := item.item.(Regular); ok && reg.Clicked != nil {
-		go reg.Clicked()
+	switch v := item.item.(type) {
+	case Regular:
+		if v.Clicked != nil {
+			go v.Clicked()
+		}
+	case Image:
+		if v.Clicked != nil {
+			go v.Clicked()
+		}
 	}
 }
 

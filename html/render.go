@@ -221,9 +221,38 @@ func renderItem(b *strings.Builder, item menuet.SnapshotItem, opts Options, dept
 		}
 		b.WriteString(`</div>`)
 		b.WriteString(`</div>`)
+	case "image":
+		renderImagePlaceholder(b, item)
 	default:
 		renderRegular(b, item, opts, depth)
 	}
+}
+
+// renderImagePlaceholder stands in for a menuet.Image row. Snapshots
+// deliberately don't carry the picture's bytes (see SnapshotItem), so the mock
+// draws a box at the item's declared bound, scaled to fit the panel.
+func renderImagePlaceholder(b *strings.Builder, item menuet.SnapshotItem) {
+	w, h := item.ImageWidth, item.ImageHeight
+	if w <= 0 {
+		w = 480
+	}
+	if h <= 0 {
+		h = 360
+	}
+	// The mock menu panel is 320px wide; keep the placeholder inside it,
+	// preserving the declared aspect ratio.
+	const panelW = 292
+	if w > panelW {
+		h = h * panelW / w
+		w = panelW
+	}
+	fmt.Fprintf(b,
+		`<div style="margin: 3px 5px; padding: 0 7px;">`+
+			`<div style="width: %dpx; height: %dpx; border-radius: 6px; border: 1px solid var(--sep); `+
+			`background: repeating-linear-gradient(135deg, var(--field-bg), var(--field-bg) 8px, transparent 8px, transparent 16px); `+
+			`display: flex; align-items: center; justify-content: center; `+
+			`color: var(--text-3); font-size: 11px;">image · %d×%d</div></div>`,
+		w, h, item.ImageWidth, item.ImageHeight)
 }
 
 // renderHoverSubmenu emits a hidden-by-default submenu popover inside

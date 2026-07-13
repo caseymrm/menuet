@@ -2306,6 +2306,492 @@
           }
         }
       ]
+    },
+    {
+      "type": "regular",
+      "text": "Images",
+      "color": {
+        "R": 0,
+        "G": 0,
+        "B": 0,
+        "A": 0
+      },
+      "children": [
+        {
+          "type": "regular",
+          "text": "Submenu that is an image",
+          "color": {
+            "R": 0,
+            "G": 0,
+            "B": 0,
+            "A": 0
+          },
+          "children": [
+            {
+              "type": "image",
+              "color": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "imageWidth": 400,
+              "imageHeight": 360,
+              "imageSource": "data"
+            }
+          ]
+        },
+        {
+          "type": "regular",
+          "text": "Picture, caption, action",
+          "color": {
+            "R": 0,
+            "G": 0,
+            "B": 0,
+            "A": 0
+          },
+          "children": [
+            {
+              "type": "image",
+              "color": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "imageWidth": 480,
+              "imageHeight": 360,
+              "imageSource": "data"
+            },
+            {
+              "type": "regular",
+              "runs": [
+                {
+                  "Text": "Captured ",
+                  "Color": {
+                    "R": 0,
+                    "G": 0,
+                    "B": 0,
+                    "A": 0,
+                    "Semantic": "secondaryLabelColor"
+                  },
+                  "FontSize": 11,
+                  "FontWeight": 0,
+                  "Monospaced": false,
+                  "Badge": false,
+                  "Underline": false,
+                  "UnderlineColor": {
+                    "R": 0,
+                    "G": 0,
+                    "B": 0,
+                    "A": 0
+                  },
+                  "Strikethrough": false,
+                  "StrikethroughColor": {
+                    "R": 0,
+                    "G": 0,
+                    "B": 0,
+                    "A": 0
+                  },
+                  "Background": {
+                    "R": 0,
+                    "G": 0,
+                    "B": 0,
+                    "A": 0
+                  },
+                  "Shadow": null
+                },
+                {
+                  "Text": "11:57:00 PM",
+                  "Color": {
+                    "R": 0,
+                    "G": 0,
+                    "B": 0,
+                    "A": 0,
+                    "Semantic": "secondaryLabelColor"
+                  },
+                  "FontSize": 11,
+                  "FontWeight": 0,
+                  "Monospaced": true,
+                  "Badge": false,
+                  "Underline": false,
+                  "UnderlineColor": {
+                    "R": 0,
+                    "G": 0,
+                    "B": 0,
+                    "A": 0
+                  },
+                  "Strikethrough": false,
+                  "StrikethroughColor": {
+                    "R": 0,
+                    "G": 0,
+                    "B": 0,
+                    "A": 0
+                  },
+                  "Background": {
+                    "R": 0,
+                    "G": 0,
+                    "B": 0,
+                    "A": 0
+                  },
+                  "Shadow": null
+                }
+              ],
+              "color": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              }
+            },
+            {
+              "type": "separator",
+              "color": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              }
+            },
+            {
+              "type": "regular",
+              "text": "Open full size",
+              "color": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              }
+            }
+          ]
+        },
+        {
+          "type": "regular",
+          "text": "Clickable image",
+          "color": {
+            "R": 0,
+            "G": 0,
+            "B": 0,
+            "A": 0
+          },
+          "children": [
+            {
+              "type": "image",
+              "color": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "imageWidth": 320,
+              "imageHeight": 360,
+              "imageSource": "data"
+            },
+            {
+              "type": "regular",
+              "runs": [
+                {
+                  "Text": "Clicked 0 time(s) — click the chart",
+                  "Color": {
+                    "R": 0,
+                    "G": 0,
+                    "B": 0,
+                    "A": 0,
+                    "Semantic": "secondaryLabelColor"
+                  },
+                  "FontSize": 11,
+                  "FontWeight": 0,
+                  "Monospaced": false,
+                  "Badge": false,
+                  "Underline": false,
+                  "UnderlineColor": {
+                    "R": 0,
+                    "G": 0,
+                    "B": 0,
+                    "A": 0
+                  },
+                  "Strikethrough": false,
+                  "StrikethroughColor": {
+                    "R": 0,
+                    "G": 0,
+                    "B": 0,
+                    "A": 0
+                  },
+                  "Background": {
+                    "R": 0,
+                    "G": 0,
+                    "B": 0,
+                    "A": 0
+                  },
+                  "Shadow": null
+                }
+              ],
+              "color": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              }
+            }
+          ]
+        },
+        {
+          "type": "regular",
+          "text": "From a file path",
+          "color": {
+            "R": 0,
+            "G": 0,
+            "B": 0,
+            "A": 0
+          },
+          "children": [
+            {
+              "type": "image",
+              "color": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "imageWidth": 480,
+              "imageHeight": 360,
+              "imageSource": "path"
+            },
+            {
+              "type": "regular",
+              "runs": [
+                {
+                  "Text": "/var/folders/py/kd0n010d5853c10brzndjz8w0000gn/T/menuet-catalog-screenshot.png",
+                  "Color": {
+                    "R": 0,
+                    "G": 0,
+                    "B": 0,
+                    "A": 0,
+                    "Semantic": "tertiaryLabelColor"
+                  },
+                  "FontSize": 10,
+                  "FontWeight": 0,
+                  "Monospaced": true,
+                  "Badge": false,
+                  "Underline": false,
+                  "UnderlineColor": {
+                    "R": 0,
+                    "G": 0,
+                    "B": 0,
+                    "A": 0
+                  },
+                  "Strikethrough": false,
+                  "StrikethroughColor": {
+                    "R": 0,
+                    "G": 0,
+                    "B": 0,
+                    "A": 0
+                  },
+                  "Background": {
+                    "R": 0,
+                    "G": 0,
+                    "B": 0,
+                    "A": 0
+                  },
+                  "Shadow": null
+                }
+              ],
+              "color": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              }
+            }
+          ]
+        },
+        {
+          "type": "regular",
+          "text": "Scale to fit (one 1440×900 source)",
+          "color": {
+            "R": 0,
+            "G": 0,
+            "B": 0,
+            "A": 0
+          },
+          "children": [
+            {
+              "type": "regular",
+              "runs": [
+                {
+                  "Text": "MaxWidth: 160",
+                  "Color": {
+                    "R": 0,
+                    "G": 0,
+                    "B": 0,
+                    "A": 0,
+                    "Semantic": "secondaryLabelColor"
+                  },
+                  "FontSize": 11,
+                  "FontWeight": 0,
+                  "Monospaced": true,
+                  "Badge": false,
+                  "Underline": false,
+                  "UnderlineColor": {
+                    "R": 0,
+                    "G": 0,
+                    "B": 0,
+                    "A": 0
+                  },
+                  "Strikethrough": false,
+                  "StrikethroughColor": {
+                    "R": 0,
+                    "G": 0,
+                    "B": 0,
+                    "A": 0
+                  },
+                  "Background": {
+                    "R": 0,
+                    "G": 0,
+                    "B": 0,
+                    "A": 0
+                  },
+                  "Shadow": null
+                }
+              ],
+              "color": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              }
+            },
+            {
+              "type": "image",
+              "color": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "imageWidth": 160,
+              "imageHeight": 360,
+              "imageSource": "data"
+            },
+            {
+              "type": "regular",
+              "runs": [
+                {
+                  "Text": "MaxWidth: 300",
+                  "Color": {
+                    "R": 0,
+                    "G": 0,
+                    "B": 0,
+                    "A": 0,
+                    "Semantic": "secondaryLabelColor"
+                  },
+                  "FontSize": 11,
+                  "FontWeight": 0,
+                  "Monospaced": true,
+                  "Badge": false,
+                  "Underline": false,
+                  "UnderlineColor": {
+                    "R": 0,
+                    "G": 0,
+                    "B": 0,
+                    "A": 0
+                  },
+                  "Strikethrough": false,
+                  "StrikethroughColor": {
+                    "R": 0,
+                    "G": 0,
+                    "B": 0,
+                    "A": 0
+                  },
+                  "Background": {
+                    "R": 0,
+                    "G": 0,
+                    "B": 0,
+                    "A": 0
+                  },
+                  "Shadow": null
+                }
+              ],
+              "color": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              }
+            },
+            {
+              "type": "image",
+              "color": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "imageWidth": 300,
+              "imageHeight": 360,
+              "imageSource": "data"
+            },
+            {
+              "type": "regular",
+              "runs": [
+                {
+                  "Text": "default bound (480×360)",
+                  "Color": {
+                    "R": 0,
+                    "G": 0,
+                    "B": 0,
+                    "A": 0,
+                    "Semantic": "secondaryLabelColor"
+                  },
+                  "FontSize": 11,
+                  "FontWeight": 0,
+                  "Monospaced": true,
+                  "Badge": false,
+                  "Underline": false,
+                  "UnderlineColor": {
+                    "R": 0,
+                    "G": 0,
+                    "B": 0,
+                    "A": 0
+                  },
+                  "Strikethrough": false,
+                  "StrikethroughColor": {
+                    "R": 0,
+                    "G": 0,
+                    "B": 0,
+                    "A": 0
+                  },
+                  "Background": {
+                    "R": 0,
+                    "G": 0,
+                    "B": 0,
+                    "A": 0
+                  },
+                  "Shadow": null
+                }
+              ],
+              "color": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              }
+            },
+            {
+              "type": "image",
+              "color": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "imageWidth": 480,
+              "imageHeight": 360,
+              "imageSource": "data"
+            }
+          ]
+        }
+      ]
     }
   ]
 }
