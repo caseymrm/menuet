@@ -78,6 +78,62 @@ type Search struct {
 
 func (Search) menuItem() {}
 
+// DefaultMaxImageWidth and DefaultMaxImageHeight bound an Image whose
+// MaxWidth / MaxHeight are left at zero, so an unscaled screenshot can't
+// push the menu off the screen.
+const (
+	DefaultMaxImageWidth  = 480
+	DefaultMaxImageHeight = 360
+)
+
+// Image is a menu row that renders a picture in place of text. As the only
+// child of a Regular it makes a submenu that *is* an image; alongside other
+// items it's a picture above a caption, a "Open full size" row, and so on:
+//
+//	menuet.Regular{
+//	    Text: "Living room iMac",
+//	    Children: func() []menuet.MenuItem {
+//	        return []menuet.MenuItem{
+//	            menuet.Image{Data: screenshotPNG, MaxWidth: 480},
+//	            menuet.Separator{},
+//	            menuet.Regular{Text: "Open full size", Clicked: openFull},
+//	        }
+//	    },
+//	}
+//
+// This is a different thing from Regular.Image, which is a small (16pt-tall)
+// icon drawn to the *left* of a row's text. Image is the row.
+//
+// Exactly one of Data or Path must be set. menuet never fetches an image
+// itself: there is deliberately no URL field, because the fetch would land on
+// the thread building the menu (hanging it) and could not carry an
+// Authorization header. Fetch it in Go — where you already have your auth,
+// caching and retries — and hand over the bytes or a path.
+type Image struct {
+	// Data is the encoded image (PNG, JPEG, …). Use it when your Go code
+	// already holds the bytes: a screenshot pulled from an authenticated API,
+	// a chart you rendered in-process. The bytes cross the cgo bridge on every
+	// menu open, so prefer Path for large, unchanging images.
+	Data []byte
+
+	// Path is an absolute path to an image file. Cheaper than Data for large
+	// images — only the path crosses the bridge — and cached by path, size and
+	// modification time, so rewriting the file shows the new picture.
+	Path string
+
+	// MaxWidth and MaxHeight bound the rendered picture. It is scaled down to
+	// fit inside them, preserving aspect ratio, and is never scaled up. A zero
+	// value means DefaultMaxImageWidth / DefaultMaxImageHeight for that axis.
+	MaxWidth  int
+	MaxHeight int
+
+	// Clicked, when set, makes the row respond to clicks and highlight under
+	// the pointer, like a Regular. Leave nil for a purely decorative picture.
+	Clicked func()
+}
+
+func (Image) menuItem() {}
+
 type internalItem struct {
 	Unique       string
 	ParentUnique string
@@ -98,6 +154,13 @@ type internalItem struct {
 	State       bool
 	HasChildren bool
 	Clickable   bool
+
+	// Image ("image" Type) fields. ImageData is []byte, which encoding/json
+	// base64-encodes for us; the ObjC side decodes it back.
+	ImageData []byte `json:",omitempty"`
+	ImagePath string `json:",omitempty"`
+	MaxWidth  int    `json:",omitempty"`
+	MaxHeight int    `json:",omitempty"`
 
 	// item is the original MenuItem, kept so click and Children callbacks
 	// can be looked up later when ObjC re-enters via itemClicked / children.
@@ -131,6 +194,32 @@ func buildInternalItem(item MenuItem, unique, parentUnique string) internalItem 
 		out.Type = "search"
 		// Text doubles as the placeholder string on the ObjC side.
 		out.Text = v.Placeholder
+	case Image:
+		out.Type = "image"
+		// Exactly one source. Neither means nothing to draw; both is
+		// ambiguous. Say so rather than silently picking one — the row would
+		// otherwise just render blank with no clue why.
+		hasData, hasPath := len(v.Data) > 0, v.Path != ""
+		switch {
+		case !hasData && !hasPath:
+			log.Printf("menuet: Image has neither Data nor Path; nothing to draw")
+		case hasData && hasPath:
+			log.Printf("menuet: Image has both Data and Path; set exactly one")
+		}
+		out.ImageData = v.Data
+		out.ImagePath = v.Path
+		// Substitute the default bounds here, once, so every consumer (the
+		// ObjC bridge, snapshots) sees concrete values — no cross-language
+		// duplication of the defaults.
+		out.MaxWidth = v.MaxWidth
+		if out.MaxWidth <= 0 {
+			out.MaxWidth = DefaultMaxImageWidth
+		}
+		out.MaxHeight = v.MaxHeight
+		if out.MaxHeight <= 0 {
+			out.MaxHeight = DefaultMaxImageHeight
+		}
+		out.Clickable = v.Clicked != nil
 	}
 	return out
 }

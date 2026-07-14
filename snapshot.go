@@ -39,8 +39,8 @@ type Snapshot struct {
 // Unique/ParentUnique and a live *MenuItem pointer) so the snapshot stays
 // a self-contained data payload with no live references.
 type SnapshotItem struct {
-	// Type is "regular", "separator", or "search". Empty means regular for
-	// backward-compatibility when the field is omitted.
+	// Type is "regular", "separator", "search", or "image". Empty means
+	// regular for backward-compatibility when the field is omitted.
 	Type string `json:"type,omitempty"`
 
 	Text       string     `json:"text,omitempty"`
@@ -53,6 +53,14 @@ type SnapshotItem struct {
 	Monospaced bool       `json:"monospaced,omitempty"`
 	Shortcut   *Shortcut  `json:"shortcut,omitempty"`
 	State      bool       `json:"state,omitempty"`
+
+	// Image ("image" Type) fields. The picture's bytes are deliberately NOT
+	// captured: a screenshot base64s to ~1MB, and a snapshot is a structural
+	// record of the menu, not an asset bundle. Renderers draw a placeholder at
+	// the item's declared bound. ImageSource is "data" or "path".
+	ImageWidth  int    `json:"imageWidth,omitempty"`
+	ImageHeight int    `json:"imageHeight,omitempty"`
+	ImageSource string `json:"imageSource,omitempty"`
 
 	// Children are the expanded submenu, populated by the snapshotter.
 	Children []SnapshotItem `json:"children,omitempty"`
@@ -150,6 +158,26 @@ func snapshotItem(item MenuItem, depth int) SnapshotItem {
 		return s
 	case Separator:
 		return SnapshotItem{Type: "separator"}
+	case Image:
+		// Record the effective bound (applying the same defaults the ObjC side
+		// would) so a renderer knows how much room the picture takes.
+		w, h := v.MaxWidth, v.MaxHeight
+		if w <= 0 {
+			w = DefaultMaxImageWidth
+		}
+		if h <= 0 {
+			h = DefaultMaxImageHeight
+		}
+		source := "data"
+		if v.Path != "" {
+			source = "path"
+		}
+		return SnapshotItem{
+			Type:        "image",
+			ImageWidth:  w,
+			ImageHeight: h,
+			ImageSource: source,
+		}
 	case Search:
 		s := SnapshotItem{Type: "search", Text: v.Placeholder}
 		// Snapshot search results with an empty query — the same call the
