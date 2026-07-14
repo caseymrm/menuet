@@ -361,11 +361,18 @@ static NSImage *MenuetScaledImage(NSImage *src, CGFloat maxW, CGFloat maxH) {
 	return out;
 }
 
-static NSImage *MenuetImageForRow(NSData *data, NSString *path, CGFloat maxW, CGFloat maxH) {
+// MenuetImageForRow returns the decoded, scaled image for a row, cached.
+// b64 is the still-encoded ImageData payload: hashing it directly (rather
+// than the decoded bytes) has identical uniqueness but defers the ~1MB
+// base64 decode to the cache-miss path, keeping repeat menu opens cheap.
+// Failures are cached too (as NSNull), so a broken source is decoded — and
+// logged — once, not on every open.
+static NSImage *MenuetImageForRow(NSString *b64, NSString *path, CGFloat maxW, CGFloat maxH) {
 	NSString *key = nil;
-	if (data.length > 0) {
+	if (b64.length > 0) {
+		NSData *keyBytes = [b64 dataUsingEncoding:NSUTF8StringEncoding];
 		key = [NSString stringWithFormat:@"d:%@/%.0fx%.0f",
-		       MenuetSHA256Hex(data), maxW, maxH];
+		       MenuetSHA256Hex(keyBytes), maxW, maxH];
 	} else if (path.length > 0) {
 		NSDictionary *attrs =
 			[[NSFileManager defaultManager] attributesOfItemAtPath:path error:nil];
@@ -376,22 +383,27 @@ static NSImage *MenuetImageForRow(NSData *data, NSString *path, CGFloat maxW, CG
 		return nil;
 	}
 
-	NSImage *cached = [MenuetImageCache() objectForKey:key];
+	id cached = [MenuetImageCache() objectForKey:key];
 	if (cached) {
-		return cached;
+		return cached == [NSNull null] ? nil : cached;
 	}
 
-	NSImage *src = data.length > 0
+	NSImage *scaled = nil;
+	NSData *data = b64.length > 0
+		? [[NSData alloc] initWithBase64EncodedString:b64 options:0]
+		: nil;
+	NSImage *src = data
 		? [[NSImage alloc] initWithData:data]
 		: [[NSImage alloc] initWithContentsOfFile:path];
-	if (!src) {
-		NSLog(@"menuet: could not decode image (%@)",
-		      data.length > 0 ? @"Data" : path);
-		return nil;
+	if (src) {
+		scaled = MenuetScaledImage(src, maxW, maxH);
 	}
-	NSImage *scaled = MenuetScaledImage(src, maxW, maxH);
 	if (scaled) {
 		[MenuetImageCache() setObject:scaled forKey:key];
+	} else {
+		NSLog(@"menuet: could not decode image (%@)",
+		      b64.length > 0 ? @"Data" : path);
+		[MenuetImageCache() setObject:[NSNull null] forKey:key];
 	}
 	return scaled;
 }
@@ -413,13 +425,9 @@ static NSImage *MenuetImageForRow(NSData *data, NSString *path, CGFloat maxW, CG
 @implementation MenuetImageView
 
 - (instancetype)initWithImage:(NSImage *)image clickable:(BOOL)clickable {
-	NSSize size = image ? image.size : NSMakeSize(120, 60);
-	self = [super initWithFrame:NSMakeRect(0, 0,
-	                                       size.width + 2 * kMenuetImagePadX,
-	                                       size.height + 2 * kMenuetImagePadY)];
+	self = [super initWithFrame:NSZeroRect];
 	if (self) {
-		_image = image;
-		_clickable = clickable;
+		[self updateImage:image clickable:clickable];
 	}
 	return self;
 }
@@ -427,6 +435,10 @@ static NSImage *MenuetImageForRow(NSData *data, NSString *path, CGFloat maxW, CG
 - (void)updateImage:(NSImage *)image clickable:(BOOL)clickable {
 	self.image = image;
 	self.clickable = clickable;
+	// The menu can be dismissed (cancelTracking) with the pointer still over
+	// this row, in which case mouseExited never arrives — reset here so a
+	// reused view doesn't draw a phantom highlight on the next open.
+	self.hovered = NO;
 	NSSize size = image ? image.size : NSMakeSize(120, 60);
 	NSRect frame = self.frame;
 	frame.size = NSMakeSize(size.width + 2 * kMenuetImagePadX,
@@ -440,10 +452,14 @@ static NSImage *MenuetImageForRow(NSData *data, NSString *path, CGFloat maxW, CG
 	if (self.tracking) {
 		[self removeTrackingArea:self.tracking];
 	}
+	// ActiveAlways, not ActiveInActiveApp: menuet apps are accessory-policy
+	// apps whose status-item menu opens without activating the app, so
+	// ActiveInActiveApp would never deliver enter/exit while another app is
+	// frontmost — i.e. in the normal menubar usage.
 	self.tracking = [[NSTrackingArea alloc]
 	                 initWithRect:self.bounds
 	                      options:NSTrackingMouseEnteredAndExited |
-	                              NSTrackingActiveInActiveApp
+	                              NSTrackingActiveAlways
 	                        owner:self
 	                     userInfo:nil];
 	[self addTrackingArea:self.tracking];
@@ -652,20 +668,17 @@ static NSString *MenuetPlainTextFromRuns(NSArray *runs) {
 			continue;
 		}
 		if ([type isEqualTo:@"image"]) {
-			// encoding/json base64s a Go []byte, so ImageData arrives as a string.
-			NSString *b64 = dict[@"ImageData"];
-			NSData *imageData = [b64 isKindOfClass:[NSString class]] && b64.length > 0
-				? [[NSData alloc] initWithBase64EncodedString:b64 options:0]
-				: nil;
+			// encoding/json base64s a Go []byte, so ImageData arrives as a
+			// string; MenuetImageForRow decodes it only on a cache miss.
+			// MaxWidth/MaxHeight arrive with defaults already substituted by
+			// buildInternalItem — Go owns the boundary, this side trusts it.
+			NSString *b64 = [dict[@"ImageData"] isKindOfClass:[NSString class]]
+				? dict[@"ImageData"] : @"";
 			NSString *imagePath = dict[@"ImagePath"] ?: @"";
 			CGFloat maxW = [dict[@"MaxWidth"] doubleValue];
 			CGFloat maxH = [dict[@"MaxHeight"] doubleValue];
-			// Zero means "use the default bound for that axis" — an unscaled
-			// screenshot would otherwise run off the screen.
-			if (maxW <= 0) maxW = 480;
-			if (maxH <= 0) maxH = 360;
 
-			NSImage *picture = MenuetImageForRow(imageData, imagePath, maxW, maxH);
+			NSImage *picture = MenuetImageForRow(b64, imagePath, maxW, maxH);
 			BOOL imageClickable = [dict[@"Clickable"] boolValue];
 			NSString *imageUnique = dict[@"Unique"];
 
@@ -722,7 +735,14 @@ static NSString *MenuetPlainTextFromRuns(NSArray *runs) {
 		BOOL state = [dict[@"State"] boolValue];
 		BOOL hasChildren = [dict[@"HasChildren"] boolValue];
 		BOOL clickable = [dict[@"Clickable"] boolValue];
-		if (!item || item.isSeparatorItem) {
+		// A leftover custom view (image or search row that changed type at
+		// this index) would supersede the title we set below —
+		// NSMenuItem.view wins over attributedTitle — so those items can't
+		// be reused for a regular row.
+		if (!item || item.isSeparatorItem || item.view) {
+			if (item) {
+				[self removeItemAtIndex:i];
+			}
 			item =
 				[self insertItemWithTitle:@"" action:nil keyEquivalent:@"" atIndex:i];
 		}

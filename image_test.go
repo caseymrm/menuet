@@ -55,35 +55,20 @@ func TestImageClickableOnlyWhenClickedSet(t *testing.T) {
 	}
 }
 
-// Zero MaxWidth/MaxHeight are forwarded as zero; the ObjC side substitutes the
-// documented defaults. Assert the constants stay in step with menuet.m, which
-// is where the substitution actually happens.
-func TestImageDefaultBoundsAreForwardedAsZero(t *testing.T) {
+// Default bounds are substituted once here in Go — every consumer (ObjC
+// bridge, snapshots) sees concrete values, so the defaults live in exactly
+// one place. Per-axis: an explicit value on one axis keeps the default on
+// the other.
+func TestImageDefaultBoundsSubstituted(t *testing.T) {
 	item := buildInternalItem(Image{Data: []byte{1}}, "u1", "p1")
-	if item.MaxWidth != 0 || item.MaxHeight != 0 {
-		t.Errorf("zero bounds should pass through as zero, got %dx%d",
+	if item.MaxWidth != DefaultMaxImageWidth || item.MaxHeight != DefaultMaxImageHeight {
+		t.Errorf("zero bounds should become defaults, got %dx%d",
 			item.MaxWidth, item.MaxHeight)
 	}
-	if DefaultMaxImageWidth != 480 || DefaultMaxImageHeight != 360 {
-		t.Errorf("defaults changed (%dx%d) — update the matching literals in menuet.m",
-			DefaultMaxImageWidth, DefaultMaxImageHeight)
-	}
-}
-
-// An Image is a MenuItem, so it composes: as the only child of a Regular it is
-// "a submenu that is an image", and it can sit alongside ordinary rows.
-func TestImageIsAMenuItem(t *testing.T) {
-	var items []MenuItem
-	items = append(items,
-		Image{Data: []byte{1}},
-		Separator{},
-		Regular{Text: "Open full size"},
-	)
-	if len(items) != 3 {
-		t.Fatalf("want 3 items, got %d", len(items))
-	}
-	if _, ok := items[0].(Image); !ok {
-		t.Errorf("first item is not an Image: %T", items[0])
+	item = buildInternalItem(Image{Data: []byte{1}, MaxWidth: 200}, "u2", "p1")
+	if item.MaxWidth != 200 || item.MaxHeight != DefaultMaxImageHeight {
+		t.Errorf("explicit width should keep default height, got %dx%d",
+			item.MaxWidth, item.MaxHeight)
 	}
 }
 

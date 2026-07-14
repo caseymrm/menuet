@@ -208,8 +208,17 @@ func buildInternalItem(item MenuItem, unique, parentUnique string) internalItem 
 		}
 		out.ImageData = v.Data
 		out.ImagePath = v.Path
+		// Substitute the default bounds here, once, so every consumer (the
+		// ObjC bridge, snapshots) sees concrete values — no cross-language
+		// duplication of the defaults.
 		out.MaxWidth = v.MaxWidth
+		if out.MaxWidth <= 0 {
+			out.MaxWidth = DefaultMaxImageWidth
+		}
 		out.MaxHeight = v.MaxHeight
+		if out.MaxHeight <= 0 {
+			out.MaxHeight = DefaultMaxImageHeight
+		}
 		out.Clickable = v.Clicked != nil
 	}
 	return out
