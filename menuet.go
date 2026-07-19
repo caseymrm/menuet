@@ -30,15 +30,47 @@ type Application struct {
 	// Children returns the top level children
 	Children func() []MenuItem
 
-	// If Version and Repo are set, checks for updates every day
+	// AutoUpdate configures the daily self-updater. It updates from one of two
+	// sources: GitHub Releases (set Repo) or a custom JSON appcast (set
+	// FeedURL). Either way Version must be set — it identifies what's running
+	// and gates the "is there something newer?" check. A dev build with an
+	// empty Version never updates.
 	AutoUpdate struct {
 		Version string
-		Repo    string // For example "caseymrm/menuet"
+		Repo    string // GitHub "owner/name", e.g. "caseymrm/menuet"
 		// AllowPrerelease opts in to GitHub releases marked as prereleases.
 		// When false (the default), prereleases are filtered out before
 		// choosing what to update to. Apps on a prerelease are not
 		// downgraded to the latest stable — switch channels manually.
+		// (GitHub path only.)
 		AllowPrerelease bool
+
+		// FeedURL, when set, updates from a custom JSON appcast at this URL
+		// INSTEAD of GitHub. Required for a private repo, whose releases the
+		// unauthenticated GitHub API can't see. The appcast is:
+		//
+		//	{"version":"1.2.3",
+		//	 "url":"https://example.com/MyApp-1.2.3.zip",
+		//	 "sha256":"<hex of the zip>"}
+		//
+		// The updater downloads url, checks the zip's SHA-256 against sha256
+		// (fail closed), unzips it, confirms the bundle's own version is newer
+		// than what's running (so a manifest can't point a high version number
+		// at an old, still-signed build), and — because a self-hosted feed has
+		// none of GitHub's account-level trust — REQUIRES VerifyTeamID. When
+		// FeedURL is set without VerifyTeamID, RunApplication refuses to start
+		// the updater rather than run an unauthenticated one.
+		FeedURL string
+
+		// VerifyTeamID, when set, requires the downloaded .app to be validly
+		// codesigned by this Apple Developer Team (the OU of the Developer ID
+		// Application leaf) before it replaces the running app; a mismatch or
+		// an invalid signature aborts the update with no swap. This is the real
+		// authenticity gate — the auto-update path bypasses Gatekeeper, so the
+		// notarization ticket is never re-checked, and this pin takes its
+		// place. Applies to both the GitHub and FeedURL paths; required for
+		// FeedURL. Find your team ID at developer.apple.com → Membership.
+		VerifyTeamID string
 	}
 
 	// NotificationResponder is a handler called when notification respond
@@ -96,7 +128,15 @@ func (a *Application) RunApplication() {
 	if a.maybeWriteSnapshot() {
 		return
 	}
-	if a.AutoUpdate.Version != "" && a.AutoUpdate.Repo != "" {
+	if a.AutoUpdate.Version != "" && (a.AutoUpdate.Repo != "" || a.AutoUpdate.FeedURL != "") {
+		// A custom feed carries none of GitHub's account-level trust, so
+		// running it without an authenticity gate would be strictly worse than
+		// the GitHub path. Fail fast on the misconfiguration — a programmer
+		// error that must be caught before shipping, not silently degraded to
+		// an unverified updater.
+		if a.AutoUpdate.FeedURL != "" && a.AutoUpdate.VerifyTeamID == "" {
+			log.Fatalf("menuet: AutoUpdate.FeedURL requires AutoUpdate.VerifyTeamID")
+		}
 		go a.checkForUpdates()
 	}
 	C.createAndRunApplication()
