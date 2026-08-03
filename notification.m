@@ -128,3 +128,32 @@ void showNotification(const char *jsonString) {
 		}];
 	});
 }
+
+// notificationAuthorizationStatus reports the app's current notification
+// authorization as a static string: "authorized", "provisional", "denied",
+// "notDetermined", or "unknown". The UN API is async-only; a semaphore makes
+// it synchronous, which is safe because callers are Go goroutines, never the
+// main thread (the completion handler runs on a UN internal queue, so waiting
+// here cannot deadlock the main queue).
+const char *notificationAuthorizationStatus(void) {
+	__block UNAuthorizationStatus status = -1;
+	dispatch_semaphore_t sem = dispatch_semaphore_create(0);
+	[[UNUserNotificationCenter currentNotificationCenter]
+		getNotificationSettingsWithCompletionHandler:^(UNNotificationSettings *settings) {
+		status = settings.authorizationStatus;
+		dispatch_semaphore_signal(sem);
+	}];
+	dispatch_semaphore_wait(sem, dispatch_time(DISPATCH_TIME_NOW, 2 * NSEC_PER_SEC));
+	switch (status) {
+	case UNAuthorizationStatusAuthorized:
+		return "authorized";
+	case UNAuthorizationStatusProvisional:
+		return "provisional";
+	case UNAuthorizationStatusDenied:
+		return "denied";
+	case UNAuthorizationStatusNotDetermined:
+		return "notDetermined";
+	default:
+		return "unknown";
+	}
+}
