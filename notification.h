@@ -4,3 +4,4 @@
 
 void initNotifications(void);
 void showNotification(const char *jsonString);
+const char *notificationAuthorizationStatus(void);

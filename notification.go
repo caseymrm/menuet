@@ -11,6 +11,7 @@ package menuet
 #endif
 
 void showNotification(const char *jsonString);
+const char *notificationAuthorizationStatus(void);
 
 */
 import "C"
@@ -60,4 +61,14 @@ func (a *Application) Notification(notification Notification) {
 	cstr := C.CString(string(b))
 	C.showNotification(cstr)
 	C.free(unsafe.Pointer(cstr))
+}
+
+// NotificationAuthorization reports whether this app may actually deliver
+// notifications: "authorized", "provisional", "denied", "notDetermined", or
+// "unknown" (query timed out). Apps that alert on important events should
+// check this and surface a visible warning when denied — Notification()
+// silently no-ops in that state, which reads as "everything is fine" exactly
+// when it isn't.
+func (a *Application) NotificationAuthorization() string {
+	return C.GoString(C.notificationAuthorizationStatus())
 }
