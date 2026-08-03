@@ -87,7 +87,9 @@ void showNotification(const char *jsonString) {
 	content.title = jsonDict[@"Title"] ?: @"";
 	content.subtitle = jsonDict[@"Subtitle"] ?: @"";
 	content.body = jsonDict[@"Message"] ?: @"";
-	content.sound = [UNNotificationSound defaultSound];
+	if (![jsonDict[@"Silent"] boolValue]) {
+		content.sound = [UNNotificationSound defaultSound];
+	}
 
 	NSString *actionButton = jsonDict[@"ActionButton"];
 	NSString *closeButton = jsonDict[@"CloseButton"];
