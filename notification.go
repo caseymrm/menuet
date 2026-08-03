@@ -41,6 +41,11 @@ type Notification struct {
 
 	// If true, the notification is shown, but then deleted from the notification center
 	RemoveFromNotificationCenter bool
+
+	// Silent posts the notification with no sound. For apps that notify on
+	// routine background events, a sound per event is noise the user did not
+	// ask for — the banner is the message.
+	Silent bool
 }
 
 func runningInAppBundle() bool {
