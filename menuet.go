@@ -275,7 +275,18 @@ func menuClosed(uniqueCString *C.char) {
 
 //export notificationRespond
 func notificationRespond(id *C.char, response *C.char) {
-	App().NotificationResponder(C.GoString(id), C.GoString(response))
+	// Guard the nil handler. NotificationResponder is optional — an app that
+	// posts notifications without wanting responses never sets it — but macOS
+	// still delivers a response when the user clicks the notification, so this
+	// callback fires regardless. Calling a nil func value here segfaults the
+	// whole app from the main thread, which is a hard crash for the user (an
+	// app dying because a notification was clicked). Every other optional
+	// callback in this file is nil-checked; this one was missed.
+	responder := App().NotificationResponder
+	if responder == nil {
+		return
+	}
+	responder(C.GoString(id), C.GoString(response))
 }
 
 //export hideStartup
