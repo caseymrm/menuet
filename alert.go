@@ -26,6 +26,7 @@ type InputType int
 const (
 	InputText     InputType = iota // regular text field
 	InputPassword                  // masked password field (NSSecureTextField)
+	InputSelect                    // editable combo box (NSComboBox): pick an Option or type a new value
 )
 
 // AlertInput defines an input field in an alert
@@ -33,6 +34,7 @@ type AlertInput struct {
 	Placeholder string
 	Value       string
 	Type        InputType
+	Options     []string // dropdown choices, used when Type is InputSelect
 }
 
 // Alert represents an NSAlert

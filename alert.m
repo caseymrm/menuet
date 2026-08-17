@@ -36,6 +36,17 @@ void showAlert(const char *jsonString) {
 		                NSTextField *textfield;
 		                if (type == 1) {
 		                        textfield = [[NSSecureTextField alloc] initWithFrame:NSMakeRect(0, y, 300, 25)];
+		                } else if (type == 2) {
+		                        NSComboBox *combo = [[NSComboBox alloc] initWithFrame:NSMakeRect(0, y, 300, 25)];
+		                        [combo setEditable:YES];
+		                        [combo setCompletes:YES];
+		                        NSArray *options = input[@"Options"];
+		                        if (![options isEqualTo:NSNull.null] && [options isKindOfClass:[NSArray class]]) {
+		                                for (NSString *option in options) {
+		                                        [combo addItemWithObjectValue:option];
+		                                }
+		                        }
+		                        textfield = combo;
 		                } else {
 		                        textfield = [[EditableNSTextField alloc] initWithFrame:NSMakeRect(0, y, 300, 25)];
 		                }

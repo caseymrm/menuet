@@ -13,6 +13,16 @@
 # To monitor other directories for source changes, set LIBDIRS:
 #   LIBDIR= ../go-pmset ../go-caffeinate
 #
+# To set the app icon, drop an icon.icns next to your Makefile; it is copied
+# into the bundle automatically. Override the path with ICON:
+#   ICON=assets/myicon.icns
+# With no icon.icns present, a fallback icon (a colored rounded square with
+# the app's first letter) is generated from the app name. Its color is derived
+# from the name; override it with ICON_COLOR:
+#   ICON_COLOR=#4A90D9
+# The fallback lives only inside the .app, so `make clean` refreshes it if you
+# change the name or color.
+#
 # To sign your app, set IDENTITY:
 #   IDENTITY=Developer ID Application: Hello World LLC (AP2AFA8XAX)
 #
@@ -36,8 +46,10 @@ ESCAPED_APP = $(subst $(space),\$(space),$(APP))
 EXECUTABLE := $(shell echo $(subst $(space),,$(APP)) | tr '[:upper:]' '[:lower:]')
 BINARY = $(ESCAPED_APP).app/Contents/MacOS/$(EXECUTABLE)
 PLIST = $(ESCAPED_APP).app/Contents/Info.plist
+ICON ?= $(wildcard icon.icns)
+ICNS = $(ESCAPED_APP).app/Contents/Resources/icon.icns
 
-run: $(BINARY) $(PLIST)
+run: $(BINARY) $(PLIST) $(ICNS)
 	./$(BINARY)
 
 SOURCEDIRS = $(abspath $(dir $(MAKEFILE_LIST)))
@@ -50,11 +62,21 @@ ZIPFILE = $(ESCAPED_APP).zip
 
 # ditto (not zip -r) preserves symlinks, extended attributes, and the
 # stapled notarization ticket — Apple's documented archiver for app zips.
-$(ZIPFILE): sign $(BINARY) $(PLIST)
+# The bundle icon: copy a supplied icon.icns, or generate a fallback from the
+# app name. The app name can contain spaces, so quote the paths in the recipe.
+$(ICNS): $(ICON)
+	mkdir -p "$(APP).app/Contents/Resources"
+ifeq ($(ICON),)
+	go run github.com/caseymrm/menuet/v2/cmd/appicon -name "$(APP)" $(if $(ICON_COLOR),-color "$(ICON_COLOR)") -o "$(APP).app/Contents/Resources/icon.icns"
+else
+	cp "$(ICON)" "$(APP).app/Contents/Resources/icon.icns"
+endif
+
+$(ZIPFILE): sign $(BINARY) $(PLIST) $(ICNS)
 	ditto -c -k --keepParent $(ESCAPED_APP).app $(ZIPFILE)
 
 clean:
-	rm -f $(BINARY) $(PLIST) $(ZIPFILE)
+	rm -f $(BINARY) $(PLIST) $(ZIPFILE) $(ICNS)
 
 .PHONY: zip
 zip: $(ZIPFILE)
@@ -119,7 +141,7 @@ SIGNFLAGS = --options runtime --timestamp
 endif
 
 .PHONY: sign
-sign: $(BINARY) $(PLIST)
+sign: $(BINARY) $(PLIST) $(ICNS)
 	codesign -f $(SIGNFLAGS) -s "$(IDENTITY)" $(ESCAPED_APP).app --deep
 
 # Notarize the signed zip, staple the ticket to the .app, and re-zip so
