@@ -40,6 +40,10 @@ void showAlert(const char *jsonString) {
 		                        textfield = [[EditableNSTextField alloc] initWithFrame:NSMakeRect(0, y, 300, 25)];
 		                }
 		                [textfield setPlaceholderString:placeholder];
+		                NSString *value = input[@"Value"];
+		                if (![value isEqualTo:NSNull.null] && [value isKindOfClass:[NSString class]] && value.length > 0) {
+		                        [textfield setStringValue:value];
+		                }
 		                [accessoryView addSubview:textfield];
 		                if (!first) {
 		                        [alert.window setInitialFirstResponder:textfield];

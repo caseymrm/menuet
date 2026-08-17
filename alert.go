@@ -31,6 +31,7 @@ const (
 // AlertInput defines an input field in an alert
 type AlertInput struct {
 	Placeholder string
+	Value       string
 	Type        InputType
 }
 
