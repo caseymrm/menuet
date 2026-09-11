@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>menuet auth</title>
+<style>
+  body { font-family: -apple-system, system-ui, sans-serif; background: #111;
+         color: #ddd; display: flex; min-height: 100vh; margin: 0;
+         align-items: center; justify-content: center; }
+  main { max-width: 28rem; padding: 0 16px; text-align: center; }
+  a { color: #7ab8ff; }
+</style>
+</head>
+<body>
+<main>
+  <h1 id="title">Handing off to your app…</h1>
+  <p id="msg">Sending the sign-in result to the app running on this Mac.</p>
+  <p id="manual" hidden>If nothing happens, the app is not listening.
+     Open the app's sign-in prompt and paste this page's full address, or
+     <a id="retry" href="#">try the handoff again</a>.</p>
+</main>
+<script>
+  // Generic OAuth redirect trampoline for menuet apps. Providers that demand
+  // an https redirect URI get https://auth.menuet.app/<app>; this page then
+  // performs a top-level navigation (which browsers allow from https to
+  // loopback http) to the app's local listener, query string untouched.
+  // Registering a new app = one entry here + its registered redirect URI.
+  var apps = {
+    nightswatch: 8929,
+  };
+  var name = location.pathname.split("/").filter(Boolean)[0] || "";
+  var port = apps.hasOwnProperty(name) ? apps[name] : null;
+  var title = document.getElementById("title");
+  var msg = document.getElementById("msg");
+
+  if (!port) {
+    title.textContent = "menuet auth";
+    msg.textContent = name
+      ? "Unknown app “" + name + "”. Nothing to hand off to."
+      : "This page forwards OAuth sign-in results to menuet apps running on your Mac. Nothing to do here.";
+  } else if (!location.search) {
+    title.textContent = "menuet auth";
+    msg.textContent = "This address receives " + name + "’s sign-in redirect. There is no sign-in result to forward.";
+  } else {
+    var target = "http://127.0.0.1:" + port + "/auth" + location.search;
+    var go = function () { location.href = target; };
+    document.getElementById("retry").onclick = function (e) { e.preventDefault(); go(); };
+    setTimeout(function () { document.getElementById("manual").hidden = false; }, 3000);
+    go();
+  }
+</script>
+</body>
+</html>
