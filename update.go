@@ -6,13 +6,16 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 	"syscall"
@@ -36,6 +39,25 @@ type updateCandidate struct {
 	url      string // zip download URL
 	sha256   string // expected hex SHA-256 of the zip; "" for the GitHub path
 	fromFeed bool   // true for the custom appcast path (enables version binding)
+	bearer   string // FeedToken to send with the download; "" sends none
+}
+
+// httpStatusError is a non-200 answer from the feed or the download URL. It
+// carries only the status code: never the request, whose headers may hold the
+// FeedToken.
+type httpStatusError struct {
+	what   string // "appcast" or "download"
+	status int
+}
+
+func (e *httpStatusError) Error() string {
+	return fmt.Sprintf("%s returned status %d", e.what, e.status)
+}
+
+// isAuthStatus reports whether status means the server refused our
+// credentials (missing, invalid, or revoked FeedToken).
+func isAuthStatus(status int) bool {
+	return status == http.StatusUnauthorized || status == http.StatusForbidden
 }
 
 type release struct {
@@ -70,9 +92,23 @@ func (a *Application) checkForUpdates() {
 		if button.Button == 0 {
 			if err := a.installUpdate(candidate); err != nil {
 				log.Printf("Unable to update app: %v", err)
+				var se *httpStatusError
+				if errors.As(err, &se) && isAuthStatus(se.status) {
+					a.updateAuthFailed(se.status)
+				}
 			}
 		}
 	}
+}
+
+// updateAuthFailed reports a 401/403 from the feed or the download. It does
+// not retry: the next attempt is the next daily tick.
+func (a *Application) updateAuthFailed(status int) {
+	if a.AutoUpdate.OnUpdateAuthFailed != nil {
+		a.AutoUpdate.OnUpdateAuthFailed(status)
+		return
+	}
+	log.Printf("Update server refused our credentials (status %d); not updating", status)
 }
 
 // checkForUpdate resolves the configured source to an available update, or nil
@@ -83,7 +119,15 @@ func (a *Application) checkForUpdate() *updateCandidate {
 		return nil
 	}
 	if a.AutoUpdate.FeedURL != "" {
-		return checkFeed(a.AutoUpdate.FeedURL, a.AutoUpdate.Version)
+		c, err := checkFeed(a.AutoUpdate.FeedURL, a.AutoUpdate.Version, a.AutoUpdate.FeedToken)
+		if err != nil {
+			log.Printf("Not updating: %v", err)
+			var se *httpStatusError
+			if errors.As(err, &se) && isAuthStatus(se.status) {
+				a.updateAuthFailed(se.status)
+			}
+		}
+		return c
 	}
 	release := checkForNewRelease(a.AutoUpdate.Repo, a.AutoUpdate.Version, a.AutoUpdate.AllowPrerelease)
 	if release == nil {
@@ -116,47 +160,82 @@ func checkForRestart() {
 // checkFeed fetches and parses the custom appcast, returning a candidate only
 // if it advertises a version strictly newer than currentVersion. It fails
 // closed: any fetch/parse error, a malformed or missing sha256, or a
-// not-newer version yields nil (no update).
-func checkFeed(feedURL, currentVersion string) *updateCandidate {
+// not-newer version yields a nil candidate (no update). A nil candidate with a
+// nil error means "nothing to do"; an error means the check itself failed.
+//
+// When bearer is non-empty it is sent as "Authorization: Bearer <bearer>" on
+// the appcast request, and carried on the candidate for the download only if
+// the download URL has the same origin as the feed (see sameOrigin).
+func checkFeed(feedURL, currentVersion, bearer string) (*updateCandidate, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, feedURL, nil)
 	if err != nil {
-		log.Printf("Error building appcast request: %v", err)
-		return nil
+		return nil, fmt.Errorf("building appcast request: %w", err)
 	}
+	setBearer(req, bearer)
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		log.Printf("Error fetching appcast: %v", err)
-		return nil
+		return nil, fmt.Errorf("fetching appcast: %w", err)
 	}
 	defer resp.Body.Close()
+	if resp.StatusCode == http.StatusNoContent {
+		return nil, nil // the feed has no release yet
+	}
 	if resp.StatusCode != http.StatusOK {
-		log.Printf("Appcast returned status %d", resp.StatusCode)
-		return nil
+		return nil, &httpStatusError{what: "appcast", status: resp.StatusCode}
 	}
 	var cast appcast
 	if err := json.NewDecoder(io.LimitReader(resp.Body, 1<<20)).Decode(&cast); err != nil {
-		log.Printf("Error parsing appcast: %v", err)
-		return nil
+		return nil, fmt.Errorf("parsing appcast: %w", err)
 	}
 	if cast.URL == "" || cast.SHA256 == "" {
 		// A feed without a checksum is a feed with no integrity gate — refuse
 		// it rather than skip verification (unlike some daemons that treat a
 		// placeholder as "not ready yet", the menubar fails closed).
-		log.Printf("Appcast missing url or sha256; not updating")
-		return nil
+		return nil, fmt.Errorf("appcast missing url or sha256")
 	}
 	if !versionNewer(currentVersion, cast.Version) {
-		return nil
+		return nil, nil
 	}
-	return &updateCandidate{
+	c := &updateCandidate{
 		version:  cast.Version,
 		name:     filepath.Base(cast.URL),
 		url:      cast.URL,
 		sha256:   cast.SHA256,
 		fromFeed: true,
 	}
+	if bearer != "" {
+		if sameOrigin(feedURL, cast.URL) {
+			c.bearer = bearer
+		} else {
+			log.Printf("Appcast download URL is on a different origin than the feed; not sending the feed token with it")
+		}
+	}
+	return c, nil
+}
+
+// setBearer adds the FeedToken, if any, to req.
+func setBearer(req *http.Request, bearer string) {
+	if bearer != "" {
+		req.Header.Set("Authorization", "Bearer "+bearer)
+	}
+}
+
+// sameOrigin reports whether a and b parse to the same scheme and host. The
+// feed chooses the download URL, so without this check a feed could send the
+// device's token to any host it names. (Go's client already drops the header
+// on a cross-domain redirect; this covers the first request.)
+func sameOrigin(a, b string) bool {
+	ua, err := url.Parse(a)
+	if err != nil {
+		return false
+	}
+	ub, err := url.Parse(b)
+	if err != nil {
+		return false
+	}
+	return ua.Scheme == ub.Scheme && strings.EqualFold(ua.Host, ub.Host)
 }
 
 func checkForNewRelease(githubProject, currentVersion string, allowPrerelease bool) *release {
@@ -193,7 +272,7 @@ func (a *Application) installUpdate(c *updateCandidate) error {
 // full verify chain is testable without renaming/relaunching a real bundle.
 func (a *Application) prepareUpdate(c *updateCandidate, dir string) (string, error) {
 	log.Printf("Downloading archive...")
-	archivefile, err := downloadArchive(dir, c.name, c.url)
+	archivefile, err := downloadArchive(dir, c.name, c.url, c.bearer)
 	if err != nil {
 		return "", err
 	}
@@ -225,7 +304,15 @@ func (a *Application) prepareUpdate(c *updateCandidate, dir string) (string, err
 		}
 	}
 	if a.AutoUpdate.VerifyTeamID != "" {
-		if err := verifyCodesignFn(newAppPath, a.AutoUpdate.VerifyTeamID); err != nil {
+		// Pin the running app's bundle ID as well as the team: otherwise a
+		// compromised feed could swap in a DIFFERENT app signed by the same
+		// team, as long as its version number is higher. Fail closed if we
+		// can't tell who we are.
+		bundleID, err := runningBundleIDFn()
+		if err != nil {
+			return "", fmt.Errorf("couldn't read running bundle identifier: %w", err)
+		}
+		if err := verifyCodesignFn(newAppPath, a.AutoUpdate.VerifyTeamID, bundleID); err != nil {
 			return "", fmt.Errorf("update failed codesign verification: %w", err)
 		}
 	}
@@ -329,7 +416,7 @@ func downloadURL(release *release) (string, string) {
 	return name, url
 }
 
-func downloadArchive(tempdir, name, url string) (string, error) {
+func downloadArchive(tempdir, name, url, bearer string) (string, error) {
 	filename := filepath.Join(tempdir, name)
 	out, err := os.Create(filename)
 	if err != nil {
@@ -342,13 +429,14 @@ func downloadArchive(tempdir, name, url string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("Not updating, couldn't build request: %v", err)
 	}
+	setBearer(req, bearer)
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return "", fmt.Errorf("Not updating, couldn't open url: %v", err)
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("Not updating, download returned status %d", resp.StatusCode)
+		return "", fmt.Errorf("Not updating: %w", &httpStatusError{what: "download", status: resp.StatusCode})
 	}
 	// Cap the copy so a hostile origin can't fill the disk. LimitReader stops
 	// at the cap; a file exactly at the cap is indistinguishable from a
@@ -519,38 +607,79 @@ func parseVersion(v string) ([]int, bool) {
 }
 
 // bundleVersionFn reads a .app's CFBundleShortVersionString. It's a package
-// var so tests can supply a fake without a real bundle. verifyCodesignFn is
-// likewise injectable so the verify chain is testable without a signed app.
+// var so tests can supply a fake without a real bundle. verifyCodesignFn and
+// runningBundleIDFn are likewise injectable so the verify chain is testable
+// without a signed app or a running bundle.
 var bundleVersionFn = bundleShortVersion
 var verifyCodesignFn = verifyCodesignTeam
+var runningBundleIDFn = runningBundleID
 
 // bundleShortVersion reads CFBundleShortVersionString from the bundle's
-// Info.plist via plutil (always present on macOS).
+// Info.plist.
 func bundleShortVersion(appPath string) (string, error) {
-	plist := filepath.Join(appPath, "Contents", "Info.plist")
-	out, err := exec.Command("/usr/bin/plutil", "-extract", "CFBundleShortVersionString", "raw", "-o", "-", plist).Output()
+	return bundlePlistString(appPath, "CFBundleShortVersionString")
+}
+
+// runningBundleID reads CFBundleIdentifier from the bundle that contains the
+// running executable. It fails when the app isn't running from a bundle.
+func runningBundleID() (string, error) {
+	exe, err := os.Executable()
 	if err != nil {
-		return "", fmt.Errorf("plutil read CFBundleShortVersionString: %w", err)
+		return "", err
+	}
+	bundle := bundlePathForExecutable(exe)
+	if bundle == "" {
+		return "", fmt.Errorf("%s is not inside an .app bundle", exe)
+	}
+	return bundlePlistString(bundle, "CFBundleIdentifier")
+}
+
+// bundlePlistString reads one string key from the bundle's Info.plist via
+// plutil (always present on macOS).
+func bundlePlistString(appPath, key string) (string, error) {
+	plist := filepath.Join(appPath, "Contents", "Info.plist")
+	out, err := exec.Command("/usr/bin/plutil", "-extract", key, "raw", "-o", "-", plist).Output()
+	if err != nil {
+		return "", fmt.Errorf("plutil read %s: %w", key, err)
 	}
 	return strings.TrimSpace(string(out)), nil
 }
 
-// verifyCodesignTeam requires appPath to be validly Developer-ID signed by
-// teamID. A bare `codesign --verify` passes on ANY signature (even ad-hoc), so
-// it only proves the bundle wasn't corrupted after signing — not that we signed
-// it. The designated requirement below pins Apple's anchor, the Developer ID
-// Application leaf, and the team OU, so a validly-signed bundle from a different
-// team is rejected. --deep verifies nested code in the bundle, not just the top
-// executable.
-func verifyCodesignTeam(appPath, teamID string) error {
-	requirement := fmt.Sprintf(
-		`=anchor apple generic and certificate 1[field.1.2.840.113635.100.6.2.6]`+
+// validBundleID matches a CFBundleIdentifier (Apple allows alphanumerics,
+// hyphens, and periods). Checking it keeps the value from changing the
+// meaning of the code requirement it is quoted into.
+var validBundleID = regexp.MustCompile(`^[A-Za-z0-9.-]+$`)
+
+// designatedRequirement builds the code requirement an update must satisfy.
+// It pins Apple's anchor, the Developer ID Application leaf, the team OU, and
+// the bundle identifier.
+func designatedRequirement(teamID, bundleID string) (string, error) {
+	if !validBundleID.MatchString(bundleID) {
+		return "", fmt.Errorf("invalid bundle identifier %q", bundleID)
+	}
+	return fmt.Sprintf(
+		`=identifier %q and anchor apple generic`+
+			` and certificate 1[field.1.2.840.113635.100.6.2.6]`+
 			` and certificate leaf[field.1.2.840.113635.100.6.1.13]`+
-			` and certificate leaf[subject.OU] = %q`, teamID)
+			` and certificate leaf[subject.OU] = %q`, bundleID, teamID), nil
+}
+
+// verifyCodesignTeam requires appPath to be validly Developer-ID signed by
+// teamID, with bundle identifier bundleID. A bare `codesign --verify` passes on
+// ANY signature (even ad-hoc), so it only proves the bundle wasn't corrupted
+// after signing — not that we signed it. The requirement from
+// designatedRequirement rejects a validly-signed bundle from a different team,
+// and a different app from the same team. --deep verifies nested code in the
+// bundle, not just the top executable.
+func verifyCodesignTeam(appPath, teamID, bundleID string) error {
+	requirement, err := designatedRequirement(teamID, bundleID)
+	if err != nil {
+		return err
+	}
 	out, err := exec.Command("/usr/bin/codesign", "--verify", "--deep", "--strict",
 		"-R", requirement, appPath).CombinedOutput()
 	if err != nil {
-		return fmt.Errorf("codesign verify (team %q): %w: %s", teamID, err, strings.TrimSpace(string(out)))
+		return fmt.Errorf("codesign verify (team %q, identifier %q): %w: %s", teamID, bundleID, err, strings.TrimSpace(string(out)))
 	}
 	return nil
 }

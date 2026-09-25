@@ -69,6 +69,36 @@ and launches it. The `cmd/catalog` example uses this pattern.
 To sign the bundle for notifications and distribution, set `IDENTITY` to a
 Developer ID Application certificate from your Keychain and run `make sign`.
 
+### Private update feeds
+
+`AutoUpdate.FeedURL` points the updater at a JSON appcast instead of GitHub
+Releases. A feed requires `VerifyTeamID`. The updater then accepts only a
+bundle signed by that team with the running app's `CFBundleIdentifier`.
+
+To serve updates only to Macs you enrolled, the server issues each Mac a device
+token. The `privateupdate` package handles the Mac side:
+
+```go
+tok, err := privateupdate.Token(bundleID) // "" when this Mac is not enrolled
+if err != nil {
+	log.Printf("reading update token: %v", err)
+}
+app.AutoUpdate.Version = version
+app.AutoUpdate.FeedURL = "https://updates.menuet.app/v1/apps/myapp/appcast"
+app.AutoUpdate.FeedToken = tok // sent as "Authorization: Bearer <tok>"
+app.AutoUpdate.VerifyTeamID = "ABCDE12345"
+app.AutoUpdate.OnUpdateAuthFailed = func(status int) {
+	// 401 or 403: not enrolled, or revoked. Show an "Updates disabled" row.
+}
+```
+
+When `tok` is empty, add an "Enroll for updates…" menu item that calls
+`privateupdate.PromptAndEnroll`. It asks for an invite code, exchanges it at
+`<baseURL>/v1/enroll`, and stores the device token in the login Keychain. The
+new token takes effect at the next launch. The token goes to the download only
+when the download URL has the same origin as the feed. See
+[docs/private-app-updates.md](docs/private-app-updates.md) for the server side.
+
 ## Apps built with Menuet
 
 Browse the live showcase at **[menuet.app/apps](https://menuet.app/apps/)** — each app's menu is rendered from its committed snapshot. The list below is a subset:
