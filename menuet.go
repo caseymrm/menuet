@@ -64,13 +64,29 @@ type Application struct {
 
 		// VerifyTeamID, when set, requires the downloaded .app to be validly
 		// codesigned by this Apple Developer Team (the OU of the Developer ID
-		// Application leaf) before it replaces the running app; a mismatch or
+		// Application leaf), with the same CFBundleIdentifier as the running
+		// app, before it replaces the running app; a mismatch or
 		// an invalid signature aborts the update with no swap. This is the real
 		// authenticity gate — the auto-update path bypasses Gatekeeper, so the
 		// notarization ticket is never re-checked, and this pin takes its
 		// place. Applies to both the GitHub and FeedURL paths; required for
 		// FeedURL. Find your team ID at developer.apple.com → Membership.
 		VerifyTeamID string
+
+		// FeedToken, when set, is sent as "Authorization: Bearer <FeedToken>"
+		// on the FeedURL request, and on the download when its URL has the
+		// same scheme and host as FeedURL. It lets a private update server
+		// serve only enrolled devices (see the privateupdate package). Set it
+		// before RunApplication; the updater goroutine reads it. It is never
+		// logged. FeedURL path only.
+		FeedToken string
+
+		// OnUpdateAuthFailed, when set, is called with the HTTP status when
+		// the feed or the download answers 401 or 403, for example to show
+		// an "Updates disabled" menu row for a revoked device. It runs on the
+		// updater goroutine. When nil, the updater logs. Either way it does
+		// not retry until the next daily check.
+		OnUpdateAuthFailed func(status int)
 	}
 
 	// NotificationResponder is a handler called when notification respond
