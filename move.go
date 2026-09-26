@@ -6,6 +6,7 @@ package menuet
 
 #include <stdlib.h>
 #import "move.h"
+#import "userdefaults.h"
 */
 import "C"
 import (
@@ -148,7 +149,7 @@ func (a *Application) offerMoveToApplications() {
 	}
 	e.home, _ = os.UserHomeDir()
 	if !e.disabled && !e.envOptOut {
-		e.suppressed = Defaults().Boolean(moveSuppressedKey)
+		e.suppressed = moveSuppressed()
 	}
 	if reason := moveSkipReason(e); reason != "" {
 		if reason != reasonInApplications && reason != reasonNoBundle {
@@ -183,7 +184,7 @@ func (a *Application) offerMoveToApplications() {
 		"Move to Applications", "Do Not Move", true)
 	if button != 0 {
 		if suppressed {
-			Defaults().SetBoolean(moveSuppressedKey, true)
+			setMoveSuppressed()
 		}
 		return
 	}
@@ -307,6 +308,21 @@ func relaunchAfterExit(dest string) error {
 func dirWritable(dir string) bool {
 	const wOK = 0x2
 	return syscall.Access(dir, wOK) == nil
+}
+
+// moveSuppressed and setMoveSuppressed use NSUserDefaults directly, not
+// Defaults(): its cache is an unsynchronized map, and the app's own
+// goroutines may already be using it while RunApplication runs.
+func moveSuppressed() bool {
+	ckey := C.CString(moveSuppressedKey)
+	defer C.free(unsafe.Pointer(ckey))
+	return bool(C.getBoolean(ckey))
+}
+
+func setMoveSuppressed() {
+	ckey := C.CString(moveSuppressedKey)
+	defer C.free(unsafe.Pointer(ckey))
+	C.setBoolean(ckey, C.bool(true))
 }
 
 func originalBundlePath(bundle string) string {
