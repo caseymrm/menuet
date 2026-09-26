@@ -89,14 +89,52 @@ var computerName = func() (string, error) {
 	return strings.TrimSpace(string(out)), nil
 }
 
-// Token returns the device token stored for bundleID. It returns "" and a nil
-// error when this Mac is not enrolled, and an error only when the Keychain
-// read itself fails.
+// loginKeychain returns the path of the user's login keychain. Reads and
+// writes name it explicitly, so the token never lands in, or is read from,
+// whatever other keychain is the default or first in the search list.
+func loginKeychain() (string, error) {
+	out, code, err := runSecurity("", "login-keychain")
+	if err != nil {
+		return "", fmt.Errorf("running security: %w", err)
+	}
+	if code != 0 {
+		return "", fmt.Errorf("security login-keychain exited %d", code)
+	}
+	// The output is the path in double quotes, indented.
+	path := strings.Trim(strings.TrimSpace(string(out)), `"`)
+	if path == "" {
+		return "", errors.New("no login keychain")
+	}
+	return path, nil
+}
+
+// enrollClient follows only same-origin redirects. The default client replays
+// the request body, which holds the invite, on a 307 or 308 to any host.
+var enrollClient = &http.Client{
+	CheckRedirect: func(req *http.Request, via []*http.Request) error {
+		if len(via) >= 10 {
+			return errors.New("stopped after 10 redirects")
+		}
+		orig := via[0].URL
+		if req.URL.Scheme != orig.Scheme || !strings.EqualFold(req.URL.Host, orig.Host) {
+			return errors.New("refusing a redirect to another origin during enrollment")
+		}
+		return nil
+	},
+}
+
+// Token returns the device token stored for bundleID in the login keychain.
+// It returns "" and a nil error when this Mac is not enrolled, and an error
+// only when the Keychain read itself fails.
 func Token(bundleID string) (string, error) {
 	if !bundleIDPattern.MatchString(bundleID) {
 		return "", fmt.Errorf("invalid bundle identifier %q", bundleID)
 	}
-	out, code, err := runSecurity("", "find-generic-password", "-a", bundleID, "-s", keychainService, "-w")
+	keychain, err := loginKeychain()
+	if err != nil {
+		return "", err
+	}
+	out, code, err := runSecurity("", "find-generic-password", "-a", bundleID, "-s", keychainService, "-w", keychain)
 	if err != nil {
 		return "", fmt.Errorf("running security: %w", err)
 	}
@@ -120,7 +158,16 @@ func storeToken(bundleID, token string) error {
 	if !tokenPattern.MatchString(token) {
 		return errors.New("server returned a malformed device token")
 	}
-	line := fmt.Sprintf("add-generic-password -U -a %s -s %s -w %s\n", bundleID, keychainService, token)
+	keychain, err := loginKeychain()
+	if err != nil {
+		return err
+	}
+	// security -i honors double quotes, so a path with spaces works; a path
+	// that could end the quote or the line is refused.
+	if strings.ContainsAny(keychain, "\"\\\n\r") {
+		return fmt.Errorf("unsupported login keychain path %q", keychain)
+	}
+	line := fmt.Sprintf("add-generic-password -U -a %s -s %s -w %s \"%s\"\n", bundleID, keychainService, token, keychain)
 	_, code, err := runSecurity(line, "-i")
 	if err != nil {
 		return fmt.Errorf("running security: %w", err)
@@ -172,7 +219,7 @@ func Enroll(ctx context.Context, baseURL, bundleID, invite, version string) erro
 		return fmt.Errorf("building enroll request: %w", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := enrollClient.Do(req)
 	if err != nil {
 		return fmt.Errorf("contacting update server: %w", err)
 	}

@@ -442,3 +442,80 @@ func TestCheckFeedNoContent(t *testing.T) {
 		t.Errorf("204 = %v, %v; want no candidate and no error", c, err)
 	}
 }
+
+func TestCheckFeedSendsVersion(t *testing.T) {
+	var got string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		got = r.Header.Get("X-App-Version")
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer srv.Close()
+	if _, err := checkFeed(srv.URL, "0.1.7", testFeedToken); err != nil {
+		t.Fatal(err)
+	}
+	if got != "0.1.7" {
+		t.Errorf("X-App-Version = %q, want 0.1.7", got)
+	}
+}
+
+// TestCredentialedRedirects checks that a request carrying the feed token
+// follows a redirect only to the exact same origin.
+func TestCredentialedRedirects(t *testing.T) {
+	check := func(from, to string) error {
+		orig, _ := http.NewRequest(http.MethodGet, from, nil)
+		next, _ := http.NewRequest(http.MethodGet, to, nil)
+		return credentialedClient.CheckRedirect(next, []*http.Request{orig})
+	}
+	allowed := [][2]string{
+		{"https://updates.example/v1/a", "https://updates.example/v1/b"},
+		{"https://updates.example/a", "https://UPDATES.example/b"},
+	}
+	for _, c := range allowed {
+		if err := check(c[0], c[1]); err != nil {
+			t.Errorf("%s -> %s refused: %v", c[0], c[1], err)
+		}
+	}
+	refused := [][2]string{
+		{"https://updates.example/a", "https://evil.updates.example/a"}, // subdomain
+		{"https://updates.example/a", "https://updates.example:8443/a"}, // other port
+		{"https://updates.example/a", "http://updates.example/a"},       // downgrade
+		{"https://updates.example/a", "https://elsewhere.example/a"},
+	}
+	for _, c := range refused {
+		if err := check(c[0], c[1]); err == nil {
+			t.Errorf("%s -> %s allowed", c[0], c[1])
+		}
+	}
+}
+
+// TestFeedTokenNotRedirectedToOtherPort drives the real client: the feed and
+// the download both redirect to a server on another port, which must never
+// see the token.
+func TestFeedTokenNotRedirectedToOtherPort(t *testing.T) {
+	var leaked []string
+	other := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		leaked = append(leaked, r.Header.Get("Authorization"))
+		w.Write([]byte("zip"))
+	}))
+	defer other.Close()
+	redirector := httptest.NewServer(http.RedirectHandler(other.URL+"/x", http.StatusFound))
+	defer redirector.Close()
+
+	if _, err := checkFeed(redirector.URL, "0.1.0", testFeedToken); err == nil {
+		t.Error("feed: expected the cross-origin redirect to fail")
+	} else if strings.Contains(err.Error(), testFeedToken) {
+		t.Error("feed: error leaks the token")
+	}
+	if _, err := downloadArchive(t.TempDir(), "a.zip", redirector.URL, testFeedToken); err == nil {
+		t.Error("download: expected the cross-origin redirect to fail")
+	}
+	if len(leaked) != 0 {
+		t.Errorf("the other origin received %d requests", len(leaked))
+	}
+
+	// Without a token (the GitHub path), cross-origin redirects still work:
+	// GitHub release assets redirect to another host.
+	if _, err := downloadArchive(t.TempDir(), "a.zip", redirector.URL, ""); err != nil {
+		t.Errorf("tokenless download must follow the redirect: %v", err)
+	}
+}

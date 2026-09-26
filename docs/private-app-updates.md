@@ -168,6 +168,10 @@ random; rate limiting is belt-and-braces.
    As built: the download carries the token only when its URL has the same
    scheme and host as `FeedURL`, so a feed cannot send the token to a host it
    names. A 204 from the feed means "no release yet", not an error.
+   Requests that carry a token (feed, download, enroll) follow a redirect
+   only to the exact same scheme, host, and port. The feed request sends
+   `X-App-Version: <running version>` so the server can record
+   `last_version`.
 2. `AutoUpdate.OnUpdateAuthFailed func(status int)` — called on 401/403 from
    the feed. Default: log. nightswatch shows an "Updates disabled" menu row. ~10 lines.
 3. **Bundle-ID pin.** `verifyCodesignTeam` pins team only. A compromised

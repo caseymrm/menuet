@@ -174,7 +174,9 @@ func checkFeed(feedURL, currentVersion, bearer string) (*updateCandidate, error)
 		return nil, fmt.Errorf("building appcast request: %w", err)
 	}
 	setBearer(req, bearer)
-	resp, err := http.DefaultClient.Do(req)
+	// The server records which version each device runs.
+	req.Header.Set("X-App-Version", currentVersion)
+	resp, err := clientFor(bearer).Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("fetching appcast: %w", err)
 	}
@@ -222,10 +224,9 @@ func setBearer(req *http.Request, bearer string) {
 	}
 }
 
-// sameOrigin reports whether a and b parse to the same scheme and host. The
-// feed chooses the download URL, so without this check a feed could send the
-// device's token to any host it names. (Go's client already drops the header
-// on a cross-domain redirect; this covers the first request.)
+// sameOrigin reports whether a and b parse to the same scheme and host
+// (including any port). The feed chooses the download URL, so without this
+// check a feed could send the device's token to any host it names.
 func sameOrigin(a, b string) bool {
 	ua, err := url.Parse(a)
 	if err != nil {
@@ -236,6 +237,32 @@ func sameOrigin(a, b string) bool {
 		return false
 	}
 	return ua.Scheme == ub.Scheme && strings.EqualFold(ua.Host, ub.Host)
+}
+
+// credentialedClient follows only same-origin redirects. Go's default client
+// keeps the Authorization header on a redirect to a subdomain, to another
+// port, or from https to http on the same host, so the default policy would
+// leak the FeedToken.
+var credentialedClient = &http.Client{
+	CheckRedirect: func(req *http.Request, via []*http.Request) error {
+		if len(via) >= 10 {
+			return errors.New("stopped after 10 redirects")
+		}
+		if !sameOrigin(via[0].URL.String(), req.URL.String()) {
+			return errors.New("refusing a redirect to another origin while sending the feed token")
+		}
+		return nil
+	},
+}
+
+// clientFor returns the client for a request that sends bearer. Requests
+// without a token keep the default client, because GitHub release downloads
+// redirect to another host.
+func clientFor(bearer string) *http.Client {
+	if bearer == "" {
+		return http.DefaultClient
+	}
+	return credentialedClient
 }
 
 func checkForNewRelease(githubProject, currentVersion string, allowPrerelease bool) *release {
@@ -430,7 +457,7 @@ func downloadArchive(tempdir, name, url, bearer string) (string, error) {
 		return "", fmt.Errorf("Not updating, couldn't build request: %v", err)
 	}
 	setBearer(req, bearer)
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := clientFor(bearer).Do(req)
 	if err != nil {
 		return "", fmt.Errorf("Not updating, couldn't open url: %v", err)
 	}

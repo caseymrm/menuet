@@ -96,7 +96,8 @@ When `tok` is empty, add an "Enroll for updates…" menu item that calls
 `privateupdate.PromptAndEnroll`. It asks for an invite code, exchanges it at
 `<baseURL>/v1/enroll`, and stores the device token in the login Keychain. The
 new token takes effect at the next launch. The token goes to the download only
-when the download URL has the same origin as the feed. See
+when the download URL has the same origin as the feed, and requests that carry
+it follow redirects only within that origin. See
 [docs/private-app-updates.md](docs/private-app-updates.md) for the server side.
 
 ## Apps built with Menuet

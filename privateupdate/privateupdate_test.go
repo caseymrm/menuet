@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -13,23 +14,53 @@ import (
 )
 
 const (
+	testKeychain = "/Users/test user/Library/Keychains/login.keychain-db"
 	testBundleID = "com.example.private"
 	testInvite   = "mi_private_inv1te-CODE"
 	testToken    = "md_private_dev1ce-TOKEN"
 )
 
-// fakeKeychain replaces runSecurity for one test. It models the two commands
-// the package uses and records every argv and stdin, so tests can check the
-// token never appears on a command line.
+// fakeKeychain replaces runSecurity for one test. It models the commands the
+// package uses, records every argv, and refuses item access that doesn't name
+// the login keychain, so tests check both where the token goes and that it
+// never appears on a command line.
 type fakeKeychain struct {
 	items map[string]string // account -> token
 	argvs [][]string
 	fail  int // when non-zero, every command exits with this code
+	t     *testing.T
+}
+
+// splitQuoted splits a `security -i` line on whitespace, keeping
+// double-quoted runs together.
+func splitQuoted(line string) []string {
+	var out []string
+	var cur strings.Builder
+	inQuote, have := false, false
+	for _, r := range line {
+		switch {
+		case r == '"':
+			inQuote, have = !inQuote, true
+		case !inQuote && (r == ' ' || r == '\n'):
+			if have {
+				out = append(out, cur.String())
+				cur.Reset()
+				have = false
+			}
+		default:
+			cur.WriteRune(r)
+			have = true
+		}
+	}
+	if have {
+		out = append(out, cur.String())
+	}
+	return out
 }
 
 func useFakeKeychain(t *testing.T) *fakeKeychain {
 	t.Helper()
-	k := &fakeKeychain{items: map[string]string{}}
+	k := &fakeKeychain{items: map[string]string{}, t: t}
 	orig := runSecurity
 	runSecurity = k.run
 	t.Cleanup(func() { runSecurity = orig })
@@ -54,9 +85,16 @@ func (k *fakeKeychain) run(stdin string, args ...string) ([]byte, int, error) {
 		return nil, k.fail, nil
 	}
 	if len(args) == 1 && args[0] == "-i" {
-		args = strings.Fields(stdin)
+		args = splitQuoted(stdin)
+	}
+	if args[0] == "login-keychain" {
+		return []byte(`    "` + testKeychain + `"` + "\n"), 0, nil
 	}
 	if flag(args, "-s") != keychainService {
+		return nil, 2, nil
+	}
+	if args[len(args)-1] != testKeychain {
+		k.t.Errorf("%s does not name the login keychain: %q", args[0], args)
 		return nil, 2, nil
 	}
 	switch args[0] {
@@ -228,4 +266,34 @@ func TestPromptAndEnroll(t *testing.T) {
 			t.Errorf("err %v, alerts %q, keychain calls %d", err, shown, len(k.argvs))
 		}
 	})
+}
+
+// TestEnrollRefusesCrossOriginRedirect: a 307 or 308 makes the default client
+// replay the POST body, which holds the invite, to the new host.
+func TestEnrollRefusesCrossOriginRedirect(t *testing.T) {
+	for _, code := range []int{http.StatusTemporaryRedirect, http.StatusPermanentRedirect} {
+		t.Run(http.StatusText(code), func(t *testing.T) {
+			useFakeKeychain(t)
+			var leaked []string
+			other := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				b, _ := io.ReadAll(r.Body)
+				leaked = append(leaked, string(b))
+				w.Write([]byte(`{"device_token":"` + testToken + `"}`))
+			}))
+			defer other.Close()
+			redirector := httptest.NewServer(http.RedirectHandler(other.URL+"/v1/enroll", code))
+			defer redirector.Close()
+
+			err := Enroll(context.Background(), redirector.URL, testBundleID, testInvite, "0.1.0")
+			if err == nil {
+				t.Fatal("expected the cross-origin redirect to fail")
+			}
+			if strings.Contains(err.Error(), testInvite) {
+				t.Error("error leaks the invite")
+			}
+			if len(leaked) != 0 {
+				t.Errorf("the other origin received the enrollment: %q", leaked)
+			}
+		})
+	}
 }
