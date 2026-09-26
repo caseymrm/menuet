@@ -51,8 +51,11 @@ type AlertClicked struct {
 	Inputs []string
 }
 
-// Alert shows an alert, and returns the index of the button pressed, or -1 if none
+// Alert shows an alert, and returns the index of the button pressed, or -1 if none.
+// It waits until RunApplication has finished the move-to-Applications offer,
+// so an app's own first-launch alert never stacks on top of that one.
 func (a *Application) Alert(alert Alert) AlertClicked {
+	<-a.launched
 	if a.alertChannel != nil {
 		log.Printf("Alert message already showing")
 		return AlertClicked{-1, nil}

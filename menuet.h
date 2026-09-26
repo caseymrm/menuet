@@ -4,4 +4,5 @@
 
 void setState(const char *jsonString);
 void menuChanged();
-void createAndRunApplication();
+void createApplication();
+void runApplication();

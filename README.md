@@ -69,6 +69,47 @@ and launches it. The `cmd/catalog` example uses this pattern.
 To sign the bundle for notifications and distribution, set `IDENTITY` to a
 Developer ID Application certificate from your Keychain and run `make sign`.
 
+### Moving to Applications
+
+When a user launches the app from outside `/Applications` and
+`~/Applications`, for example straight from `~/Downloads`, menuet asks once:
+"Move to Applications folder?" If the user clicks **Move to Applications**,
+menuet does the following:
+
+1. It copies the bundle with `ditto` into `/Applications`. When the user cannot
+   write to `/Applications`, it uses `~/Applications` instead. It never asks for
+   an administrator password.
+2. It clears the quarantine attribute on the copy, so that macOS does not
+   translocate the copy.
+3. It checks that the copy still passes the auto-updater's codesign check (the
+   same team and bundle identifier). If the check fails, menuet removes the
+   copy, moves nothing, and says why.
+4. It moves an existing copy of the same app at the destination to the Trash.
+   If that copy is running, or if something else has that name, menuet stops
+   and tells the user.
+5. It moves the original to the Trash and relaunches from the new location.
+
+A quarantined app that runs from `~/Downloads` runs from a read-only App
+Translocation mirror. menuet resolves the mirror to the real bundle, so it
+copies and trashes the bundle that the user actually downloaded. The prompt has
+a "Do not ask again" checkbox, which menuet stores in the app's user defaults.
+
+The offer runs in `RunApplication`, before the auto-updater starts and before
+any `Alert` can show. It is on by default. To turn it off for an app:
+
+```go
+menuet.App().DisableMoveToApplications = true
+```
+
+Development builds do not see the offer. menuet skips it in these cases:
+
+* The binary did not start from an `.app` bundle (`go run`, `go test`).
+* The bundle is not validly Developer ID signed. This covers the ad-hoc builds
+  from `make run`.
+* `MENUET_NO_MOVE=1` is set. Use this for a Developer ID signed build that you
+  run from your project directory.
+* The auto-updater relaunched the app (`-restarting`).
+
 ### Private update feeds
 
 `AutoUpdate.FeedURL` points the updater at a JSON appcast instead of GitHub
