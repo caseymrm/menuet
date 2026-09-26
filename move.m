@@ -76,12 +76,24 @@ int menuetMoveAlert(const char *message, const char *info,
 	}
 }
 
+// fileIdentity returns the file system's identity for path, or nil when it
+// does not exist. Comparing identities instead of path strings matches case
+// variants on a case-insensitive volume, and paths reached through symlinks.
+static id fileIdentity(NSString *path) {
+	id identity = nil;
+	[[NSURL fileURLWithPath:path] getResourceValue:&identity forKey:NSURLFileResourceIdentifierKey error:nil];
+	return identity;
+}
+
 // menuetOtherInstanceRunningAt reports whether another process with
 // bundleID runs from the bundle at path. A translocated instance counts
 // when its original is path.
 bool menuetOtherInstanceRunningAt(const char *bundleID, const char *path) {
 	@autoreleasepool {
-		NSString *target = [[NSString stringWithUTF8String:path] stringByStandardizingPath];
+		id target = fileIdentity([NSString stringWithUTF8String:path]);
+		if (!target) {
+			return false;
+		}
 		pid_t me = getpid();
 		for (NSRunningApplication *app in [NSRunningApplication runningApplicationsWithBundleIdentifier:[NSString stringWithUTF8String:bundleID]]) {
 			if (app.processIdentifier == me || !app.bundleURL) {
@@ -94,7 +106,7 @@ bool menuetOtherInstanceRunningAt(const char *bundleID, const char *path) {
 				running = [NSString stringWithUTF8String:original];
 				free(original);
 			}
-			if ([[running stringByStandardizingPath] isEqualToString:target]) {
+			if ([fileIdentity(running) isEqual:target]) {
 				return true;
 			}
 		}

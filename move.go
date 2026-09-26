@@ -214,17 +214,7 @@ func (a *Application) offerMoveToApplications() {
 // move stops too, because quitting another process on the user's behalf could
 // lose its unsaved state.
 func moveBundle(src, dest, bundleID, team string) error {
-	if otherInstanceRunningAt(bundleID, dest) {
-		return fmt.Errorf("A copy is already running from %s. Quit it, then open this copy again.", dest)
-	}
-	replacing := false
-	if _, err := os.Lstat(dest); err == nil {
-		id, err := bundlePlistString(dest, "CFBundleIdentifier")
-		if err != nil || id != bundleID {
-			return fmt.Errorf("%s already exists and is a different app.", dest)
-		}
-		replacing = true
-	} else if !os.IsNotExist(err) {
+	if _, err := checkDestination(dest, bundleID); err != nil {
 		return err
 	}
 	if err := os.MkdirAll(filepath.Dir(dest), 0o755); err != nil {
@@ -253,15 +243,37 @@ func moveBundle(src, dest, bundleID, team string) error {
 	if err := verifyCodesignTeam(staged, team, bundleID); err != nil {
 		return fmt.Errorf("the copied app failed its signature check, so nothing was moved: %v", err)
 	}
+	// The copy and the codesign check take seconds, so check dest again
+	// right before replacing it.
+	replacing, err := checkDestination(dest, bundleID)
+	if err != nil {
+		return err
+	}
 	if replacing {
 		if err := trash(dest); err != nil {
 			return fmt.Errorf("could not move the old copy at %s to the Trash: %v", dest, err)
 		}
 	}
-	if err := os.Rename(staged, dest); err != nil {
-		return err
+	return os.Rename(staged, dest)
+}
+
+// checkDestination reports whether dest holds a copy of this app that the
+// move may replace. It fails when that copy is running or when dest holds
+// something else.
+func checkDestination(dest, bundleID string) (replacing bool, err error) {
+	if otherInstanceRunningAt(bundleID, dest) {
+		return false, fmt.Errorf("A copy is already running from %s. Quit it, then open this copy again.", dest)
 	}
-	return nil
+	if _, err := os.Lstat(dest); os.IsNotExist(err) {
+		return false, nil
+	} else if err != nil {
+		return false, err
+	}
+	id, err := bundlePlistString(dest, "CFBundleIdentifier")
+	if err != nil || id != bundleID {
+		return false, fmt.Errorf("%s already exists and is a different app.", dest)
+	}
+	return true, nil
 }
 
 // developerIDTeam returns the team that signed the bundle, and fails unless
