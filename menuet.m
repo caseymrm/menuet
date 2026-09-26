@@ -1169,7 +1169,7 @@ void menuChanged() {
 	});
 }
 
-void createAndRunApplication() {
+void createApplication() {
         [NSAutoreleasePool new];
         NSApplication *a = NSApplication.sharedApplication;
         MenuetAppDelegate *d = [MenuetAppDelegate new];
@@ -1188,7 +1188,10 @@ void createAndRunApplication() {
         _statusItem.button.target = d;
         _statusItem.button.action = @selector(statusItemClicked:);
         [_statusItem.button sendActionOn:(NSEventMaskLeftMouseUp | NSEventMaskRightMouseUp)];
-        [a run];
+}
+
+void runApplication() {
+        [NSApp run];
 }
 
 @implementation MenuetAppDelegate

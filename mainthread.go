@@ -4,8 +4,8 @@ import "runtime"
 
 // AppKit requires that NSApplication and NSStatusItem be created on the
 // process's main thread. RunApplication calls into Cocoa directly
-// (C.createAndRunApplication), so whichever OS thread the main goroutine
-// occupies at that moment IS the thread AppKit sees.
+// (C.createApplication and C.runApplication), so whichever OS thread the main
+// goroutine occupies at that moment IS the thread AppKit sees.
 //
 // Go makes no promise there. The main goroutine starts on the main thread but
 // the scheduler may migrate it to another M at any preemption point, so

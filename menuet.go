@@ -99,12 +99,19 @@ type Application struct {
 	// secondary UI. Safe to set or clear at runtime.
 	Clicked func()
 
+	// DisableMoveToApplications turns off the launch-time offer to move the
+	// app into the Applications folder. By default a Developer ID signed app
+	// that is launched from outside /Applications and ~/Applications asks
+	// once to move itself there. Set it before RunApplication.
+	DisableMoveToApplications bool
+
 	// StartAtLoginLabel overrides the default "Start at Login" menu item text
 	StartAtLoginLabel string
 	// QuitLabel overrides the default "Quit" menu item text
 	QuitLabel string
 
 	alertChannel          chan AlertClicked
+	launched              chan struct{} // closed once the move offer is done
 	currentState          *MenuState
 	nextState             *MenuState
 	hideStartupItem       bool
@@ -128,6 +135,7 @@ func App() *Application {
 	appOnce.Do(func() {
 		appInstance = &Application{
 			visibleMenuItems: make(map[string]internalItem),
+			launched:         make(chan struct{}),
 		}
 	})
 	return appInstance
@@ -144,18 +152,24 @@ func (a *Application) RunApplication() {
 	if a.maybeWriteSnapshot() {
 		return
 	}
-	if a.AutoUpdate.Version != "" && (a.AutoUpdate.Repo != "" || a.AutoUpdate.FeedURL != "") {
-		// A custom feed carries none of GitHub's account-level trust, so
-		// running it without an authenticity gate would be strictly worse than
-		// the GitHub path. Fail fast on the misconfiguration — a programmer
-		// error that must be caught before shipping, not silently degraded to
-		// an unverified updater.
-		if a.AutoUpdate.FeedURL != "" && a.AutoUpdate.VerifyTeamID == "" {
-			log.Fatalf("menuet: AutoUpdate.FeedURL requires AutoUpdate.VerifyTeamID")
-		}
+	autoUpdate := a.AutoUpdate.Version != "" && (a.AutoUpdate.Repo != "" || a.AutoUpdate.FeedURL != "")
+	// A custom feed carries none of GitHub's account-level trust, so
+	// running it without an authenticity gate would be strictly worse than
+	// the GitHub path. Fail fast on the misconfiguration — a programmer
+	// error that must be caught before shipping, not silently degraded to
+	// an unverified updater.
+	if autoUpdate && a.AutoUpdate.FeedURL != "" && a.AutoUpdate.VerifyTeamID == "" {
+		log.Fatalf("menuet: AutoUpdate.FeedURL requires AutoUpdate.VerifyTeamID")
+	}
+	C.createApplication()
+	// The move offer runs before the updater starts, because both replace
+	// the bundle, and before any app Alert, because both are modal.
+	a.offerMoveToApplications()
+	close(a.launched)
+	if autoUpdate {
 		go a.checkForUpdates()
 	}
-	C.createAndRunApplication()
+	C.runApplication()
 }
 
 // SetMenuState changes what is shown in the dropdown
