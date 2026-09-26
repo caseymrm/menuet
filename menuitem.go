@@ -45,6 +45,14 @@ type Regular struct {
 	// the system's standard subtitle styling.
 	Subtitle []TextRun
 
+	// Static renders a row that has neither Clicked nor Children as plain
+	// text at full contrast. Without it such a row is a disabled NSMenuItem,
+	// which AppKit draws faded regardless of the colors set on it — right for
+	// an unavailable action, wrong for a heading or a line of information.
+	// A static row does not highlight under the pointer and ignores clicks.
+	// It has no effect on a row that sets Clicked or Children.
+	Static bool
+
 	Clicked  func()
 	Children func() []MenuItem
 }
@@ -154,6 +162,7 @@ type internalItem struct {
 	State       bool
 	HasChildren bool
 	Clickable   bool
+	Static      bool `json:",omitempty"`
 
 	// Image ("image" Type) fields. ImageData is []byte, which encoding/json
 	// base64-encodes for us; the ObjC side decodes it back.
@@ -183,6 +192,7 @@ func buildInternalItem(item MenuItem, unique, parentUnique string) internalItem 
 		out.State = v.State
 		out.Clickable = v.Clicked != nil
 		out.HasChildren = v.Children != nil
+		out.Static = v.Static && !out.Clickable && !out.HasChildren
 		// Register the global hotkey, with the click callback as the
 		// action. Duplicate registrations are deduped in hotkey.go.
 		if v.Shortcut != nil && !v.Shortcut.IsZero() && v.Clicked != nil {

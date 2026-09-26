@@ -212,6 +212,21 @@ menuet.App().Children = func() []menuet.MenuItem {
 `FontWeight`, `State`, `Clicked`, `Children`. Setting `Clicked` makes it
 clickable; setting `Children` makes it a submenu.
 
+A row with neither is a disabled menu item, which macOS draws faded
+whatever colors you give it — fine for an unavailable action, wrong for
+a heading or a line of information. Set `Static: true` on such a row to
+draw it at full contrast; it still doesn't highlight or respond to clicks:
+
+```go
+menuet.Regular{
+    Runs: []menuet.TextRun{
+        {Text: "Focused  ", Color: menuet.LabelSecondary},
+        {Text: "2h 15m"},
+    },
+    Static: true,
+}
+```
+
 ## Toggle-style apps
 
 For apps where the primary action is a toggle (mute audio, pause a
