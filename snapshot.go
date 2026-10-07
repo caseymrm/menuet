@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 )
 
@@ -39,7 +40,7 @@ type Snapshot struct {
 // Unique/ParentUnique and a live *MenuItem pointer) so the snapshot stays
 // a self-contained data payload with no live references.
 type SnapshotItem struct {
-	// Type is "regular", "separator", "search", or "image". Empty means
+	// Type is "regular", "separator", "search", "image", or "tabs". Empty means
 	// regular for backward-compatibility when the field is omitted.
 	Type string `json:"type,omitempty"`
 
@@ -180,6 +181,8 @@ func snapshotItem(item MenuItem, depth int) SnapshotItem {
 			ImageHeight: h,
 			ImageSource: source,
 		}
+	case Tabs:
+		return SnapshotItem{Type: "tabs", Text: strings.Join(v.Labels, " | ")}
 	case Search:
 		s := SnapshotItem{Type: "search", Text: v.Placeholder}
 		// Snapshot search results with an empty query — the same call the

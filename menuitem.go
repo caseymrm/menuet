@@ -168,6 +168,18 @@ type Image struct {
 
 func (Image) menuItem() {}
 
+// Tabs is a row of mutually exclusive tabs, drawn as a segmented control.
+// Choosing a tab calls Changed with its index, then repopulates the open
+// menu from the same Children function, so the rows below can follow the
+// selection without the menu closing.
+type Tabs struct {
+	Labels   []string
+	Selected int
+	Changed  func(index int)
+}
+
+func (Tabs) menuItem() {}
+
 type internalItem struct {
 	Unique       string
 	ParentUnique string
@@ -199,6 +211,10 @@ type internalItem struct {
 	ImagePath string `json:",omitempty"`
 	MaxWidth  int    `json:",omitempty"`
 	MaxHeight int    `json:",omitempty"`
+
+	// Tabs ("tabs" Type) fields.
+	Labels   []string `json:",omitempty"`
+	Selected int      `json:",omitempty"`
 
 	// item is the original MenuItem, kept so click and Children callbacks
 	// can be looked up later when ObjC re-enters via itemClicked / children.
@@ -233,6 +249,11 @@ func buildInternalItem(item MenuItem, unique, parentUnique string) internalItem 
 		out.Type = "search"
 		// Text doubles as the placeholder string on the ObjC side.
 		out.Text = v.Placeholder
+	case Tabs:
+		out.Type = "tabs"
+		out.Labels = v.Labels
+		out.Selected = v.Selected
+		out.Clickable = v.Changed != nil
 	case Image:
 		out.Type = "image"
 		// Exactly one source. Neither means nothing to draw; both is
@@ -296,6 +317,28 @@ func (a *Application) children(unique string) []internalItem {
 		internalItems[ind] = internal
 	}
 	return internalItems
+}
+
+// tabSelected runs the Changed callback of the Tabs item with the given
+// unique ID. An unknown ID, an item that is not Tabs, or an index outside
+// its labels is ignored.
+func (a *Application) tabSelected(unique string, index int) {
+	a.visibleMenuItemsMutex.RLock()
+	item, ok := a.visibleMenuItems[unique]
+	a.visibleMenuItemsMutex.RUnlock()
+	if !ok {
+		log.Printf("Tabs item not found: %s", unique)
+		return
+	}
+	tabs, ok := item.item.(Tabs)
+	if !ok {
+		log.Printf("Item %s is not Tabs: %T", unique, item.item)
+		return
+	}
+	if tabs.Changed == nil || index < 0 || index >= len(tabs.Labels) {
+		return
+	}
+	tabs.Changed(index)
 }
 
 // searchResults runs the Search.Results callback for the search item with
