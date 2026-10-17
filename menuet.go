@@ -313,6 +313,28 @@ func itemClickedAt(uniqueCString *C.char, x, y C.double) {
 	App().clickedAt(C.GoString(uniqueCString), float64(x), float64(y))
 }
 
+// hovered returns the picture an Image's Hovered gives for the pointer at
+// x, y, or nil.
+func (a *Application) hovered(unique string, x, y float64) []byte {
+	a.visibleMenuItemsMutex.RLock()
+	item, ok := a.visibleMenuItems[unique]
+	a.visibleMenuItemsMutex.RUnlock()
+	if v, isImage := item.item.(Image); ok && isImage && v.Hovered != nil {
+		return v.Hovered(unit(x), unit(y))
+	}
+	return nil
+}
+
+//export imageHovered
+func imageHovered(uniqueCString *C.char, x, y C.double, size *C.int) unsafe.Pointer {
+	b := App().hovered(C.GoString(uniqueCString), float64(x), float64(y))
+	if len(b) == 0 {
+		return nil
+	}
+	*size = C.int(len(b))
+	return C.CBytes(b) // freed by the caller
+}
+
 //export itemClicked
 func itemClicked(uniqueCString *C.char) {
 	unique := C.GoString(uniqueCString)

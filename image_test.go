@@ -66,6 +66,36 @@ func TestImageClickedAtIsPositional(t *testing.T) {
 	}
 }
 
+func TestImageHoveredIsHoverable(t *testing.T) {
+	item := buildInternalItem(Image{Data: []byte{1}, Hovered: func(x, y float64) []byte { return nil }}, "u1", "p1")
+	if !item.Hoverable {
+		t.Error("an Image with Hovered must be Hoverable")
+	}
+	if buildInternalItem(Image{Data: []byte{1}}, "u2", "p1").Hoverable {
+		t.Error("an Image without Hovered must not be Hoverable")
+	}
+}
+
+func TestHoveredReturnsPicture(t *testing.T) {
+	a := App()
+	a.visibleMenuItemsMutex.Lock()
+	a.visibleMenuItems["bar"] = buildInternalItem(Image{Data: []byte{1},
+		Hovered: func(x, y float64) []byte { return []byte{byte(x * 10), byte(y * 10)} }}, "bar", "p1")
+	a.visibleMenuItemsMutex.Unlock()
+	defer func() {
+		a.visibleMenuItemsMutex.Lock()
+		delete(a.visibleMenuItems, "bar")
+		a.visibleMenuItemsMutex.Unlock()
+	}()
+
+	if got := a.hovered("bar", 0.5, 2); string(got) != string([]byte{5, 10}) {
+		t.Errorf("hovered = %v, want [5 10]", got)
+	}
+	if got := a.hovered("missing", 0.5, 0.5); got != nil {
+		t.Errorf("hovered on a missing row = %v, want nil", got)
+	}
+}
+
 func TestClickedAtClampsToPicture(t *testing.T) {
 	a := App()
 	got := make(chan [2]float64, 1)

@@ -59,6 +59,7 @@ int menuetSMAppServiceStatus(void) {
 
 void itemClicked(const char *);
 void itemClickedAt(const char *, double, double);
+void *imageHovered(const char *, double, double, int *);
 void notificationRespond(const char *, const char *);
 const char *children(const char *);
 const char *searchResults(const char *, const char *);
@@ -414,28 +415,26 @@ static NSImage *MenuetImageForRow(NSString *b64, NSString *path, CGFloat maxW, C
 // mechanism as the search field. A custom view gets none of NSMenuItem's
 // highlight or click behavior for free, so when the row is clickable we track
 // the pointer ourselves, draw the selection background, and on mouseUp fire
-// the item's action and dismiss the menu.
+// the item's action and dismiss the menu. A positional row (ClickedAt) is a
+// control instead: no highlight, the click reports where it landed and the
+// menu stays open, and with Hovered the picture follows the pointer.
 @interface MenuetImageView : NSView
-@property(nonatomic, strong) NSImage *image;
+@property(nonatomic, strong) NSImage *image; // what is drawn
+@property(nonatomic, strong) NSImage *base;  // the row's own picture
 @property(nonatomic, assign) BOOL clickable;
 @property(nonatomic, assign) BOOL positional;
+@property(nonatomic, assign) BOOL hoverable;
+@property(nonatomic, copy) NSString *unique;
+@property(nonatomic, assign) NSSize maxSize;
 @property(nonatomic, assign) BOOL hovered;
 @property(nonatomic, strong) NSTrackingArea *tracking;
-- (instancetype)initWithImage:(NSImage *)image clickable:(BOOL)clickable;
 - (void)updateImage:(NSImage *)image clickable:(BOOL)clickable;
 @end
 
 @implementation MenuetImageView
 
-- (instancetype)initWithImage:(NSImage *)image clickable:(BOOL)clickable {
-	self = [super initWithFrame:NSZeroRect];
-	if (self) {
-		[self updateImage:image clickable:clickable];
-	}
-	return self;
-}
-
 - (void)updateImage:(NSImage *)image clickable:(BOOL)clickable {
+	self.base = image;
 	self.image = image;
 	self.clickable = clickable;
 	// The menu can be dismissed (cancelTracking) with the pointer still over
@@ -447,7 +446,55 @@ static NSImage *MenuetImageForRow(NSString *b64, NSString *path, CGFloat maxW, C
 	frame.size = NSMakeSize(size.width + 2 * kMenuetImagePadX,
 	                        size.height + 2 * kMenuetImagePadY);
 	self.frame = frame;
+	// A refresh while the pointer rests on the row would otherwise drop the
+	// hover picture until the pointer moves again.
+	if (self.hoverable && self.window.isVisible) {
+		NSPoint p = [self convertPoint:[self.window mouseLocationOutsideOfEventStream] fromView:nil];
+		if (NSPointInRect(p, self.bounds)) {
+			[self hoverAt:p];
+		}
+	}
 	[self setNeedsDisplay:YES];
+}
+
+// pictureFraction maps a point in the view to fractions of the picture's
+// width and height from its top-left corner. The view is not flipped, so y
+// is measured up from the bottom.
+- (NSPoint)pictureFraction:(NSPoint)p {
+	NSSize size = self.base.size;
+	return NSMakePoint((p.x - kMenuetImagePadX) / size.width,
+	                   1 - (p.y - kMenuetImagePadY) / size.height);
+}
+
+// hoverAt asks Go for the picture to show with the pointer at p. Go returns
+// nil to keep the one shown.
+- (void)hoverAt:(NSPoint)p {
+	if (!self.base || !self.unique) {
+		return;
+	}
+	NSPoint f = [self pictureFraction:p];
+	int n = 0;
+	void *bytes = imageHovered(self.unique.UTF8String, f.x, f.y, &n);
+	if (bytes == NULL) {
+		return;
+	}
+	NSData *data = [NSData dataWithBytesNoCopy:bytes length:n freeWhenDone:YES];
+	NSImage *img = MenuetScaledImage([[NSImage alloc] initWithData:data],
+	                                 self.maxSize.width, self.maxSize.height);
+	if (img) {
+		self.image = img;
+		[self setNeedsDisplay:YES];
+	}
+}
+
+- (void)mouseMoved:(NSEvent *)event {
+	if (self.hoverable) {
+		[self hoverAt:[self convertPoint:event.locationInWindow fromView:nil]];
+	}
+}
+
+- (void)mouseDragged:(NSEvent *)event {
+	[self mouseMoved:event];
 }
 
 - (void)updateTrackingAreas {
@@ -462,6 +509,7 @@ static NSImage *MenuetImageForRow(NSString *b64, NSString *path, CGFloat maxW, C
 	self.tracking = [[NSTrackingArea alloc]
 	                 initWithRect:self.bounds
 	                      options:NSTrackingMouseEnteredAndExited |
+	                              NSTrackingMouseMoved |
 	                              NSTrackingActiveAlways
 	                        owner:self
 	                     userInfo:nil];
@@ -476,6 +524,10 @@ static NSImage *MenuetImageForRow(NSString *b64, NSString *path, CGFloat maxW, C
 }
 
 - (void)mouseExited:(NSEvent *)event {
+	if (self.image != self.base) {
+		self.image = self.base;
+		[self setNeedsDisplay:YES];
+	}
 	if (self.hovered) {
 		self.hovered = NO;
 		[self setNeedsDisplay:YES];
@@ -487,17 +539,15 @@ static NSImage *MenuetImageForRow(NSString *b64, NSString *path, CGFloat maxW, C
 		return;
 	}
 	NSMenuItem *item = self.enclosingMenuItem;
-	if (self.positional && self.image) {
-		// The view is not flipped, so y is measured up from the bottom.
-		NSPoint p = [self convertPoint:event.locationInWindow fromView:nil];
-		NSSize size = self.image.size;
-		double x = (p.x - kMenuetImagePadX) / size.width;
-		double y = 1 - (p.y - kMenuetImagePadY) / size.height;
-		NSString *unique = item.representedObject;
-		if (unique) {
-			itemClickedAt(unique.UTF8String, x, y);
+	if (self.positional) {
+		// The menu stays open: the app refreshes it to show the result.
+		if (self.base && self.unique) {
+			NSPoint f = [self pictureFraction:[self convertPoint:event.locationInWindow fromView:nil]];
+			itemClickedAt(self.unique.UTF8String, f.x, f.y);
 		}
-	} else if (item.action) {
+		return;
+	}
+	if (item.action) {
 		[NSApp sendAction:item.action to:item.target from:item];
 	}
 	[item.menu cancelTracking];
@@ -756,19 +806,21 @@ static NSString *MenuetPlainTextFromRuns(NSArray *runs) {
 			NSImage *picture = MenuetImageForRow(b64, imagePath, maxW, maxH);
 			BOOL imageClickable = [dict[@"Clickable"] boolValue];
 			BOOL imagePositional = [dict[@"Positional"] boolValue];
+			BOOL imageHoverable = [dict[@"Hoverable"] boolValue];
 			NSString *imageUnique = dict[@"Unique"];
 
 			BOOL reuseImage = item && [item.view isKindOfClass:NSClassFromString(@"MenuetImageView")];
 			if (!reuseImage) {
 				if (item) [self removeItemAtIndex:i];
 				item = [self insertItemWithTitle:@"" action:nil keyEquivalent:@"" atIndex:i];
-				item.view = [[MenuetImageView alloc] initWithImage:picture
-				                                         clickable:imageClickable];
-			} else {
-				[(MenuetImageView *)item.view updateImage:picture
-				                                clickable:imageClickable];
+				item.view = [[MenuetImageView alloc] initWithFrame:NSZeroRect];
 			}
-			((MenuetImageView *)item.view).positional = imagePositional;
+			MenuetImageView *imageView = (MenuetImageView *)item.view;
+			imageView.positional = imagePositional;
+			imageView.hoverable = imageHoverable;
+			imageView.unique = imageUnique;
+			imageView.maxSize = NSMakeSize(maxW, maxH);
+			[imageView updateImage:picture clickable:imageClickable];
 			item.target = self;
 			if (imageClickable) {
 				item.action = @selector(press:);
