@@ -55,6 +55,41 @@ func TestImageClickableOnlyWhenClickedSet(t *testing.T) {
 	}
 }
 
+func TestImageClickedAtIsPositional(t *testing.T) {
+	item := buildInternalItem(Image{Data: []byte{1}, ClickedAt: func(x, y float64) {}}, "u1", "p1")
+	if !item.Clickable || !item.Positional {
+		t.Errorf("Clickable, Positional = %v, %v, want true, true", item.Clickable, item.Positional)
+	}
+	plain := buildInternalItem(Image{Data: []byte{1}, Clicked: func() {}}, "u2", "p1")
+	if plain.Positional {
+		t.Error("an Image with only Clicked must not be Positional")
+	}
+}
+
+func TestClickedAtClampsToPicture(t *testing.T) {
+	a := App()
+	got := make(chan [2]float64, 1)
+	a.visibleMenuItemsMutex.Lock()
+	a.visibleMenuItems["seek"] = buildInternalItem(Image{Data: []byte{1},
+		ClickedAt: func(x, y float64) { got <- [2]float64{x, y} }}, "seek", "p1")
+	a.visibleMenuItemsMutex.Unlock()
+	defer func() {
+		a.visibleMenuItemsMutex.Lock()
+		delete(a.visibleMenuItems, "seek")
+		a.visibleMenuItemsMutex.Unlock()
+	}()
+
+	a.clickedAt("seek", -0.1, 1.2)
+	select {
+	case p := <-got:
+		if p != [2]float64{0, 1} {
+			t.Errorf("ClickedAt got %v, want [0 1]", p)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("ClickedAt was not invoked within 1s")
+	}
+}
+
 // Default bounds are substituted once here in Go — every consumer (ObjC
 // bridge, snapshots) sees concrete values, so the defaults live in exactly
 // one place. Per-axis: an explicit value on one axis keeps the default on

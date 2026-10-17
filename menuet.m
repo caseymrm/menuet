@@ -58,6 +58,7 @@ int menuetSMAppServiceStatus(void) {
 }
 
 void itemClicked(const char *);
+void itemClickedAt(const char *, double, double);
 void notificationRespond(const char *, const char *);
 const char *children(const char *);
 const char *searchResults(const char *, const char *);
@@ -417,6 +418,7 @@ static NSImage *MenuetImageForRow(NSString *b64, NSString *path, CGFloat maxW, C
 @interface MenuetImageView : NSView
 @property(nonatomic, strong) NSImage *image;
 @property(nonatomic, assign) BOOL clickable;
+@property(nonatomic, assign) BOOL positional;
 @property(nonatomic, assign) BOOL hovered;
 @property(nonatomic, strong) NSTrackingArea *tracking;
 - (instancetype)initWithImage:(NSImage *)image clickable:(BOOL)clickable;
@@ -467,7 +469,7 @@ static NSImage *MenuetImageForRow(NSString *b64, NSString *path, CGFloat maxW, C
 }
 
 - (void)mouseEntered:(NSEvent *)event {
-	if (self.clickable && !self.hovered) {
+	if (self.clickable && !self.positional && !self.hovered) {
 		self.hovered = YES;
 		[self setNeedsDisplay:YES];
 	}
@@ -485,7 +487,17 @@ static NSImage *MenuetImageForRow(NSString *b64, NSString *path, CGFloat maxW, C
 		return;
 	}
 	NSMenuItem *item = self.enclosingMenuItem;
-	if (item.action) {
+	if (self.positional && self.image) {
+		// The view is not flipped, so y is measured up from the bottom.
+		NSPoint p = [self convertPoint:event.locationInWindow fromView:nil];
+		NSSize size = self.image.size;
+		double x = (p.x - kMenuetImagePadX) / size.width;
+		double y = 1 - (p.y - kMenuetImagePadY) / size.height;
+		NSString *unique = item.representedObject;
+		if (unique) {
+			itemClickedAt(unique.UTF8String, x, y);
+		}
+	} else if (item.action) {
 		[NSApp sendAction:item.action to:item.target from:item];
 	}
 	[item.menu cancelTracking];
@@ -743,6 +755,7 @@ static NSString *MenuetPlainTextFromRuns(NSArray *runs) {
 
 			NSImage *picture = MenuetImageForRow(b64, imagePath, maxW, maxH);
 			BOOL imageClickable = [dict[@"Clickable"] boolValue];
+			BOOL imagePositional = [dict[@"Positional"] boolValue];
 			NSString *imageUnique = dict[@"Unique"];
 
 			BOOL reuseImage = item && [item.view isKindOfClass:NSClassFromString(@"MenuetImageView")];
@@ -755,6 +768,7 @@ static NSString *MenuetPlainTextFromRuns(NSArray *runs) {
 				[(MenuetImageView *)item.view updateImage:picture
 				                                clickable:imageClickable];
 			}
+			((MenuetImageView *)item.view).positional = imagePositional;
 			item.target = self;
 			if (imageClickable) {
 				item.action = @selector(press:);

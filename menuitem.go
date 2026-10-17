@@ -138,6 +138,13 @@ type Image struct {
 	// Clicked, when set, makes the row respond to clicks and highlight under
 	// the pointer, like a Regular. Leave nil for a purely decorative picture.
 	Clicked func()
+
+	// ClickedAt, when set, makes the picture a control: a click calls it with
+	// where it landed, as fractions of the picture's width and height from
+	// its top-left corner, each in [0, 1]. Use it for a seek bar or a map.
+	// The row does not highlight under the pointer, and it takes precedence
+	// over Clicked.
+	ClickedAt func(x, y float64)
 }
 
 func (Image) menuItem() {}
@@ -163,6 +170,7 @@ type internalItem struct {
 	HasChildren bool
 	Clickable   bool
 	Static      bool `json:",omitempty"`
+	Positional  bool `json:",omitempty"` // an Image with ClickedAt
 
 	// Image ("image" Type) fields. ImageData is []byte, which encoding/json
 	// base64-encodes for us; the ObjC side decodes it back.
@@ -229,7 +237,8 @@ func buildInternalItem(item MenuItem, unique, parentUnique string) internalItem 
 		if out.MaxHeight <= 0 {
 			out.MaxHeight = DefaultMaxImageHeight
 		}
-		out.Clickable = v.Clicked != nil
+		out.Clickable = v.Clicked != nil || v.ClickedAt != nil
+		out.Positional = v.ClickedAt != nil
 	}
 	return out
 }

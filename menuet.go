@@ -283,6 +283,36 @@ func (a *Application) clicked(unique string) {
 	}
 }
 
+func (a *Application) clickedAt(unique string, x, y float64) {
+	a.visibleMenuItemsMutex.RLock()
+	item, ok := a.visibleMenuItems[unique]
+	a.visibleMenuItemsMutex.RUnlock()
+	if !ok {
+		log.Printf("Item not found for click: %s", unique)
+		return
+	}
+	if v, ok := item.item.(Image); ok && v.ClickedAt != nil {
+		go v.ClickedAt(unit(x), unit(y))
+	}
+}
+
+// unit clamps v to [0, 1]: a click on the row's padding lands outside the
+// picture.
+func unit(v float64) float64 {
+	if v < 0 {
+		return 0
+	}
+	if v > 1 {
+		return 1
+	}
+	return v
+}
+
+//export itemClickedAt
+func itemClickedAt(uniqueCString *C.char, x, y C.double) {
+	App().clickedAt(C.GoString(uniqueCString), float64(x), float64(y))
+}
+
 //export itemClicked
 func itemClicked(uniqueCString *C.char) {
 	unique := C.GoString(uniqueCString)
