@@ -1157,8 +1157,11 @@ void setState(const char *jsonString) {
 		    /*itemMono=*/NO);
 		NSString *imageName = state[@"Image"];
 		NSImage *image = [NSImage imageFromName:imageName withHeight:22];
+		// Images come from a per-name, per-height cache and are shared
+		// objects, so set the template flag explicitly on every call,
+		// before assigning the image to the button.
+		image.template = ![state[@"ColorImage"] boolValue];
 		_statusItem.button.image = image;
-		_statusItem.button.image.template = true;
 		_statusItem.button.imagePosition = NSImageLeft;
 	});
 }

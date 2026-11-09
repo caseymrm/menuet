@@ -210,6 +210,11 @@ type MenuState struct {
 	// item title that mixes weights, sizes, colors, or monospaced digits.
 	Runs  []TextRun
 	Image string // In Resources dir or URL, should have height 22
+	// ColorImage, when true, lets Image keep its own colors instead of being
+	// drawn as a template image. A colored image then no longer adapts
+	// automatically to a light or dark menu bar or to the highlighted state;
+	// the application has to take that into account itself.
+	ColorImage bool
 }
 
 func (a *Application) sendState(state *MenuState) {
