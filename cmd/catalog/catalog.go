@@ -608,6 +608,8 @@ func notifs() []menuet.MenuItem {
 	return notifs
 }
 
+var colorImage bool
+
 func changeTitle() []menuet.MenuItem {
 	return []menuet.MenuItem{
 		menuet.Regular{
@@ -632,6 +634,23 @@ func changeTitle() []menuet.MenuItem {
 				menuet.App().SetMenuState(&menuet.MenuState{
 					Title: "Catalog",
 					Image: "clipboard",
+				})
+			},
+		},
+		menuet.Regular{
+			Text:  "Color image",
+			State: colorImage,
+			Clicked: func() {
+				colorImage = !colorImage
+				if !colorImage {
+					menuet.App().SetMenuState(&menuet.MenuState{Title: "Catalog"})
+					return
+				}
+				// ColorImage keeps the image's own colors instead of
+				// drawing it as a template image.
+				menuet.App().SetMenuState(&menuet.MenuState{
+					Image:      "colorbadge",
+					ColorImage: true,
 				})
 			},
 		},
