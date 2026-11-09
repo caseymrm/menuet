@@ -6,8 +6,12 @@ import (
 )
 
 func TestMenuBarAppearance(t *testing.T) {
+	old := appearanceSettleDelay
+	appearanceSettleDelay = 20 * time.Millisecond
+	defer func() { appearanceSettleDelay = old }()
+
 	a := &Application{}
-	got := make(chan bool, 4)
+	got := make(chan bool, 8)
 	a.MenuBarAppearanceChanged = func(dark bool) { got <- dark }
 
 	if a.MenuBarIsDark() {
@@ -23,30 +27,36 @@ func TestMenuBarAppearance(t *testing.T) {
 		case <-time.After(time.Second):
 			t.Fatalf("callback for %v did not fire", want)
 		}
+		if a.MenuBarIsDark() != want {
+			t.Errorf("getter = %v, want %v", a.MenuBarIsDark(), want)
+		}
 	}
 	expectNone := func() {
 		t.Helper()
 		select {
 		case v := <-got:
 			t.Fatalf("unexpected callback %v", v)
-		case <-time.After(50 * time.Millisecond):
+		case <-time.After(100 * time.Millisecond):
 		}
 	}
 
-	a.setMenuBarDark(false) // first report fires even when light
+	a.setMenuBarDark(false) // first settled value fires even when light
 	expect(false)
 	a.setMenuBarDark(false)
 	expectNone()
-	a.setMenuBarDark(true)
+
+	// A quick flip sequence yields exactly one call with the final value.
+	for _, v := range []bool{false, true, false, true} {
+		a.setMenuBarDark(v)
+	}
 	expect(true)
-	if !a.MenuBarIsDark() {
-		t.Error("getter should be dark")
-	}
+	expectNone()
+
+	// Flipping back to the already reported value does not fire.
+	a.setMenuBarDark(false)
 	a.setMenuBarDark(true)
 	expectNone()
+
 	a.setMenuBarDark(false)
 	expect(false)
-	if a.MenuBarIsDark() {
-		t.Error("getter should be light")
-	}
 }

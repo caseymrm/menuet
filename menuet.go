@@ -110,8 +110,12 @@ type Application struct {
 	// value is reported after the app starts. The value follows the menu bar,
 	// not the system setting (a dark desktop picture can make the bar dark in
 	// light system mode). It is meant for applications that use
-	// MenuState.ColorImage and pick an image per bar appearance. The callback
-	// runs on its own goroutine, one call at a time and in order. Set it before RunApplication.
+	// MenuState.ColorImage and pick an image per bar appearance. Short flips
+	// while the status item is first shown are merged into one call. The
+	// callback runs on a timer goroutine; if it is still running when the
+	// next change settles, calls can overlap, so read MenuBarIsDark for the
+	// current value. Set it before RunApplication: a callback set later is
+	// not called with the value that has already settled.
 	MenuBarAppearanceChanged func(dark bool)
 
 	// StartAtLoginLabel overrides the default "Start at Login" menu item text
@@ -127,8 +131,8 @@ type Application struct {
 	appearanceMutex       sync.Mutex
 	menuBarDark           bool
 	menuBarReported       bool
-	appearanceQueue       []bool
-	appearanceDraining    bool
+	appearanceGeneration  uint64
+	appearanceTimer       *time.Timer
 	pendingStateChange    bool
 	debounceMutex         sync.Mutex
 	visibleMenuItemsMutex sync.RWMutex
