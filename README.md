@@ -242,6 +242,46 @@ menuet.Regular{
 }
 ```
 
+## Colored status image
+
+The status item image is drawn as a template image: macOS discards its
+colors and tints it to match the menu bar. Set `MenuState.ColorImage`
+to keep the image's own colors, for example to signal a state:
+
+```go
+menuet.App().SetMenuState(&menuet.MenuState{
+    Image:      "thumb-green",
+    ColorImage: true,
+})
+```
+
+A colored image no longer adapts to a light or dark menu bar or to the
+highlighted state. `Application.MenuBarIsDark()` reports the bar's
+current appearance, and `Application.MenuBarAppearanceChanged` is called
+when it changes, so the app can pick an image per appearance. The value
+follows the bar, which depends on the desktop picture behind it, not the
+system light/dark setting:
+
+```go
+menuet.App().MenuBarAppearanceChanged = func(dark bool) {
+    image := "thumb-green"
+    if dark {
+        image = "thumb-green-light"
+    }
+    menuet.App().SetMenuState(&menuet.MenuState{Image: image, ColorImage: true})
+}
+```
+
+Two things to know:
+
+- Images up to 22 points high are shared by name. If a `ColorImage`
+  status image uses the same image name as a menu item, the menu item's
+  image is drawn in color as well. Use a separate image name for the
+  colored status image.
+- `ColorImage` is a new field in `MenuState`. Code that fills
+  `MenuState` with an unkeyed literal (`menuet.MenuState{"title", nil,
+  "image"}`) needs the field names added.
+
 ## [Catalog](https://github.com/caseymrm/menuet/tree/master/cmd/catalog)
 
 The catalog app is useful for trying many of the possible combinations of features.
