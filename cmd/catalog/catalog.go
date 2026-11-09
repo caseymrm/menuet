@@ -610,6 +610,13 @@ func notifs() []menuet.MenuItem {
 
 var colorImage bool
 
+func menuBarAppearanceText() string {
+	if menuet.App().MenuBarIsDark() {
+		return "Menu bar: dark"
+	}
+	return "Menu bar: light"
+}
+
 func changeTitle() []menuet.MenuItem {
 	return []menuet.MenuItem{
 		menuet.Regular{
@@ -653,6 +660,9 @@ func changeTitle() []menuet.MenuItem {
 					ColorImage: true,
 				})
 			},
+		},
+		menuet.Regular{
+			Text: menuBarAppearanceText(),
 		},
 		menuet.Regular{
 			Text: "Runs in the title (live score)",
@@ -851,5 +861,8 @@ func main() {
 	})
 	menuet.App().Label = "com.github.caseymrm.menuet.catalog"
 	menuet.App().Children = menuItems
+	menuet.App().MenuBarAppearanceChanged = func(bool) {
+		menuet.App().MenuChanged()
+	}
 	menuet.App().RunApplication()
 }

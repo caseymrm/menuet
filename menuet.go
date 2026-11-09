@@ -105,6 +105,15 @@ type Application struct {
 	// once to move itself there. Set it before RunApplication.
 	DisableMoveToApplications bool
 
+	// MenuBarAppearanceChanged is called with true when the menu bar turns
+	// dark and false when it turns light; it also fires once when the first
+	// value is reported after the app starts. The value follows the menu bar,
+	// not the system setting (a dark desktop picture can make the bar dark in
+	// light system mode). It is meant for applications that use
+	// MenuState.ColorImage and pick an image per bar appearance. The callback
+	// runs on its own goroutine, one call at a time and in order. Set it before RunApplication.
+	MenuBarAppearanceChanged func(dark bool)
+
 	// StartAtLoginLabel overrides the default "Start at Login" menu item text
 	StartAtLoginLabel string
 	// QuitLabel overrides the default "Quit" menu item text
@@ -115,6 +124,11 @@ type Application struct {
 	currentState          *MenuState
 	nextState             *MenuState
 	hideStartupItem       bool
+	appearanceMutex       sync.Mutex
+	menuBarDark           bool
+	menuBarReported       bool
+	appearanceQueue       []bool
+	appearanceDraining    bool
 	pendingStateChange    bool
 	debounceMutex         sync.Mutex
 	visibleMenuItemsMutex sync.RWMutex

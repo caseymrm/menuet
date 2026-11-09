@@ -283,6 +283,16 @@
         },
         {
           "type": "regular",
+          "text": "Menu bar: light",
+          "color": {
+            "R": 0,
+            "G": 0,
+            "B": 0,
+            "A": 0
+          }
+        },
+        {
+          "type": "regular",
           "text": "Runs in the title (live score)",
           "color": {
             "R": 0,
