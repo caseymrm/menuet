@@ -230,6 +230,38 @@ menuet.Regular{
 }
 ```
 
+## Picture rows
+
+`Image` shows a picture as a whole row, from encoded bytes (`Data`) or a
+file (`Path`), scaled down to fit `MaxWidth` × `MaxHeight` (480 × 360 by
+default). Without callbacks it is decorative. `Clicked` makes it a button
+that highlights and dismisses the menu like a `Regular`.
+
+`ClickedAt` makes the picture a control, such as a seek bar or a map. A
+click reports where it landed, as fractions of the picture's width and
+height from its top-left corner, each in [0, 1]. The row doesn't
+highlight, and the menu stays open, so call `MenuChanged` to show the
+result. `ClickedAt` takes precedence over `Clicked`.
+
+`Hovered` is called as the pointer moves over the picture, with the same
+coordinates, and returns a picture to show in its place, or nil to keep
+the current one. The row's own picture comes back when the pointer
+leaves. `Hovered` runs on the main thread while the menu waits, so keep
+it to a few milliseconds:
+
+```go
+menuet.Image{
+    Data: seekBar(position, -1),
+    ClickedAt: func(x, y float64) {
+        position = x
+        menuet.App().MenuChanged()
+    },
+    Hovered: func(x, y float64) []byte {
+        return seekBar(position, x) // mark the spot under the pointer
+    },
+}
+```
+
 ## Toggle-style apps
 
 For apps where the primary action is a toggle (mute audio, pause a

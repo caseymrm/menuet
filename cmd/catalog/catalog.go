@@ -172,6 +172,7 @@ var (
 	shotPath string
 
 	imageClicks int
+	seekPos     = 0.3 // where the seek bar demo's playhead sits, in [0, 1]
 )
 
 func imageDemo() []menuet.MenuItem {
@@ -220,6 +221,31 @@ func imageDemo() []menuet.MenuItem {
 					menuet.Regular{Runs: []menuet.TextRun{
 						{Text: fmt.Sprintf("Clicked %d time(s) — click the chart",
 							imageClicks), Color: menuet.LabelSecondary, FontSize: 11},
+					}},
+				}
+			},
+		},
+
+		// ClickedAt makes the picture a control: the click reports where it
+		// landed and the menu stays open. Hovered previews the spot under the
+		// pointer.
+		menuet.Regular{
+			Text: "Seek bar (ClickedAt, Hovered)",
+			Children: func() []menuet.MenuItem {
+				return []menuet.MenuItem{
+					menuet.Image{
+						Data: seekBarPNG(seekPos, -1),
+						ClickedAt: func(x, y float64) {
+							seekPos = x
+							menuet.App().MenuChanged()
+						},
+						Hovered: func(x, y float64) []byte {
+							return seekBarPNG(seekPos, x)
+						},
+					},
+					menuet.Regular{Runs: []menuet.TextRun{
+						{Text: fmt.Sprintf("Position %3.0f%% — click the bar to seek", seekPos*100),
+							Color: menuet.LabelSecondary, FontSize: 11, Monospaced: true},
 					}},
 				}
 			},
@@ -294,6 +320,23 @@ func chartPNG() []byte {
 		chartData = encodePNG(img)
 	})
 	return chartData
+}
+
+// seekBarPNG draws a seek bar played up to pos, with a marker at hover, or
+// none when hover is negative. It is small so Hovered, which runs on the
+// main thread while the menu waits, stays quick.
+func seekBarPNG(pos, hover float64) []byte {
+	const w, h, track = 320, 24, 6
+	img := image.NewRGBA(image.Rect(0, 0, w, h))
+	fill(img, img.Bounds(), color.RGBA{0x1c, 0x1c, 0x20, 0xff})
+	top := (h - track) / 2
+	fill(img, image.Rect(0, top, w, top+track), color.RGBA{0x48, 0x48, 0x50, 0xff})
+	fill(img, image.Rect(0, top, int(pos*w), top+track), color.RGBA{0x0a, 0x84, 0xff, 0xff})
+	if hover >= 0 {
+		x := int(hover * (w - 2))
+		fill(img, image.Rect(x, 2, x+2, h-2), color.RGBA{0xff, 0xff, 0xff, 0xff})
+	}
+	return encodePNG(img)
 }
 
 // screenshotPNG renders a 1440x900 stand-in for a real screen capture — big
