@@ -62,6 +62,7 @@ void notificationRespond(const char *, const char *);
 const char *children(const char *);
 const char *searchResults(const char *, const char *);
 void menuClosed(const char *);
+void menuBarAppearanceChanged(bool);
 bool hideStartup();
 char *startAtLoginLabel();
 char *quitLabel();
@@ -1217,6 +1218,15 @@ doCommandBySelector:(SEL)cmd {
 
 @end
 
+static void *MenuetBarAppearanceContext = &MenuetBarAppearanceContext;
+
+static void reportMenuBarAppearance() {
+        NSAppearance *appearance = _statusItem.button.effectiveAppearance;
+        NSAppearanceName match = [appearance bestMatchFromAppearancesWithNames:
+                                  @[NSAppearanceNameAqua, NSAppearanceNameDarkAqua]];
+        menuBarAppearanceChanged([match isEqualToString:NSAppearanceNameDarkAqua]);
+}
+
 void setState(const char *jsonString) {
 	NSDictionary *state = [NSJSONSerialization
 	                       JSONObjectWithData:[[NSString stringWithUTF8String:jsonString]
@@ -1237,8 +1247,11 @@ void setState(const char *jsonString) {
 		    /*itemMono=*/NO);
 		NSString *imageName = state[@"Image"];
 		NSImage *image = [NSImage imageFromName:imageName withHeight:22];
+		// Images come from a per-name, per-height cache and are shared
+		// objects, so set the template flag explicitly on every call,
+		// before assigning the image to the button.
+		image.template = ![state[@"ColorImage"] boolValue];
 		_statusItem.button.image = image;
-		_statusItem.button.image.template = true;
 		_statusItem.button.imagePosition = NSImageLeft;
 	});
 }
@@ -1268,6 +1281,12 @@ void createApplication() {
         _statusItem.button.target = d;
         _statusItem.button.action = @selector(statusItemClicked:);
         [_statusItem.button sendActionOn:(NSEventMaskLeftMouseUp | NSEventMaskRightMouseUp)];
+        // The bar's own appearance, which can differ from the system mode.
+        [_statusItem.button addObserver:d
+                             forKeyPath:@"effectiveAppearance"
+                                options:0
+                                context:MenuetBarAppearanceContext];
+        reportMenuBarAppearance();
 }
 
 void runApplication() {
@@ -1275,6 +1294,17 @@ void runApplication() {
 }
 
 @implementation MenuetAppDelegate
+
+- (void)observeValueForKeyPath:(NSString *)keyPath
+                      ofObject:(id)object
+                        change:(NSDictionary *)change
+                       context:(void *)context {
+        if (context == MenuetBarAppearanceContext) {
+                reportMenuBarAppearance();
+                return;
+        }
+        [super observeValueForKeyPath:keyPath ofObject:object change:change context:context];
+}
 
 - (NSApplicationTerminateReply)applicationShouldTerminate:
         (NSApplication *)sender {

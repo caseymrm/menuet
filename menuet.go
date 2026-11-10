@@ -105,6 +105,19 @@ type Application struct {
 	// once to move itself there. Set it before RunApplication.
 	DisableMoveToApplications bool
 
+	// MenuBarAppearanceChanged is called with true when the menu bar turns
+	// dark and false when it turns light; it also fires once when the first
+	// value is reported after the app starts. The value follows the menu bar,
+	// not the system setting (a dark desktop picture can make the bar dark in
+	// light system mode). It is meant for applications that use
+	// MenuState.ColorImage and pick an image per bar appearance. Short flips
+	// while the status item is first shown are merged into one call. The
+	// callback runs on a timer goroutine; if it is still running when the
+	// next change settles, calls can overlap, so read MenuBarIsDark for the
+	// current value. Set it before RunApplication: a callback set later is
+	// not called with the value that has already settled.
+	MenuBarAppearanceChanged func(dark bool)
+
 	// StartAtLoginLabel overrides the default "Start at Login" menu item text
 	StartAtLoginLabel string
 	// QuitLabel overrides the default "Quit" menu item text
@@ -115,6 +128,11 @@ type Application struct {
 	currentState          *MenuState
 	nextState             *MenuState
 	hideStartupItem       bool
+	appearanceMutex       sync.Mutex
+	menuBarDark           bool
+	menuBarReported       bool
+	appearanceGeneration  uint64
+	appearanceTimer       *time.Timer
 	pendingStateChange    bool
 	debounceMutex         sync.Mutex
 	visibleMenuItemsMutex sync.RWMutex
@@ -210,6 +228,11 @@ type MenuState struct {
 	// item title that mixes weights, sizes, colors, or monospaced digits.
 	Runs  []TextRun
 	Image string // In Resources dir or URL, should have height 22
+	// ColorImage, when true, lets Image keep its own colors instead of being
+	// drawn as a template image. A colored image then no longer adapts
+	// automatically to a light or dark menu bar or to the highlighted state;
+	// the application has to take that into account itself.
+	ColorImage bool
 }
 
 func (a *Application) sendState(state *MenuState) {

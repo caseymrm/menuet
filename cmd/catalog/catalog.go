@@ -619,6 +619,15 @@ func notifs() []menuet.MenuItem {
 	return notifs
 }
 
+var colorImage bool
+
+func menuBarAppearanceText() string {
+	if menuet.App().MenuBarIsDark() {
+		return "Menu bar: dark"
+	}
+	return "Menu bar: light"
+}
+
 func changeTitle() []menuet.MenuItem {
 	return []menuet.MenuItem{
 		menuet.Regular{
@@ -645,6 +654,26 @@ func changeTitle() []menuet.MenuItem {
 					Image: "clipboard",
 				})
 			},
+		},
+		menuet.Regular{
+			Text:  "Color image",
+			State: colorImage,
+			Clicked: func() {
+				colorImage = !colorImage
+				if !colorImage {
+					menuet.App().SetMenuState(&menuet.MenuState{Title: "Catalog"})
+					return
+				}
+				// ColorImage keeps the image's own colors instead of
+				// drawing it as a template image.
+				menuet.App().SetMenuState(&menuet.MenuState{
+					Image:      "colorbadge",
+					ColorImage: true,
+				})
+			},
+		},
+		menuet.Regular{
+			Text: menuBarAppearanceText(),
 		},
 		menuet.Regular{
 			Text: "Runs in the title (live score)",
@@ -843,5 +872,8 @@ func main() {
 	})
 	menuet.App().Label = "com.github.caseymrm.menuet.catalog"
 	menuet.App().Children = menuItems
+	menuet.App().MenuBarAppearanceChanged = func(bool) {
+		menuet.App().MenuChanged()
+	}
 	menuet.App().RunApplication()
 }
