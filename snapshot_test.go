@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"reflect"
 	"testing"
 )
 
@@ -115,5 +116,27 @@ func TestWriteSnapshotProducesValidJSON(t *testing.T) {
 	}
 	if len(snap.Items) != 1 || snap.Items[0].Text != "Refresh" {
 		t.Errorf("items: %+v", snap.Items)
+	}
+}
+
+// A snapshot is a structural record, like a Regular's Clicked, an Image's
+// callbacks are not captured: an interactive picture snapshots the same as
+// a decorative one, and taking the snapshot calls none of them.
+func TestSnapshotImageIgnoresCallbacks(t *testing.T) {
+	called := false
+	plain := Image{Data: []byte{1}, MaxWidth: 300}
+	live := plain
+	live.Clicked = func() { called = true }
+	live.ClickedAt = func(x, y float64) { called = true }
+	live.Hovered = func(x, y float64) []byte { called = true; return nil }
+
+	got := snapshotItems([]MenuItem{plain, live}, 0)
+	want := SnapshotItem{Type: "image", ImageWidth: 300,
+		ImageHeight: DefaultMaxImageHeight, ImageSource: "data"}
+	if !reflect.DeepEqual(got[0], want) || !reflect.DeepEqual(got[1], want) {
+		t.Errorf("snapshots = %+v, want both %+v", got, want)
+	}
+	if called {
+		t.Error("taking a snapshot invoked an Image callback")
 	}
 }

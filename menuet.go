@@ -16,6 +16,7 @@ import (
 	"context"
 	"encoding/json"
 	"log"
+	"math"
 	"reflect"
 	"sync"
 	"time"
@@ -297,9 +298,9 @@ func (a *Application) clickedAt(unique string, x, y float64) {
 }
 
 // unit clamps v to [0, 1]: a click on the row's padding lands outside the
-// picture.
+// picture. NaN, from a picture with no width or height, becomes 0.
 func unit(v float64) float64 {
-	if v < 0 {
+	if v < 0 || math.IsNaN(v) {
 		return 0
 	}
 	if v > 1 {
@@ -314,13 +315,15 @@ func itemClickedAt(uniqueCString *C.char, x, y C.double) {
 }
 
 // hovered returns the picture an Image's Hovered gives for the pointer at
-// x, y, or nil.
+// x, y, or nil. An empty picture is nil too: it means keep the one shown.
 func (a *Application) hovered(unique string, x, y float64) []byte {
 	a.visibleMenuItemsMutex.RLock()
 	item, ok := a.visibleMenuItems[unique]
 	a.visibleMenuItemsMutex.RUnlock()
 	if v, isImage := item.item.(Image); ok && isImage && v.Hovered != nil {
-		return v.Hovered(unit(x), unit(y))
+		if b := v.Hovered(unit(x), unit(y)); len(b) > 0 {
+			return b
+		}
 	}
 	return nil
 }

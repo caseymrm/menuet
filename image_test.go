@@ -3,6 +3,7 @@ package menuet
 import (
 	"encoding/base64"
 	"encoding/json"
+	"math"
 	"strings"
 	"testing"
 	"time"
@@ -148,5 +149,75 @@ func TestImageClickRoutesToCallback(t *testing.T) {
 	case <-fired:
 	case <-time.After(2 * time.Second):
 		t.Fatal("clicking an Image did not invoke its Clicked callback")
+	}
+}
+
+func TestClickedAtTakesPrecedenceOverClicked(t *testing.T) {
+	at := make(chan struct{}, 1)
+	plain := make(chan struct{}, 1)
+	img := Image{Data: []byte{1},
+		Clicked:   func() { plain <- struct{}{} },
+		ClickedAt: func(x, y float64) { at <- struct{}{} }}
+	item := buildInternalItem(img, "u1", "root")
+	if !item.Clickable || !item.Positional {
+		t.Fatalf("Clickable, Positional = %v, %v, want true, true", item.Clickable, item.Positional)
+	}
+	a := &Application{visibleMenuItems: map[string]internalItem{"u1": item}}
+
+	a.clickedAt("u1", 0.5, 0.5)
+	select {
+	case <-at:
+	case <-time.After(time.Second):
+		t.Fatal("ClickedAt was not invoked within 1s")
+	}
+	select {
+	case <-plain:
+		t.Error("clickedAt must not invoke Clicked")
+	case <-time.After(50 * time.Millisecond):
+	}
+}
+
+func TestClickedAtOnMissingRow(t *testing.T) {
+	a := &Application{visibleMenuItems: make(map[string]internalItem)}
+	a.clickedAt("missing", 0.5, 0.5) // logs and returns; must not panic
+}
+
+func TestHoveredEmptyIsNil(t *testing.T) {
+	for name, pic := range map[string][]byte{"nil": nil, "empty": {}} {
+		img := Image{Data: []byte{1}, Hovered: func(x, y float64) []byte { return pic }}
+		a := &Application{visibleMenuItems: map[string]internalItem{
+			"bar": buildInternalItem(img, "bar", "root")}}
+		if got := a.hovered("bar", 0.5, 0.5); got != nil {
+			t.Errorf("%s: hovered = %#v, want nil", name, got)
+		}
+	}
+}
+
+func TestHoveredOnRowWithoutHovered(t *testing.T) {
+	a := &Application{visibleMenuItems: map[string]internalItem{
+		"img": buildInternalItem(Image{Data: []byte{1}}, "img", "root"),
+		"reg": buildInternalItem(Regular{Text: "x"}, "reg", "root"),
+	}}
+	for _, u := range []string{"img", "reg"} {
+		if got := a.hovered(u, 0.5, 0.5); got != nil {
+			t.Errorf("hovered(%q) = %v, want nil", u, got)
+		}
+	}
+}
+
+func TestUnit(t *testing.T) {
+	for _, c := range []struct{ in, want float64 }{
+		{0, 0},
+		{1, 1},
+		{0.25, 0.25},
+		{-0.5, 0},
+		{1.5, 1},
+		{math.Inf(-1), 0},
+		{math.Inf(1), 1},
+		{math.NaN(), 0},
+	} {
+		if got := unit(c.in); got != c.want {
+			t.Errorf("unit(%v) = %v, want %v", c.in, got, c.want)
+		}
 	}
 }
