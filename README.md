@@ -247,7 +247,12 @@ result. `ClickedAt` takes precedence over `Clicked`.
 coordinates, and returns a picture to show in its place, or nil to keep
 the current one. The row's own picture comes back when the pointer
 leaves. `Hovered` runs on the main thread while the menu waits, so keep
-it to a few milliseconds:
+it to a few milliseconds.
+
+`Dragged` is the same, but called instead of `Hovered` while the button
+is held, so a drag can look different from a hover. The drop is a click:
+`ClickedAt` gets where the button was released. Dragging off the picture
+cancels and brings its own picture back:
 
 ```go
 menuet.Image{
@@ -258,6 +263,9 @@ menuet.Image{
     },
     Hovered: func(x, y float64) []byte {
         return seekBar(position, x) // mark the spot under the pointer
+    },
+    Dragged: func(x, y float64) []byte {
+        return seekBarDragging(x) // the fill follows the pointer
     },
 }
 ```

@@ -8,6 +8,7 @@ import (
 	"image/draw"
 	"image/png"
 	"log"
+	"math"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -228,23 +229,29 @@ func imageDemo() []menuet.MenuItem {
 
 		// ClickedAt makes the picture a control: the click reports where it
 		// landed and the menu stays open. Hovered previews the spot under the
-		// pointer.
+		// pointer with a lighter bar. Dragged moves the fill and knob with the
+		// pointer in that lighter blue; the drop is a click, so ClickedAt
+		// picks the new position.
 		menuet.Regular{
-			Text: "Seek bar (ClickedAt, Hovered)",
+			Text: "Seek bar (ClickedAt, Hovered, Dragged)",
 			Children: func() []menuet.MenuItem {
 				return []menuet.MenuItem{
 					menuet.Image{
-						Data: seekBarPNG(seekPos, -1),
+						Data:     seekBarPNG(seekPos, -1, false),
+						MaxWidth: seekBarWidth,
 						ClickedAt: func(x, y float64) {
-							seekPos = x
+							seekPos = seekFraction(x)
 							menuet.App().MenuChanged()
 						},
 						Hovered: func(x, y float64) []byte {
-							return seekBarPNG(seekPos, x)
+							return seekBarPNG(seekPos, seekFraction(x), false)
+						},
+						Dragged: func(x, y float64) []byte {
+							return seekBarPNG(seekPos, seekFraction(x), true)
 						},
 					},
 					menuet.Regular{Runs: []menuet.TextRun{
-						{Text: fmt.Sprintf("Position %3.0f%% — click the bar to seek", seekPos*100),
+						{Text: fmt.Sprintf("Position %3.0f%% — click or drag the bar to seek", seekPos*100),
 							Color: menuet.LabelSecondary, FontSize: 11, Monospaced: true},
 					}},
 				}
@@ -322,21 +329,102 @@ func chartPNG() []byte {
 	return chartData
 }
 
-// seekBarPNG draws a seek bar played up to pos, with a marker at hover, or
-// none when hover is negative. It is small so Hovered, which runs on the
-// main thread while the menu waits, stays quick.
-func seekBarPNG(pos, hover float64) []byte {
-	const w, h, track = 320, 24, 6
+// The seek bar is drawn at twice its size in points, so it stays sharp on a
+// Retina screen once scaled down to seekBarWidth.
+const (
+	seekBarWidth = 320 // points
+	seekScale    = 2
+	seekKnobR    = 6 // points; the track ends this far in from each side
+)
+
+// seekFraction turns a fraction of the picture's width into a position on
+// the track, which is inset by the knob's radius at each end, so the knob
+// lands right under the pointer.
+func seekFraction(x float64) float64 {
+	const inset = float64(seekKnobR) / seekBarWidth
+	return math.Min(1, math.Max(0, (x-inset)/(1-2*inset)))
+}
+
+var (
+	seekTrack   = color.RGBA{0x80, 0x80, 0x88, 0x60} // translucent: reads on light and dark menus
+	seekPlayed  = color.RGBA{0x0a, 0x84, 0xff, 0xff}
+	seekPending = color.RGBA{0x64, 0xb4, 0xff, 0xff} // lighter: where a drop would go
+	seekKnob    = color.RGBA{0x00, 0x50, 0xb4, 0xff} // darker than either fill
+)
+
+// seekBarPNG draws an audio-player slider: a rounded track played up to pos,
+// with a round knob there. With target in [0, 1] it also shows where a click
+// or drop would go, in a lighter blue: hovering adds a lighter bar up to
+// target and keeps pos visible, dragging moves the fill and knob to target,
+// so the knob sticks to the pointer. It is small so Hovered and Dragged, which run on the main thread
+// while the menu waits, stay quick.
+func seekBarPNG(pos, target float64, dragging bool) []byte {
+	const (
+		w, h   = seekBarWidth * seekScale, 18 * seekScale
+		cy     = h / 2.0
+		trackR = 2.0 * seekScale
+		knobR  = seekKnobR * seekScale
+	)
 	img := image.NewRGBA(image.Rect(0, 0, w, h))
-	fill(img, img.Bounds(), color.RGBA{0x1c, 0x1c, 0x20, 0xff})
-	top := (h - track) / 2
-	fill(img, image.Rect(0, top, w, top+track), color.RGBA{0x48, 0x48, 0x50, 0xff})
-	fill(img, image.Rect(0, top, int(pos*w), top+track), color.RGBA{0x0a, 0x84, 0xff, 0xff})
-	if hover >= 0 {
-		x := int(hover * (w - 2))
-		fill(img, image.Rect(x, 2, x+2, h-2), color.RGBA{0xff, 0xff, 0xff, 0xff})
+	// x maps a fraction to the knob's centre, kept far enough in that the
+	// knob is never cut off at either end.
+	x := func(f float64) float64 { return knobR + f*(w-2*knobR) }
+
+	capsule(img, x(0), x(1), cy, trackR, seekTrack)
+	switch {
+	case target >= 0 && dragging:
+		capsule(img, x(0), x(target), cy, trackR, seekPending)
+		disc(img, x(target), cy, knobR, seekKnob)
+	case target >= 0:
+		capsule(img, x(0), x(target), cy, trackR, seekPending)
+		capsule(img, x(0), x(pos), cy, trackR, seekPlayed)
+		disc(img, x(pos), cy, knobR, seekKnob)
+	default:
+		capsule(img, x(0), x(pos), cy, trackR, seekPlayed)
+		disc(img, x(pos), cy, knobR, seekKnob)
 	}
 	return encodePNG(img)
+}
+
+// capsule paints a horizontal bar with round ends from x0 to x1, centred on
+// cy, antialiased.
+func capsule(img *image.RGBA, x0, x1, cy, r float64, c color.RGBA) {
+	paint(img, x0-r, x1+r, cy-r, cy+r, c, func(px, py float64) float64 {
+		dx := math.Max(x0-px, math.Max(0, px-x1))
+		return r - math.Hypot(dx, py-cy)
+	})
+}
+
+// disc paints a filled circle, antialiased.
+func disc(img *image.RGBA, cx, cy, r float64, c color.RGBA) {
+	paint(img, cx-r, cx+r, cy-r, cy+r, c, func(px, py float64) float64 {
+		return r - math.Hypot(px-cx, py-cy)
+	})
+}
+
+// paint blends c over the pixels in the box, weighted by how far inside the
+// shape each pixel's centre is: inside(px, py) is that signed distance.
+func paint(img *image.RGBA, minX, maxX, minY, maxY float64, c color.RGBA, inside func(px, py float64) float64) {
+	box := image.Rect(int(minX)-1, int(minY)-1, int(maxX)+2, int(maxY)+2).Intersect(img.Bounds())
+	for y := box.Min.Y; y < box.Max.Y; y++ {
+		for x := box.Min.X; x < box.Max.X; x++ {
+			cover := math.Min(1, math.Max(0, inside(float64(x)+0.5, float64(y)+0.5)+0.5))
+			if cover > 0 {
+				blend(img, x, y, c, cover)
+			}
+		}
+	}
+}
+
+// blend draws c at x, y with extra opacity cover, over what is there.
+func blend(img *image.RGBA, x, y int, c color.RGBA, cover float64) {
+	a := float64(c.A) / 255 * cover
+	d := img.RGBAAt(x, y)
+	mix := func(s, d uint8) uint8 { return uint8(float64(s)*a + float64(d)*(1-a) + 0.5) }
+	img.SetRGBA(x, y, color.RGBA{
+		R: mix(c.R, d.R), G: mix(c.G, d.G), B: mix(c.B, d.B),
+		A: uint8(a*255 + float64(d.A)*(1-a) + 0.5),
+	})
 }
 
 // screenshotPNG renders a 1440x900 stand-in for a real screen capture — big
