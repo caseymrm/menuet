@@ -3,7 +3,10 @@
 # For example:
 #
 #   APP=Hello World
-#   include $(GOPATH)/src/github.com/caseymrm/menuet/menuet.mk
+#   include $(shell go list -m -f '{{.Dir}}' github.com/caseymrm/menuet)/menuet.mk
+#
+# (go list -m finds menuet in the module cache; use a direct path instead
+# if you have a local checkout.)
 #
 # Optional features:
 # 
