@@ -604,6 +604,68 @@ static NSAttributedString *MenuetBuildAttributedTitle(NSString *text,
 	return result;
 }
 
+// ---------------------------------------------------------------------------
+// Static rows (Regular.Static).
+//
+// A Regular with no action and no submenu has to be a disabled NSMenuItem,
+// and AppKit draws a disabled title faded no matter what foreground colors
+// its attributed string carries. A custom view escapes that: NSMenuItem only
+// dims its own title, and a view item gets no highlight or click handling
+// unless the view implements them, which this one deliberately does not.
+//
+// The insets reproduce where AppKit puts a native title, so a static row
+// lines up with the ordinary rows around it.
+static const CGFloat kMenuetLabelPadLeft = 22;  // menu edge + state column
+static const CGFloat kMenuetLabelPadRight = 20;
+static const CGFloat kMenuetLabelMinHeight = 22; // a native row at 14pt
+
+@interface MenuetLabelView : NSView
+@property(nonatomic, strong) NSTextField *label;
+- (void)updateTitle:(NSAttributedString *)title;
+@end
+
+@implementation MenuetLabelView
+
+- (instancetype)init {
+	self = [super initWithFrame:NSZeroRect];
+	if (self) {
+		self.label = [NSTextField labelWithAttributedString:[NSAttributedString new]];
+		self.label.lineBreakMode = NSLineBreakByClipping;
+		[self addSubview:self.label];
+		self.autoresizingMask = NSViewWidthSizable;
+	}
+	return self;
+}
+
+- (void)updateTitle:(NSAttributedString *)title {
+	// A run without a color would otherwise draw in the attributed-string
+	// default, plain black, which disappears in dark mode. Native titles use
+	// labelColor, so fill it in wherever the caller left the color unset.
+	NSMutableAttributedString *s = [title mutableCopy];
+	[s enumerateAttribute:NSForegroundColorAttributeName
+	              inRange:NSMakeRange(0, s.length)
+	              options:0
+	           usingBlock:^(id value, NSRange range, BOOL *stop) {
+		if (!value) {
+			[s addAttribute:NSForegroundColorAttributeName
+			          value:[NSColor labelColor]
+			          range:range];
+		}
+	}];
+	self.label.attributedStringValue = s;
+
+	NSSize text = self.label.fittingSize;
+	CGFloat height = MAX(kMenuetLabelMinHeight, ceil(text.height) + 6);
+	self.frame = NSMakeRect(0, 0,
+	                        kMenuetLabelPadLeft + ceil(text.width) + kMenuetLabelPadRight,
+	                        height);
+	self.label.frame = NSMakeRect(kMenuetLabelPadLeft,
+	                              floor((height - text.height) / 2),
+	                              ceil(text.width), ceil(text.height));
+}
+
+@end
+
 // Concatenate just the text content of a Runs array — useful when the
 // platform's native subtitle slot only accepts a plain string.
 static NSString *MenuetPlainTextFromRuns(NSArray *runs) {
@@ -735,6 +797,24 @@ static NSString *MenuetPlainTextFromRuns(NSArray *runs) {
 		BOOL state = [dict[@"State"] boolValue];
 		BOOL hasChildren = [dict[@"HasChildren"] boolValue];
 		BOOL clickable = [dict[@"Clickable"] boolValue];
+		if ([dict[@"Static"] boolValue]) {
+			// Go only sets Static on rows with no action and no submenu.
+			BOOL reuseLabel = item && [item.view isKindOfClass:[MenuetLabelView class]];
+			if (!reuseLabel) {
+				if (item) [self removeItemAtIndex:i];
+				item = [self insertItemWithTitle:@"" action:nil keyEquivalent:@"" atIndex:i];
+				item.view = [MenuetLabelView new];
+			}
+			[(MenuetLabelView *)item.view updateTitle:MenuetBuildAttributedTitle(
+			    text, runs, fontSize.floatValue, fontWeight.floatValue,
+			    itemColor, itemMono)];
+			item.target = nil;
+			item.action = nil;
+			item.representedObject = nil;
+			item.submenu = nil;
+			item.enabled = NO;
+			continue;
+		}
 		// A leftover custom view (image or search row that changed type at
 		// this index) would supersede the title we set below —
 		// NSMenuItem.view wins over attributedTitle — so those items can't

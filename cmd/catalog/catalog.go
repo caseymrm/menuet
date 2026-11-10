@@ -429,6 +429,17 @@ func richTextDemo() []menuet.MenuItem {
 				{Text: "to dark mode", Color: menuet.LabelQuaternary},
 			},
 		},
+		// The row above has no Clicked or Children, so AppKit draws it as a
+		// disabled item, faded over its colors. Static keeps them intact.
+		menuet.Regular{
+			Runs: []menuet.TextRun{
+				{Text: "Static ", Color: menuet.LabelPrimary},
+				{Text: "rows keep ", Color: menuet.LabelSecondary},
+				{Text: "full ", Color: menuet.LabelTertiary},
+				{Text: "contrast", Color: menuet.LabelQuaternary},
+			},
+			Static: true,
+		},
 		menuet.Regular{
 			Runs: []menuet.TextRun{
 				{Text: "Status: ", Color: menuet.LabelSecondary},

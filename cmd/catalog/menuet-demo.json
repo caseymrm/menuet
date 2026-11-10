@@ -1539,6 +1539,158 @@
           "type": "regular",
           "runs": [
             {
+              "Text": "Static ",
+              "Color": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0,
+                "Semantic": "labelColor"
+              },
+              "FontSize": 0,
+              "FontWeight": 0,
+              "Monospaced": false,
+              "Badge": false,
+              "Underline": false,
+              "UnderlineColor": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Strikethrough": false,
+              "StrikethroughColor": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Background": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Shadow": null
+            },
+            {
+              "Text": "rows keep ",
+              "Color": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0,
+                "Semantic": "secondaryLabelColor"
+              },
+              "FontSize": 0,
+              "FontWeight": 0,
+              "Monospaced": false,
+              "Badge": false,
+              "Underline": false,
+              "UnderlineColor": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Strikethrough": false,
+              "StrikethroughColor": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Background": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Shadow": null
+            },
+            {
+              "Text": "full ",
+              "Color": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0,
+                "Semantic": "tertiaryLabelColor"
+              },
+              "FontSize": 0,
+              "FontWeight": 0,
+              "Monospaced": false,
+              "Badge": false,
+              "Underline": false,
+              "UnderlineColor": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Strikethrough": false,
+              "StrikethroughColor": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Background": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Shadow": null
+            },
+            {
+              "Text": "contrast",
+              "Color": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0,
+                "Semantic": "quaternaryLabelColor"
+              },
+              "FontSize": 0,
+              "FontWeight": 0,
+              "Monospaced": false,
+              "Badge": false,
+              "Underline": false,
+              "UnderlineColor": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Strikethrough": false,
+              "StrikethroughColor": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Background": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Shadow": null
+            }
+          ],
+          "color": {
+            "R": 0,
+            "G": 0,
+            "B": 0,
+            "A": 0
+          },
+          "static": true
+        },
+        {
+          "type": "regular",
+          "runs": [
+            {
               "Text": "Status: ",
               "Color": {
                 "R": 0,

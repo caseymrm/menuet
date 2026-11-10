@@ -53,6 +53,7 @@ type SnapshotItem struct {
 	Monospaced bool       `json:"monospaced,omitempty"`
 	Shortcut   *Shortcut  `json:"shortcut,omitempty"`
 	State      bool       `json:"state,omitempty"`
+	Static     bool       `json:"static,omitempty"`
 
 	// Image ("image" Type) fields. The picture's bytes are deliberately NOT
 	// captured: a screenshot base64s to ~1MB, and a snapshot is a structural
@@ -151,6 +152,7 @@ func snapshotItem(item MenuItem, depth int) SnapshotItem {
 			Monospaced: v.Monospaced,
 			Shortcut:   v.Shortcut,
 			State:      v.State,
+			Static:     v.Static && v.Clicked == nil && v.Children == nil,
 		}
 		if v.Children != nil {
 			s.Children = snapshotItems(v.Children(), depth+1)
