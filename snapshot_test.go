@@ -129,6 +129,7 @@ func TestSnapshotImageIgnoresCallbacks(t *testing.T) {
 	live.Clicked = func() { called = true }
 	live.ClickedAt = func(x, y float64) { called = true }
 	live.Hovered = func(x, y float64) []byte { called = true; return nil }
+	live.Dragged = func(x, y float64) []byte { called = true; return nil }
 
 	got := snapshotItems([]MenuItem{plain, live}, 0)
 	want := SnapshotItem{Type: "image", ImageWidth: 300,

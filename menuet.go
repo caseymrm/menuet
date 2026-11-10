@@ -317,25 +317,49 @@ func itemClickedAt(uniqueCString *C.char, x, y C.double) {
 // hovered returns the picture an Image's Hovered gives for the pointer at
 // x, y, or nil. An empty picture is nil too: it means keep the one shown.
 func (a *Application) hovered(unique string, x, y float64) []byte {
+	return a.picture(unique, x, y, func(v Image) func(x, y float64) []byte { return v.Hovered })
+}
+
+// dragged is hovered for Dragged, while the button is held down.
+func (a *Application) dragged(unique string, x, y float64) []byte {
+	return a.picture(unique, x, y, func(v Image) func(x, y float64) []byte { return v.Dragged })
+}
+
+// picture calls the callback pick chooses from the Image at unique, or
+// returns nil when there is no such row or callback.
+func (a *Application) picture(unique string, x, y float64, pick func(Image) func(x, y float64) []byte) []byte {
 	a.visibleMenuItemsMutex.RLock()
 	item, ok := a.visibleMenuItems[unique]
 	a.visibleMenuItemsMutex.RUnlock()
-	if v, isImage := item.item.(Image); ok && isImage && v.Hovered != nil {
-		if b := v.Hovered(unit(x), unit(y)); len(b) > 0 {
+	v, isImage := item.item.(Image)
+	if !ok || !isImage {
+		return nil
+	}
+	if f := pick(v); f != nil {
+		if b := f(unit(x), unit(y)); len(b) > 0 {
 			return b
 		}
 	}
 	return nil
 }
 
-//export imageHovered
-func imageHovered(uniqueCString *C.char, x, y C.double, size *C.int) unsafe.Pointer {
-	b := App().hovered(C.GoString(uniqueCString), float64(x), float64(y))
+// cPicture hands b to ObjC, which frees it, or returns NULL for no picture.
+func cPicture(b []byte, size *C.int) unsafe.Pointer {
 	if len(b) == 0 {
 		return nil
 	}
 	*size = C.int(len(b))
-	return C.CBytes(b) // freed by the caller
+	return C.CBytes(b)
+}
+
+//export imageHovered
+func imageHovered(uniqueCString *C.char, x, y C.double, size *C.int) unsafe.Pointer {
+	return cPicture(App().hovered(C.GoString(uniqueCString), float64(x), float64(y)), size)
+}
+
+//export imageDragged
+func imageDragged(uniqueCString *C.char, x, y C.double, size *C.int) unsafe.Pointer {
+	return cPicture(App().dragged(C.GoString(uniqueCString), float64(x), float64(y)), size)
 }
 
 //export itemClicked

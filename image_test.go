@@ -221,3 +221,37 @@ func TestUnit(t *testing.T) {
 		}
 	}
 }
+
+func TestImageDraggedIsDraggable(t *testing.T) {
+	item := buildInternalItem(Image{Data: []byte{1}, Dragged: func(x, y float64) []byte { return nil }}, "u1", "p1")
+	if !item.Draggable {
+		t.Error("an Image with Dragged must be Draggable")
+	}
+	if buildInternalItem(Image{Data: []byte{1}}, "u2", "p1").Draggable {
+		t.Error("an Image without Dragged must not be Draggable")
+	}
+}
+
+func TestDraggedReturnsDragPicture(t *testing.T) {
+	img := Image{Data: []byte{1},
+		Hovered: func(x, y float64) []byte { return []byte("hover") },
+		Dragged: func(x, y float64) []byte { return []byte{byte(x * 10), byte(y * 10)} }}
+	a := &Application{visibleMenuItems: map[string]internalItem{
+		"bar":   buildInternalItem(img, "bar", "root"),
+		"plain": buildInternalItem(Image{Data: []byte{1}}, "plain", "root"),
+		"empty": buildInternalItem(Image{Data: []byte{1},
+			Dragged: func(x, y float64) []byte { return []byte{} }}, "empty", "root"),
+	}}
+
+	if got := a.dragged("bar", 0.5, -1); string(got) != string([]byte{5, 0}) {
+		t.Errorf("dragged = %v, want [5 0]", got)
+	}
+	if got := a.hovered("bar", 0.5, 0.5); string(got) != "hover" {
+		t.Errorf("hovered = %q, want hover", got)
+	}
+	for _, u := range []string{"plain", "empty", "missing"} {
+		if got := a.dragged(u, 0.5, 0.5); got != nil {
+			t.Errorf("dragged(%q) = %v, want nil", u, got)
+		}
+	}
+}

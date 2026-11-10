@@ -152,6 +152,15 @@ type Image struct {
 	// picture comes back when the pointer leaves. It runs on the main thread
 	// while the menu waits, so keep it to a few milliseconds.
 	Hovered func(x, y float64) []byte
+
+	// Dragged, when set, is called instead of Hovered while the pointer
+	// drags over the picture with the button held (once it has moved a few
+	// points, so a click doesn't count as a drag), with the same
+	// coordinates, and returns the picture to show, or nil to keep the one
+	// shown. Pair it with ClickedAt, which the drop calls with where the
+	// button was released. Dragging off the picture cancels: its own picture
+	// comes back. Like Hovered, it runs on the main thread.
+	Dragged func(x, y float64) []byte
 }
 
 func (Image) menuItem() {}
@@ -179,6 +188,7 @@ type internalItem struct {
 	Static      bool `json:",omitempty"`
 	Positional  bool `json:",omitempty"` // an Image with ClickedAt
 	Hoverable   bool `json:",omitempty"` // an Image with Hovered
+	Draggable   bool `json:",omitempty"` // an Image with Dragged
 
 	// Image ("image" Type) fields. ImageData is []byte, which encoding/json
 	// base64-encodes for us; the ObjC side decodes it back.
@@ -248,6 +258,7 @@ func buildInternalItem(item MenuItem, unique, parentUnique string) internalItem 
 		out.Clickable = v.Clicked != nil || v.ClickedAt != nil
 		out.Positional = v.ClickedAt != nil
 		out.Hoverable = v.Hovered != nil
+		out.Draggable = v.Dragged != nil
 	}
 	return out
 }
