@@ -868,7 +868,9 @@ static NSString *MenuetPlainTextFromRuns(NSArray *runs) {
 			imageView.maxSize = NSMakeSize(maxW, maxH);
 			[imageView updateImage:picture clickable:imageClickable];
 			item.target = self;
-			if (imageClickable) {
+			// A positional row reports its click itself from mouseUp and
+			// never fires the item action, so leave it unset.
+			if (imageClickable && !imagePositional) {
 				item.action = @selector(press:);
 				item.representedObject = imageUnique;
 			} else {
@@ -1360,9 +1362,14 @@ void setState(const char *jsonString) {
 		NSString *imageName = state[@"Image"];
 		NSImage *image = [NSImage imageFromName:imageName withHeight:22];
 		// Images come from a per-name, per-height cache and are shared
-		// objects, so set the template flag explicitly on every call,
-		// before assigning the image to the button.
-		image.template = ![state[@"ColorImage"] boolValue];
+		// objects, so the cached one always stays a template image. A
+		// colored status image is drawn from its own copy, so a menu
+		// item using the same image name is not drawn in color too.
+		image.template = YES;
+		if ([state[@"ColorImage"] boolValue] && image) {
+			image = [image copy];
+			image.template = NO;
+		}
 		_statusItem.button.image = image;
 		_statusItem.button.imagePosition = NSImageLeft;
 	});

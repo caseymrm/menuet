@@ -251,8 +251,9 @@ it to a few milliseconds.
 
 `Dragged` is the same, but called instead of `Hovered` while the button
 is held, so a drag can look different from a hover. The drop is a click:
-`ClickedAt` gets where the button was released. Dragging off the picture
-cancels and brings its own picture back:
+`ClickedAt` gets where the button was released, clamped to the picture's
+edge if the pointer is in the row's margin beside the picture. Dragging
+off the row cancels and brings its own picture back:
 
 ```go
 menuet.Image{
@@ -332,10 +333,8 @@ menuet.App().MenuBarAppearanceChanged = func(dark bool) {
 
 Two things to know:
 
-- Images up to 22 points high are shared by name. If a `ColorImage`
-  status image uses the same image name as a menu item, the menu item's
-  image is drawn in color as well. Use a separate image name for the
-  colored status image.
+- A `ColorImage` status image is drawn from its own copy, so a menu item
+  that uses the same image name still gets the template version.
 - `ColorImage` is a new field in `MenuState`. Code that fills
   `MenuState` with an unkeyed literal (`menuet.MenuState{"title", nil,
   "image"}`) needs the field names added.

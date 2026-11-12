@@ -158,8 +158,11 @@ type Image struct {
 	// points, so a click doesn't count as a drag), with the same
 	// coordinates, and returns the picture to show, or nil to keep the one
 	// shown. Pair it with ClickedAt, which the drop calls with where the
-	// button was released. Dragging off the picture cancels: its own picture
-	// comes back. Like Hovered, it runs on the main thread.
+	// button was released. A drop in the row's margin beside the picture
+	// still calls ClickedAt, with the position clamped to the picture's
+	// edge. Dragging off the row brings its own picture back, and a drop
+	// there cancels: ClickedAt is not called. Like Hovered, it runs on the
+	// main thread.
 	Dragged func(x, y float64) []byte
 }
 
