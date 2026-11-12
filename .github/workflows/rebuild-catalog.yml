@@ -32,6 +32,10 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # A manual run from another branch must not put that branch's
+          # commits into the rebuild PR.
+          ref: master
       - uses: actions/setup-go@v5
         with:
           go-version: stable
