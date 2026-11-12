@@ -2575,7 +2575,7 @@
                   "Shadow": null
                 },
                 {
-                  "Text": "11:57:00 PM",
+                  "Text": "9:43:26 PM",
                   "Color": {
                     "R": 0,
                     "G": 0,
@@ -2675,6 +2675,76 @@
                   "FontSize": 11,
                   "FontWeight": 0,
                   "Monospaced": false,
+                  "Badge": false,
+                  "Underline": false,
+                  "UnderlineColor": {
+                    "R": 0,
+                    "G": 0,
+                    "B": 0,
+                    "A": 0
+                  },
+                  "Strikethrough": false,
+                  "StrikethroughColor": {
+                    "R": 0,
+                    "G": 0,
+                    "B": 0,
+                    "A": 0
+                  },
+                  "Background": {
+                    "R": 0,
+                    "G": 0,
+                    "B": 0,
+                    "A": 0
+                  },
+                  "Shadow": null
+                }
+              ],
+              "color": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              }
+            }
+          ]
+        },
+        {
+          "type": "regular",
+          "text": "Seek bar (ClickedAt, Hovered, Dragged)",
+          "color": {
+            "R": 0,
+            "G": 0,
+            "B": 0,
+            "A": 0
+          },
+          "children": [
+            {
+              "type": "image",
+              "color": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "imageWidth": 320,
+              "imageHeight": 360,
+              "imageSource": "data"
+            },
+            {
+              "type": "regular",
+              "runs": [
+                {
+                  "Text": "Position  30% — click or drag the bar to seek",
+                  "Color": {
+                    "R": 0,
+                    "G": 0,
+                    "B": 0,
+                    "A": 0,
+                    "Semantic": "secondaryLabelColor"
+                  },
+                  "FontSize": 11,
+                  "FontWeight": 0,
+                  "Monospaced": true,
                   "Badge": false,
                   "Underline": false,
                   "UnderlineColor": {
