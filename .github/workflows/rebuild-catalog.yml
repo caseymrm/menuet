@@ -1,0 +1,72 @@
+name: Rebuild Catalog
+
+# The Catalog bundle's binary and cmd/catalog/menuet-demo.json are checked
+# in, and they go stale when the library or the Catalog changes without a
+# local rebuild. This rebuilds both and opens a PR with the result.
+#
+# The paths list holds sources only. It must never match the two generated
+# files, or merging the rebuild PR would start another rebuild.
+on:
+  push:
+    branches: [master]
+    paths:
+      - '**.go'
+      - '**.m'
+      - '**.h'
+      - 'go.mod'
+      - 'go.sum'
+      - 'menuet.mk'
+      - 'cmd/catalog/Makefile'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: rebuild-catalog
+  cancel-in-progress: true
+
+jobs:
+  rebuild:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # A manual run from another branch must not put that branch's
+          # commits into the rebuild PR.
+          ref: master
+      - uses: actions/setup-go@v5
+        with:
+          go-version: stable
+      - name: Build the bundle binary
+        working-directory: cmd/catalog
+        # Plain `make` runs the app. -B forces the build: after a fresh
+        # checkout the binary is not older than its sources.
+        run: make -B Catalog.app/Contents/MacOS/catalog
+      - name: Write menuet-demo.json
+        working-directory: cmd/catalog
+        run: make web-preview
+      - name: Open a pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          files=(cmd/catalog/Catalog.app/Contents/MacOS/catalog cmd/catalog/menuet-demo.json)
+          if git diff --quiet -- "${files[@]}"; then
+            echo "No change to the Catalog bundle or snapshot."
+            exit 0
+          fi
+          branch=catalog-rebuild
+          sha=$(git rev-parse --short HEAD)
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -B "$branch"
+          git add -- "${files[@]}"
+          git commit -m "Rebuild Catalog at $sha"
+          git push --force origin "$branch"
+          if [ "$(gh pr list --head "$branch" --state open --json number --jq length)" = "0" ]; then
+            gh pr create --base master --head "$branch" \
+              --title "Rebuild Catalog at $sha" \
+              --body "Automated rebuild of the Catalog binary and \`cmd/catalog/menuet-demo.json\` from master at $sha. Check that the JSON diff matches the current \`catalog.go\`."
+          fi
