@@ -1367,7 +1367,7 @@ void setState(const char *jsonString) {
 		// item using the same image name is not drawn in color too.
 		image.template = YES;
 		if ([state[@"ColorImage"] boolValue] && image) {
-			image = [image copy];
+			image = [[image copy] autorelease];
 			image.template = NO;
 		}
 		_statusItem.button.image = image;
