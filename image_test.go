@@ -3,6 +3,7 @@ package menuet
 import (
 	"encoding/base64"
 	"encoding/json"
+	"math"
 	"strings"
 	"testing"
 	"time"
@@ -55,6 +56,71 @@ func TestImageClickableOnlyWhenClickedSet(t *testing.T) {
 	}
 }
 
+func TestImageClickedAtIsPositional(t *testing.T) {
+	item := buildInternalItem(Image{Data: []byte{1}, ClickedAt: func(x, y float64) {}}, "u1", "p1")
+	if !item.Clickable || !item.Positional {
+		t.Errorf("Clickable, Positional = %v, %v, want true, true", item.Clickable, item.Positional)
+	}
+	plain := buildInternalItem(Image{Data: []byte{1}, Clicked: func() {}}, "u2", "p1")
+	if plain.Positional {
+		t.Error("an Image with only Clicked must not be Positional")
+	}
+}
+
+func TestImageHoveredIsHoverable(t *testing.T) {
+	item := buildInternalItem(Image{Data: []byte{1}, Hovered: func(x, y float64) []byte { return nil }}, "u1", "p1")
+	if !item.Hoverable {
+		t.Error("an Image with Hovered must be Hoverable")
+	}
+	if buildInternalItem(Image{Data: []byte{1}}, "u2", "p1").Hoverable {
+		t.Error("an Image without Hovered must not be Hoverable")
+	}
+}
+
+func TestHoveredReturnsPicture(t *testing.T) {
+	a := App()
+	a.visibleMenuItemsMutex.Lock()
+	a.visibleMenuItems["bar"] = buildInternalItem(Image{Data: []byte{1},
+		Hovered: func(x, y float64) []byte { return []byte{byte(x * 10), byte(y * 10)} }}, "bar", "p1")
+	a.visibleMenuItemsMutex.Unlock()
+	defer func() {
+		a.visibleMenuItemsMutex.Lock()
+		delete(a.visibleMenuItems, "bar")
+		a.visibleMenuItemsMutex.Unlock()
+	}()
+
+	if got := a.hovered("bar", 0.5, 2); string(got) != string([]byte{5, 10}) {
+		t.Errorf("hovered = %v, want [5 10]", got)
+	}
+	if got := a.hovered("missing", 0.5, 0.5); got != nil {
+		t.Errorf("hovered on a missing row = %v, want nil", got)
+	}
+}
+
+func TestClickedAtClampsToPicture(t *testing.T) {
+	a := App()
+	got := make(chan [2]float64, 1)
+	a.visibleMenuItemsMutex.Lock()
+	a.visibleMenuItems["seek"] = buildInternalItem(Image{Data: []byte{1},
+		ClickedAt: func(x, y float64) { got <- [2]float64{x, y} }}, "seek", "p1")
+	a.visibleMenuItemsMutex.Unlock()
+	defer func() {
+		a.visibleMenuItemsMutex.Lock()
+		delete(a.visibleMenuItems, "seek")
+		a.visibleMenuItemsMutex.Unlock()
+	}()
+
+	a.clickedAt("seek", -0.1, 1.2)
+	select {
+	case p := <-got:
+		if p != [2]float64{0, 1} {
+			t.Errorf("ClickedAt got %v, want [0 1]", p)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("ClickedAt was not invoked within 1s")
+	}
+}
+
 // Default bounds are substituted once here in Go — every consumer (ObjC
 // bridge, snapshots) sees concrete values, so the defaults live in exactly
 // one place. Per-axis: an explicit value on one axis keeps the default on
@@ -83,5 +149,109 @@ func TestImageClickRoutesToCallback(t *testing.T) {
 	case <-fired:
 	case <-time.After(2 * time.Second):
 		t.Fatal("clicking an Image did not invoke its Clicked callback")
+	}
+}
+
+func TestClickedAtTakesPrecedenceOverClicked(t *testing.T) {
+	at := make(chan struct{}, 1)
+	plain := make(chan struct{}, 1)
+	img := Image{Data: []byte{1},
+		Clicked:   func() { plain <- struct{}{} },
+		ClickedAt: func(x, y float64) { at <- struct{}{} }}
+	item := buildInternalItem(img, "u1", "root")
+	if !item.Clickable || !item.Positional {
+		t.Fatalf("Clickable, Positional = %v, %v, want true, true", item.Clickable, item.Positional)
+	}
+	a := &Application{visibleMenuItems: map[string]internalItem{"u1": item}}
+
+	a.clickedAt("u1", 0.5, 0.5)
+	select {
+	case <-at:
+	case <-time.After(time.Second):
+		t.Fatal("ClickedAt was not invoked within 1s")
+	}
+	select {
+	case <-plain:
+		t.Error("clickedAt must not invoke Clicked")
+	case <-time.After(50 * time.Millisecond):
+	}
+}
+
+func TestClickedAtOnMissingRow(t *testing.T) {
+	a := &Application{visibleMenuItems: make(map[string]internalItem)}
+	a.clickedAt("missing", 0.5, 0.5) // logs and returns; must not panic
+}
+
+func TestHoveredEmptyIsNil(t *testing.T) {
+	for name, pic := range map[string][]byte{"nil": nil, "empty": {}} {
+		img := Image{Data: []byte{1}, Hovered: func(x, y float64) []byte { return pic }}
+		a := &Application{visibleMenuItems: map[string]internalItem{
+			"bar": buildInternalItem(img, "bar", "root")}}
+		if got := a.hovered("bar", 0.5, 0.5); got != nil {
+			t.Errorf("%s: hovered = %#v, want nil", name, got)
+		}
+	}
+}
+
+func TestHoveredOnRowWithoutHovered(t *testing.T) {
+	a := &Application{visibleMenuItems: map[string]internalItem{
+		"img": buildInternalItem(Image{Data: []byte{1}}, "img", "root"),
+		"reg": buildInternalItem(Regular{Text: "x"}, "reg", "root"),
+	}}
+	for _, u := range []string{"img", "reg"} {
+		if got := a.hovered(u, 0.5, 0.5); got != nil {
+			t.Errorf("hovered(%q) = %v, want nil", u, got)
+		}
+	}
+}
+
+func TestUnit(t *testing.T) {
+	for _, c := range []struct{ in, want float64 }{
+		{0, 0},
+		{1, 1},
+		{0.25, 0.25},
+		{-0.5, 0},
+		{1.5, 1},
+		{math.Inf(-1), 0},
+		{math.Inf(1), 1},
+		{math.NaN(), 0},
+	} {
+		if got := unit(c.in); got != c.want {
+			t.Errorf("unit(%v) = %v, want %v", c.in, got, c.want)
+		}
+	}
+}
+
+func TestImageDraggedIsDraggable(t *testing.T) {
+	item := buildInternalItem(Image{Data: []byte{1}, Dragged: func(x, y float64) []byte { return nil }}, "u1", "p1")
+	if !item.Draggable {
+		t.Error("an Image with Dragged must be Draggable")
+	}
+	if buildInternalItem(Image{Data: []byte{1}}, "u2", "p1").Draggable {
+		t.Error("an Image without Dragged must not be Draggable")
+	}
+}
+
+func TestDraggedReturnsDragPicture(t *testing.T) {
+	img := Image{Data: []byte{1},
+		Hovered: func(x, y float64) []byte { return []byte("hover") },
+		Dragged: func(x, y float64) []byte { return []byte{byte(x * 10), byte(y * 10)} }}
+	a := &Application{visibleMenuItems: map[string]internalItem{
+		"bar":   buildInternalItem(img, "bar", "root"),
+		"plain": buildInternalItem(Image{Data: []byte{1}}, "plain", "root"),
+		"empty": buildInternalItem(Image{Data: []byte{1},
+			Dragged: func(x, y float64) []byte { return []byte{} }}, "empty", "root"),
+	}}
+
+	if got := a.dragged("bar", 0.5, -1); string(got) != string([]byte{5, 0}) {
+		t.Errorf("dragged = %v, want [5 0]", got)
+	}
+	if got := a.hovered("bar", 0.5, 0.5); string(got) != "hover" {
+		t.Errorf("hovered = %q, want hover", got)
+	}
+	for _, u := range []string{"plain", "empty", "missing"} {
+		if got := a.dragged(u, 0.5, 0.5); got != nil {
+			t.Errorf("dragged(%q) = %v, want nil", u, got)
+		}
 	}
 }

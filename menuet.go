@@ -16,6 +16,7 @@ import (
 	"context"
 	"encoding/json"
 	"log"
+	"math"
 	"reflect"
 	"sync"
 	"time"
@@ -281,6 +282,84 @@ func (a *Application) clicked(unique string) {
 			go v.Clicked()
 		}
 	}
+}
+
+func (a *Application) clickedAt(unique string, x, y float64) {
+	a.visibleMenuItemsMutex.RLock()
+	item, ok := a.visibleMenuItems[unique]
+	a.visibleMenuItemsMutex.RUnlock()
+	if !ok {
+		log.Printf("Item not found for click: %s", unique)
+		return
+	}
+	if v, ok := item.item.(Image); ok && v.ClickedAt != nil {
+		go v.ClickedAt(unit(x), unit(y))
+	}
+}
+
+// unit clamps v to [0, 1]: a click on the row's padding lands outside the
+// picture. NaN, from a picture with no width or height, becomes 0.
+func unit(v float64) float64 {
+	if v < 0 || math.IsNaN(v) {
+		return 0
+	}
+	if v > 1 {
+		return 1
+	}
+	return v
+}
+
+//export itemClickedAt
+func itemClickedAt(uniqueCString *C.char, x, y C.double) {
+	App().clickedAt(C.GoString(uniqueCString), float64(x), float64(y))
+}
+
+// hovered returns the picture an Image's Hovered gives for the pointer at
+// x, y, or nil. An empty picture is nil too: it means keep the one shown.
+func (a *Application) hovered(unique string, x, y float64) []byte {
+	return a.picture(unique, x, y, func(v Image) func(x, y float64) []byte { return v.Hovered })
+}
+
+// dragged is hovered for Dragged, while the button is held down.
+func (a *Application) dragged(unique string, x, y float64) []byte {
+	return a.picture(unique, x, y, func(v Image) func(x, y float64) []byte { return v.Dragged })
+}
+
+// picture calls the callback pick chooses from the Image at unique, or
+// returns nil when there is no such row or callback.
+func (a *Application) picture(unique string, x, y float64, pick func(Image) func(x, y float64) []byte) []byte {
+	a.visibleMenuItemsMutex.RLock()
+	item, ok := a.visibleMenuItems[unique]
+	a.visibleMenuItemsMutex.RUnlock()
+	v, isImage := item.item.(Image)
+	if !ok || !isImage {
+		return nil
+	}
+	if f := pick(v); f != nil {
+		if b := f(unit(x), unit(y)); len(b) > 0 {
+			return b
+		}
+	}
+	return nil
+}
+
+// cPicture hands b to ObjC, which frees it, or returns NULL for no picture.
+func cPicture(b []byte, size *C.int) unsafe.Pointer {
+	if len(b) == 0 {
+		return nil
+	}
+	*size = C.int(len(b))
+	return C.CBytes(b)
+}
+
+//export imageHovered
+func imageHovered(uniqueCString *C.char, x, y C.double, size *C.int) unsafe.Pointer {
+	return cPicture(App().hovered(C.GoString(uniqueCString), float64(x), float64(y)), size)
+}
+
+//export imageDragged
+func imageDragged(uniqueCString *C.char, x, y C.double, size *C.int) unsafe.Pointer {
+	return cPicture(App().dragged(C.GoString(uniqueCString), float64(x), float64(y)), size)
 }
 
 //export itemClicked

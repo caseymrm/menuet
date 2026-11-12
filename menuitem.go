@@ -138,6 +138,29 @@ type Image struct {
 	// Clicked, when set, makes the row respond to clicks and highlight under
 	// the pointer, like a Regular. Leave nil for a purely decorative picture.
 	Clicked func()
+
+	// ClickedAt, when set, makes the picture a control: a click calls it with
+	// where it landed, as fractions of the picture's width and height from
+	// its top-left corner, each in [0, 1]. Use it for a seek bar or a map.
+	// The row does not highlight under the pointer, the menu stays open (call
+	// MenuChanged to show the result), and it takes precedence over Clicked.
+	ClickedAt func(x, y float64)
+
+	// Hovered, when set, is called as the pointer moves over the picture,
+	// with the same coordinates as ClickedAt, and returns the encoded picture
+	// to show in its place, or nil to keep the one shown. The row's own
+	// picture comes back when the pointer leaves. It runs on the main thread
+	// while the menu waits, so keep it to a few milliseconds.
+	Hovered func(x, y float64) []byte
+
+	// Dragged, when set, is called instead of Hovered while the pointer
+	// drags over the picture with the button held (once it has moved a few
+	// points, so a click doesn't count as a drag), with the same
+	// coordinates, and returns the picture to show, or nil to keep the one
+	// shown. Pair it with ClickedAt, which the drop calls with where the
+	// button was released. Dragging off the picture cancels: its own picture
+	// comes back. Like Hovered, it runs on the main thread.
+	Dragged func(x, y float64) []byte
 }
 
 func (Image) menuItem() {}
@@ -163,6 +186,9 @@ type internalItem struct {
 	HasChildren bool
 	Clickable   bool
 	Static      bool `json:",omitempty"`
+	Positional  bool `json:",omitempty"` // an Image with ClickedAt
+	Hoverable   bool `json:",omitempty"` // an Image with Hovered
+	Draggable   bool `json:",omitempty"` // an Image with Dragged
 
 	// Image ("image" Type) fields. ImageData is []byte, which encoding/json
 	// base64-encodes for us; the ObjC side decodes it back.
@@ -229,7 +255,10 @@ func buildInternalItem(item MenuItem, unique, parentUnique string) internalItem 
 		if out.MaxHeight <= 0 {
 			out.MaxHeight = DefaultMaxImageHeight
 		}
-		out.Clickable = v.Clicked != nil
+		out.Clickable = v.Clicked != nil || v.ClickedAt != nil
+		out.Positional = v.ClickedAt != nil
+		out.Hoverable = v.Hovered != nil
+		out.Draggable = v.Dragged != nil
 	}
 	return out
 }
