@@ -251,6 +251,8 @@ menuet.App().Children = func() []menuet.MenuItem {
 ```
 
 Keep the selection in your own state and pass it back as `Selected`.
+`Changed` runs on the main thread while the menu waits, so only record
+the selection there and start a goroutine for anything slow.
 The Catalog has a live example under "Tabs".
 
 ## Picture rows

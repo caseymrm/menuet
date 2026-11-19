@@ -669,6 +669,13 @@ static const CGFloat kMenuetTabsHeight = 34;
 	self.control.selectedSegment = selected;
 }
 
+- (void)dealloc {
+	// The control is not released here: the view never retained it. Its
+	// superview, this view, owns it.
+	[_tabsUnique release];
+	[super dealloc];
+}
+
 - (void)changed:(NSSegmentedControl *)sender {
 	tabSelected(self.tabsUnique.UTF8String, (int)sender.selectedSegment);
 	MenuetMenu *menu = (MenuetMenu *)self.enclosingMenuItem.menu;
@@ -950,9 +957,10 @@ static NSString *MenuetPlainTextFromRuns(NSArray *runs) {
 			if (!reuse) {
 				if (item) [self removeItemAtIndex:i];
 				item = [self insertItemWithTitle:@"" action:nil keyEquivalent:@"" atIndex:i];
-				item.view = [[MenuetTabsView alloc] initWithLabels:labels
-				                                          selected:selected
-				                                        tabsUnique:tabsUnique];
+				// The item retains its view. This file compiles without ARC.
+				item.view = [[[MenuetTabsView alloc] initWithLabels:labels
+				                                           selected:selected
+				                                         tabsUnique:tabsUnique] autorelease];
 			} else {
 				[(MenuetTabsView *)item.view updateLabels:labels
 				                                 selected:selected

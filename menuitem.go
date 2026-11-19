@@ -172,6 +172,10 @@ func (Image) menuItem() {}
 // Choosing a tab calls Changed with its index, then repopulates the open
 // menu from the same Children function, so the rows below can follow the
 // selection without the menu closing.
+//
+// Changed runs on the main thread and the menu waits for it, so it should
+// only record the selection. Calling Alert from it would never return;
+// start a goroutine for anything slow.
 type Tabs struct {
 	Labels   []string
 	Selected int
