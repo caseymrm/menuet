@@ -73,6 +73,17 @@ static ImageCache *instance;
 	if (name.length == 0) {
 		return nil;
 	}
+	if ([name hasPrefix:@"data:"]) {
+		// A data: URL is the whole image, and an app that uses one usually
+		// changes it on every update. Caching it would keep one image per
+		// update for the life of the app, so load it each time instead.
+		NSImage *inlineImage = [[[NSImage alloc]
+			initWithContentsOfURL:[NSURL URLWithString:name]] autorelease];
+		if (height > 0 && inlineImage.size.height > height) {
+			inlineImage = [[inlineImage imageWithHeight:height] autorelease];
+		}
+		return inlineImage;
+	}
 	NSImage *image =
 		[[ImageCache instance] getImageForName:name withHeight:height];
 	if (image != nil) {

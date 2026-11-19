@@ -34,6 +34,16 @@ Leave `Clicked` as `nil` (the default) for the standard behavior where
 any click opens the menu. Safe to set or clear at runtime; the next
 click reflects the current value.
 
+Set `Application.OptionClicked` for a second action on Option-left-click.
+That click then neither opens the menu nor calls `Clicked`; every other
+click behaves as before. It works with or without `Clicked`:
+
+```go
+menuet.App().OptionClicked = func() {
+    // a secondary action, for example open the app's main window
+}
+```
+
 ## Running as a real macOS app
 
 `go run` is fine for early development, but several menuet features only work
@@ -354,6 +364,18 @@ menuet.App().MenuBarAppearanceChanged = func(dark bool) {
     }
     menuet.App().SetMenuState(&menuet.MenuState{Image: image, ColorImage: true})
 }
+```
+
+An image name can also be a `data:` URL, which carries the image inline.
+Use it for an image the app draws itself, such as a small gauge. Inline
+images are not cached, so one that changes on every update costs no
+memory over time:
+
+```go
+menuet.App().SetMenuState(&menuet.MenuState{
+    Image:      "data:image/png;base64," + base64.StdEncoding.EncodeToString(pngBytes),
+    ColorImage: true,
+})
 ```
 
 Two things to know:
