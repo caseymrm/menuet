@@ -283,6 +283,16 @@
         },
         {
           "type": "regular",
+          "text": "Inline image (data: URL)",
+          "color": {
+            "R": 0,
+            "G": 0,
+            "B": 0,
+            "A": 0
+          }
+        },
+        {
+          "type": "regular",
           "text": "Menu bar: light",
           "color": {
             "R": 0,
@@ -741,6 +751,16 @@
         {
           "type": "regular",
           "text": "Enabled (left click counts; right click still opens menu)",
+          "color": {
+            "R": 0,
+            "G": 0,
+            "B": 0,
+            "A": 0
+          }
+        },
+        {
+          "type": "regular",
+          "text": "Option-click handler (Option-left-click counts)",
           "color": {
             "R": 0,
             "G": 0,
@@ -2575,7 +2595,7 @@
                   "Shadow": null
                 },
                 {
-                  "Text": "9:43:26 PM",
+                  "Text": "10:43:26 AM",
                   "Color": {
                     "R": 0,
                     "G": 0,
@@ -2804,7 +2824,7 @@
               "type": "regular",
               "runs": [
                 {
-                  "Text": "/var/folders/py/kd0n010d5853c10brzndjz8w0000gn/T/menuet-catalog-screenshot.png",
+                  "Text": "/var/folders/h5/t85nd63d71x27_8gl5gw3l_w0000gn/T/menuet-catalog-screenshot.png",
                   "Color": {
                     "R": 0,
                     "G": 0,
@@ -3033,6 +3053,50 @@
               "imageSource": "data"
             }
           ]
+        }
+      ]
+    },
+    {
+      "type": "regular",
+      "text": "Tabs",
+      "color": {
+        "R": 0,
+        "G": 0,
+        "B": 0,
+        "A": 0
+      },
+      "children": [
+        {
+          "type": "tabs",
+          "text": "Short | Long",
+          "color": {
+            "R": 0,
+            "G": 0,
+            "B": 0,
+            "A": 0
+          }
+        },
+        {
+          "type": "regular",
+          "text": "Short row 1",
+          "color": {
+            "R": 0,
+            "G": 0,
+            "B": 0,
+            "A": 0
+          },
+          "static": true
+        },
+        {
+          "type": "regular",
+          "text": "Short row 2",
+          "color": {
+            "R": 0,
+            "G": 0,
+            "B": 0,
+            "A": 0
+          },
+          "static": true
         }
       ]
     }
