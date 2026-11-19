@@ -29,6 +29,9 @@ concurrency:
 
 jobs:
   rebuild:
+    # Forks inherit this file. Without the guard, a fork that syncs master
+    # rebuilds the bundle and pushes a branch of its own.
+    if: github.repository == 'caseymrm/menuet'
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
