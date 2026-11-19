@@ -64,6 +64,7 @@ void *imageDragged(const char *, double, double, int *);
 void notificationRespond(const char *, const char *);
 const char *children(const char *);
 const char *searchResults(const char *, const char *);
+void tabSelected(const char *, int);
 void menuClosed(const char *);
 void menuBarAppearanceChanged(bool);
 bool hideStartup();
@@ -156,6 +157,8 @@ MenuetMenu *_rootMenu;
 @property(nonatomic, copy) NSString *unique;
 @property(nonatomic, assign) BOOL root;
 @property(nonatomic, assign) BOOL open;
+
+- (void)refreshVisibleMenus;
 
 @end
 
@@ -616,6 +619,72 @@ static NSImage *MenuetImageForRow(NSString *b64, NSString *path, CGFloat maxW, C
 
 @end
 
+// MenuetTabsView is an NSMenuItem.view holding a segmented control. Choosing
+// a segment tells Go, then repopulates the open menu in place, so the rows
+// below follow the selection without the menu closing.
+@interface MenuetTabsView : NSView
+@property(nonatomic, strong) NSSegmentedControl *control;
+@property(nonatomic, copy) NSString *tabsUnique;
+- (instancetype)initWithLabels:(NSArray<NSString *> *)labels
+                      selected:(NSInteger)selected
+                    tabsUnique:(NSString *)unique;
+- (void)updateLabels:(NSArray<NSString *> *)labels
+            selected:(NSInteger)selected
+          tabsUnique:(NSString *)unique;
+@end
+
+static const CGFloat kMenuetTabsWidth = 280;
+static const CGFloat kMenuetTabsHeight = 34;
+
+@implementation MenuetTabsView
+
+- (instancetype)initWithLabels:(NSArray<NSString *> *)labels
+                      selected:(NSInteger)selected
+                    tabsUnique:(NSString *)unique {
+	self = [super initWithFrame:NSMakeRect(0, 0, kMenuetTabsWidth, kMenuetTabsHeight)];
+	if (self) {
+		_control = [NSSegmentedControl segmentedControlWithLabels:labels
+		                                             trackingMode:NSSegmentSwitchTrackingSelectOne
+		                                                   target:self
+		                                                   action:@selector(changed:)];
+		_control.segmentDistribution = NSSegmentDistributionFillEqually;
+		_control.frame = NSInsetRect(self.bounds, 14, 5);
+		_control.autoresizingMask = NSViewWidthSizable;
+		[self addSubview:_control];
+		[self updateLabels:labels selected:selected tabsUnique:unique];
+	}
+	return self;
+}
+
+- (void)updateLabels:(NSArray<NSString *> *)labels
+            selected:(NSInteger)selected
+          tabsUnique:(NSString *)unique {
+	self.tabsUnique = unique;
+	if (self.control.segmentCount != (NSInteger)labels.count) {
+		self.control.segmentCount = labels.count;
+	}
+	for (NSInteger i = 0; i < (NSInteger)labels.count; i++) {
+		[self.control setLabel:labels[i] forSegment:i];
+	}
+	self.control.selectedSegment = selected;
+}
+
+- (void)dealloc {
+	// The control is not released here: the view never retained it. Its
+	// superview, this view, owns it.
+	[_tabsUnique release];
+	[super dealloc];
+}
+
+- (void)changed:(NSSegmentedControl *)sender {
+	tabSelected(self.tabsUnique.UTF8String, (int)sender.selectedSegment);
+	MenuetMenu *menu = (MenuetMenu *)self.enclosingMenuItem.menu;
+	[menu refreshVisibleMenus];
+}
+
+@end
+
+
 static NSImage *MenuetBadgeImage(NSString *text, NSColor *fillColor) {
 	NSString *upper = [text uppercaseString];
 	NSDictionary *attrs = @{
@@ -878,6 +947,26 @@ static NSString *MenuetPlainTextFromRuns(NSArray *runs) {
 				item.representedObject = nil;
 			}
 			item.enabled = imageClickable;
+			continue;
+		}
+		if ([type isEqualTo:@"tabs"]) {
+			NSArray *labels = [dict[@"Labels"] isKindOfClass:[NSArray class]] ? dict[@"Labels"] : @[];
+			NSInteger selected = [dict[@"Selected"] integerValue];
+			NSString *tabsUnique = dict[@"Unique"] ?: @"";
+			BOOL reuse = item && [item.view isKindOfClass:NSClassFromString(@"MenuetTabsView")];
+			if (!reuse) {
+				if (item) [self removeItemAtIndex:i];
+				item = [self insertItemWithTitle:@"" action:nil keyEquivalent:@"" atIndex:i];
+				// The item retains its view. This file compiles without ARC.
+				item.view = [[[MenuetTabsView alloc] initWithLabels:labels
+				                                           selected:selected
+				                                         tabsUnique:tabsUnique] autorelease];
+			} else {
+				[(MenuetTabsView *)item.view updateLabels:labels
+				                                 selected:selected
+				                               tabsUnique:tabsUnique];
+			}
+			item.enabled = YES;
 			continue;
 		}
 		if ([type isEqualTo:@"search"]) {

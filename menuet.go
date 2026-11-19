@@ -399,6 +399,11 @@ func searchResults(searchUniqueCString *C.char, queryCString *C.char) *C.char {
 	return C.CString(string(b))
 }
 
+//export tabSelected
+func tabSelected(uniqueCString *C.char, index C.int) {
+	App().tabSelected(C.GoString(uniqueCString), int(index))
+}
+
 //export menuClosed
 func menuClosed(uniqueCString *C.char) {
 	unique := C.GoString(uniqueCString)

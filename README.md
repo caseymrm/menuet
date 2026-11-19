@@ -230,6 +230,31 @@ menuet.Regular{
 }
 ```
 
+## Tab rows
+
+`Tabs` is a row of mutually exclusive tabs, drawn as a segmented control.
+Choosing a tab calls `Changed` with its index and then asks `Children`
+for the rows again, so the rows below can follow the selection while the
+menu stays open:
+
+```go
+var selected int
+
+menuet.App().Children = func() []menuet.MenuItem {
+    items := []menuet.MenuItem{menuet.Tabs{
+        Labels:   []string{"Today", "This week"},
+        Selected: selected,
+        Changed:  func(i int) { selected = i },
+    }}
+    return append(items, rowsFor(selected)...)
+}
+```
+
+Keep the selection in your own state and pass it back as `Selected`.
+`Changed` runs on the main thread while the menu waits, so only record
+the selection there and start a goroutine for anything slow.
+The Catalog has a live example under "Tabs".
+
 ## Picture rows
 
 `Image` shows a picture as a whole row, from encoded bytes (`Data`) or a

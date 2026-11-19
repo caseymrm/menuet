@@ -148,7 +148,41 @@ func menuItems() []menuet.MenuItem {
 			Text:     "Images",
 			Children: imageDemo,
 		},
+		menuet.Regular{
+			Text:     "Tabs",
+			Children: tabsDemo,
+		},
 	}
+}
+
+// ---------------------------------------------------------------------------
+// Tabs
+//
+// A Tabs row switches what the rows below it show, and the menu stays open.
+// The two tabs have different row counts, so switching also shows the open
+// menu changing size in place.
+// ---------------------------------------------------------------------------
+
+var tabsSelected int
+
+func tabsDemo() []menuet.MenuItem {
+	labels := []string{"Short", "Long"}
+	items := []menuet.MenuItem{menuet.Tabs{
+		Labels:   labels,
+		Selected: tabsSelected,
+		Changed:  func(i int) { tabsSelected = i },
+	}}
+	rows := 2
+	if tabsSelected == 1 {
+		rows = 8
+	}
+	for i := 0; i < rows; i++ {
+		items = append(items, menuet.Regular{
+			Text:   fmt.Sprintf("%s row %d", labels[tabsSelected], i+1),
+			Static: true,
+		})
+	}
+	return items
 }
 
 // ---------------------------------------------------------------------------
