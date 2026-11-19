@@ -724,7 +724,7 @@ var topLevelClicks int
 
 func handleTopLevelClick() {
 	topLevelClicks++
-	menuet.App().SetMenuState(&menuet.MenuState{
+	setStatus(menuet.MenuState{
 		Title: fmt.Sprintf("Clicks: %d", topLevelClicks),
 	})
 }
@@ -733,7 +733,7 @@ var topLevelOptionClicks int
 
 func handleTopLevelOptionClick() {
 	topLevelOptionClicks++
-	menuet.App().SetMenuState(&menuet.MenuState{
+	setStatus(menuet.MenuState{
 		Title: fmt.Sprintf("Option-clicks: %d", topLevelOptionClicks),
 	})
 }
@@ -748,7 +748,7 @@ func clickHandlerMenu() []menuet.MenuItem {
 					menuet.App().Clicked = handleTopLevelClick
 				} else {
 					menuet.App().Clicked = nil
-					menuet.App().SetMenuState(&menuet.MenuState{Title: "Catalog"})
+					setStatus(menuet.MenuState{Title: "Catalog"})
 				}
 			},
 		},
@@ -760,7 +760,7 @@ func clickHandlerMenu() []menuet.MenuItem {
 					menuet.App().OptionClicked = handleTopLevelOptionClick
 				} else {
 					menuet.App().OptionClicked = nil
-					menuet.App().SetMenuState(&menuet.MenuState{Title: "Catalog"})
+					setStatus(menuet.MenuState{Title: "Catalog"})
 				}
 			},
 		},
@@ -808,6 +808,38 @@ func notifs() []menuet.MenuItem {
 
 var colorImage bool
 
+// statusMu guards statusBorder and lastStatus together.
+var (
+	statusMu     sync.Mutex
+	statusBorder bool
+	lastStatus   menuet.MenuState
+)
+
+// setStatus sets the status item, keeping the Border row's choice, so the
+// other rows don't turn the border off behind its checkmark.
+func setStatus(state menuet.MenuState) {
+	statusMu.Lock()
+	defer statusMu.Unlock()
+	lastStatus = state
+	state.Border = statusBorder
+	menuet.App().SetMenuState(&state)
+}
+
+func statusBorderOn() bool {
+	statusMu.Lock()
+	defer statusMu.Unlock()
+	return statusBorder
+}
+
+// toggleStatusBorder flips the border on the current status item.
+func toggleStatusBorder() {
+	statusMu.Lock()
+	statusBorder = !statusBorder
+	state := lastStatus
+	statusMu.Unlock()
+	setStatus(state)
+}
+
 func menuBarAppearanceText() string {
 	if menuet.App().MenuBarIsDark() {
 		return "Menu bar: dark"
@@ -836,7 +868,7 @@ func changeTitle() []menuet.MenuItem {
 		menuet.Regular{
 			Text: "Text only",
 			Clicked: func() {
-				menuet.App().SetMenuState(&menuet.MenuState{
+				setStatus(menuet.MenuState{
 					Title: "Catalog",
 				})
 			},
@@ -844,7 +876,7 @@ func changeTitle() []menuet.MenuItem {
 		menuet.Regular{
 			Text: "Image only",
 			Clicked: func() {
-				menuet.App().SetMenuState(&menuet.MenuState{
+				setStatus(menuet.MenuState{
 					Image: "clipboard",
 				})
 			},
@@ -852,7 +884,7 @@ func changeTitle() []menuet.MenuItem {
 		menuet.Regular{
 			Text: "Text and Image",
 			Clicked: func() {
-				menuet.App().SetMenuState(&menuet.MenuState{
+				setStatus(menuet.MenuState{
 					Title: "Catalog",
 					Image: "clipboard",
 				})
@@ -864,16 +896,23 @@ func changeTitle() []menuet.MenuItem {
 			Clicked: func() {
 				colorImage = !colorImage
 				if !colorImage {
-					menuet.App().SetMenuState(&menuet.MenuState{Title: "Catalog"})
+					setStatus(menuet.MenuState{Title: "Catalog"})
 					return
 				}
 				// ColorImage keeps the image's own colors instead of
 				// drawing it as a template image.
-				menuet.App().SetMenuState(&menuet.MenuState{
+				setStatus(menuet.MenuState{
 					Image:      "colorbadge",
 					ColorImage: true,
 				})
 			},
+		},
+		menuet.Regular{
+			Text:  "Border",
+			State: statusBorderOn(),
+			// Border draws a rounded outline that follows the menu bar's
+			// light or dark appearance.
+			Clicked: toggleStatusBorder,
 		},
 		menuet.Regular{
 			// The image is drawn here and passed inline as a data: URL, so
@@ -881,7 +920,7 @@ func changeTitle() []menuet.MenuItem {
 			Text: "Inline image (data: URL)",
 			Clicked: func() {
 				inlineImageClicks++
-				menuet.App().SetMenuState(&menuet.MenuState{
+				setStatus(menuet.MenuState{
 					Image:      inlineDotDataURL(inlineImageClicks),
 					ColorImage: true,
 				})
@@ -893,7 +932,7 @@ func changeTitle() []menuet.MenuItem {
 		menuet.Regular{
 			Text: "Runs in the title (live score)",
 			Clicked: func() {
-				menuet.App().SetMenuState(&menuet.MenuState{
+				setStatus(menuet.MenuState{
 					Runs: []menuet.TextRun{
 						{Text: "● ", Color: menuet.SystemRed},
 						{Text: "GSW ", FontWeight: menuet.WeightSemibold},
@@ -1082,7 +1121,7 @@ func fontweights() []menuet.MenuItem {
 }
 
 func main() {
-	menuet.App().SetMenuState(&menuet.MenuState{
+	setStatus(menuet.MenuState{
 		Title: "Catalog",
 	})
 	menuet.App().Label = "com.github.caseymrm.menuet.catalog"

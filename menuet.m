@@ -1425,11 +1425,38 @@ doCommandBySelector:(SEL)cmd {
 
 static void *MenuetBarAppearanceContext = &MenuetBarAppearanceContext;
 
-static void reportMenuBarAppearance() {
+static BOOL _statusItemBorder = NO;
+
+static BOOL statusItemBarIsDark() {
         NSAppearance *appearance = _statusItem.button.effectiveAppearance;
         NSAppearanceName match = [appearance bestMatchFromAppearancesWithNames:
                                   @[NSAppearanceNameAqua, NSAppearanceNameDarkAqua]];
-        menuBarAppearanceChanged([match isEqualToString:NSAppearanceNameDarkAqua]);
+        return [match isEqualToString:NSAppearanceNameDarkAqua];
+}
+
+// Draws or clears MenuState.Border: a rounded border around the status
+// item, light on a dark bar and dark on a light one. Main thread only.
+static void updateStatusItemBorder(BOOL dark) {
+        NSStatusBarButton *button = _statusItem.button;
+        if (!_statusItemBorder) {
+                // Don't force a layer on a button that never asked for a
+                // border, so it draws exactly as before.
+                if (button.layer) {
+                        button.layer.borderWidth = 0;
+                }
+                return;
+        }
+        button.wantsLayer = YES;
+        button.layer.cornerRadius = 4.0;
+        button.layer.borderWidth = 1.0;
+        button.layer.borderColor =
+                [NSColor colorWithWhite:(dark ? 1.0 : 0.0) alpha:0.4].CGColor;
+}
+
+static void reportMenuBarAppearance() {
+        BOOL dark = statusItemBarIsDark();
+        updateStatusItemBorder(dark);
+        menuBarAppearanceChanged(dark);
 }
 
 void setState(const char *jsonString) {
@@ -1463,6 +1490,8 @@ void setState(const char *jsonString) {
 		}
 		_statusItem.button.image = image;
 		_statusItem.button.imagePosition = NSImageLeft;
+		_statusItemBorder = [state[@"Border"] boolValue];
+		updateStatusItemBorder(statusItemBarIsDark());
 	});
 }
 
