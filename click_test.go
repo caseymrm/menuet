@@ -64,3 +64,43 @@ func TestTopLevelClickedIsNoOpWhenNil(t *testing.T) {
 	// Should not panic.
 	topLevelClicked()
 }
+
+func TestHasTopLevelOptionClickedReflectsField(t *testing.T) {
+	a := App()
+	defer func() { a.OptionClicked = nil }()
+
+	a.OptionClicked = nil
+	if hasTopLevelOptionClicked() {
+		t.Errorf("hasTopLevelOptionClicked() with nil callback = true, want false")
+	}
+	a.OptionClicked = func() {}
+	if !hasTopLevelOptionClicked() {
+		t.Errorf("hasTopLevelOptionClicked() with set callback = false, want true")
+	}
+	if hasTopLevelClicked() {
+		t.Errorf("setting OptionClicked made hasTopLevelClicked() true; plain clicks must still open the menu")
+	}
+}
+
+func TestTopLevelOptionClickedInvokesOnlyItsCallback(t *testing.T) {
+	a := App()
+	defer func() { a.Clicked, a.OptionClicked = nil, nil }()
+
+	plain := make(chan struct{}, 1)
+	option := make(chan struct{}, 1)
+	a.Clicked = func() { plain <- struct{}{} }
+	a.OptionClicked = func() { option <- struct{}{} }
+
+	topLevelOptionClicked()
+
+	select {
+	case <-option:
+	case <-time.After(time.Second):
+		t.Fatal("OptionClicked was not called")
+	}
+	select {
+	case <-plain:
+		t.Error("Clicked ran on an Option-click")
+	case <-time.After(50 * time.Millisecond):
+	}
+}

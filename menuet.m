@@ -75,6 +75,8 @@ void shutdownWait();
 void initNotifications(void);
 bool hasTopLevelClicked();
 void topLevelClicked();
+bool hasTopLevelOptionClicked();
+void topLevelOptionClicked();
 
 // Tag applied to dynamically-inserted search result NSMenuItems. populate:
 // clears items with this tag before rebuilding so a menu refresh doesn't
@@ -1445,6 +1447,15 @@ void runApplication() {
 
 - (void)statusItemClicked:(id)sender {
         NSEvent *event = [NSApp currentEvent];
+        // Ctrl-click is the documented way to open the menu, so it wins
+        // over Option when both are held.
+        BOOL optionClick = event.type == NSEventTypeLeftMouseUp &&
+                           (event.modifierFlags & NSEventModifierFlagOption) != 0 &&
+                           (event.modifierFlags & NSEventModifierFlagControl) == 0;
+        if (optionClick && hasTopLevelOptionClicked()) {
+                topLevelOptionClicked();
+                return;
+        }
         BOOL openMenu = !hasTopLevelClicked() ||
                         event.type == NSEventTypeRightMouseUp ||
                         (event.modifierFlags & NSEventModifierFlagControl) != 0;

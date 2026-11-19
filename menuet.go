@@ -100,6 +100,13 @@ type Application struct {
 	// secondary UI. Safe to set or clear at runtime.
 	Clicked func()
 
+	// OptionClicked, if set, is called when the user Option-left-clicks
+	// the menubar icon. That click then neither opens the menu nor calls
+	// Clicked. Plain clicks, right clicks and Ctrl-clicks behave as they
+	// do without it, so it suits a secondary action that should not get
+	// in the way of the menu. Safe to set or clear at runtime.
+	OptionClicked func()
+
 	// DisableMoveToApplications turns off the launch-time offer to move the
 	// app into the Applications folder. By default a Developer ID signed app
 	// that is launched from outside /Applications and ~/Applications asks
@@ -228,7 +235,7 @@ type MenuState struct {
 	// — the same TextRun shape used by Regular.Runs. Useful for a status-
 	// item title that mixes weights, sizes, colors, or monospaced digits.
 	Runs  []TextRun
-	Image string // In Resources dir or URL, should have height 22
+	Image string // In Resources dir, a URL or a data: URL; should have height 22
 	// ColorImage, when true, lets Image keep its own colors instead of being
 	// drawn as a template image. A colored image then no longer adapts
 	// automatically to a light or dark menu bar or to the highlighted state;
@@ -434,6 +441,18 @@ func hasTopLevelClicked() bool {
 //export topLevelClicked
 func topLevelClicked() {
 	if f := App().Clicked; f != nil {
+		go f()
+	}
+}
+
+//export hasTopLevelOptionClicked
+func hasTopLevelOptionClicked() bool {
+	return App().OptionClicked != nil
+}
+
+//export topLevelOptionClicked
+func topLevelOptionClicked() {
+	if f := App().OptionClicked; f != nil {
 		go f()
 	}
 }

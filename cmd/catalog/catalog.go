@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"encoding/base64"
 	"fmt"
 	"image"
 	"image/color"
@@ -694,6 +695,15 @@ func handleTopLevelClick() {
 	})
 }
 
+var topLevelOptionClicks int
+
+func handleTopLevelOptionClick() {
+	topLevelOptionClicks++
+	menuet.App().SetMenuState(&menuet.MenuState{
+		Title: fmt.Sprintf("Option-clicks: %d", topLevelOptionClicks),
+	})
+}
+
 func clickHandlerMenu() []menuet.MenuItem {
 	return []menuet.MenuItem{
 		menuet.Regular{
@@ -704,6 +714,18 @@ func clickHandlerMenu() []menuet.MenuItem {
 					menuet.App().Clicked = handleTopLevelClick
 				} else {
 					menuet.App().Clicked = nil
+					menuet.App().SetMenuState(&menuet.MenuState{Title: "Catalog"})
+				}
+			},
+		},
+		menuet.Regular{
+			Text:  "Option-click handler (Option-left-click counts)",
+			State: menuet.App().OptionClicked != nil,
+			Clicked: func() {
+				if menuet.App().OptionClicked == nil {
+					menuet.App().OptionClicked = handleTopLevelOptionClick
+				} else {
+					menuet.App().OptionClicked = nil
 					menuet.App().SetMenuState(&menuet.MenuState{Title: "Catalog"})
 				}
 			},
@@ -759,6 +781,22 @@ func menuBarAppearanceText() string {
 	return "Menu bar: light"
 }
 
+var inlineImageClicks int
+
+// inlineDotDataURL draws a 22-point disc at 2x and returns it as a data:
+// URL. The color steps through three values with n.
+func inlineDotDataURL(n int) string {
+	colors := []color.RGBA{
+		{R: 0xff, G: 0x45, B: 0x3a, A: 0xff},
+		{R: 0x30, G: 0xd1, B: 0x58, A: 0xff},
+		{R: 0x0a, G: 0x84, B: 0xff, A: 0xff},
+	}
+	const size = 44
+	img := image.NewRGBA(image.Rect(0, 0, size, size))
+	disc(img, size/2, size/2, size/2-6, colors[n%len(colors)])
+	return "data:image/png;base64," + base64.StdEncoding.EncodeToString(encodePNG(img))
+}
+
 func changeTitle() []menuet.MenuItem {
 	return []menuet.MenuItem{
 		menuet.Regular{
@@ -799,6 +837,18 @@ func changeTitle() []menuet.MenuItem {
 				// drawing it as a template image.
 				menuet.App().SetMenuState(&menuet.MenuState{
 					Image:      "colorbadge",
+					ColorImage: true,
+				})
+			},
+		},
+		menuet.Regular{
+			// The image is drawn here and passed inline as a data: URL, so
+			// it needs no file in Resources. Each click draws a new color.
+			Text: "Inline image (data: URL)",
+			Clicked: func() {
+				inlineImageClicks++
+				menuet.App().SetMenuState(&menuet.MenuState{
+					Image:      inlineDotDataURL(inlineImageClicks),
 					ColorImage: true,
 				})
 			},
