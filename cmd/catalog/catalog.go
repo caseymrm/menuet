@@ -821,6 +821,13 @@ func setStatus(state menuet.MenuState) {
 	statusMu.Lock()
 	defer statusMu.Unlock()
 	lastStatus = state
+	sendStatusLocked()
+}
+
+// sendStatusLocked sends lastStatus with the current border choice. The
+// caller holds statusMu, so a toggle and a new status cannot interleave.
+func sendStatusLocked() {
+	state := lastStatus
 	state.Border = statusBorder
 	menuet.App().SetMenuState(&state)
 }
@@ -834,10 +841,9 @@ func statusBorderOn() bool {
 // toggleStatusBorder flips the border on the current status item.
 func toggleStatusBorder() {
 	statusMu.Lock()
+	defer statusMu.Unlock()
 	statusBorder = !statusBorder
-	state := lastStatus
-	statusMu.Unlock()
-	setStatus(state)
+	sendStatusLocked()
 }
 
 func menuBarAppearanceText() string {
