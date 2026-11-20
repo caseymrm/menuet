@@ -241,6 +241,10 @@ type MenuState struct {
 	// automatically to a light or dark menu bar or to the highlighted state;
 	// the application has to take that into account itself.
 	ColorImage bool
+	// Border, when true, draws a thin rounded border around the status
+	// item: light on a dark menu bar and dark on a light one. It follows
+	// the bar when its appearance changes.
+	Border bool
 }
 
 func (a *Application) sendState(state *MenuState) {

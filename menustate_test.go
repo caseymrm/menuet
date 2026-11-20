@@ -22,3 +22,20 @@ func TestMenuStateColorImageSerializes(t *testing.T) {
 		t.Errorf("zero ColorImage should serialize as false: %s", b)
 	}
 }
+
+func TestMenuStateBorderSerializes(t *testing.T) {
+	b, err := json.Marshal(&MenuState{Title: "t", Border: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(b), `"Border":true`) {
+		t.Errorf("Border missing from JSON: %s", b)
+	}
+	b, err = json.Marshal(&MenuState{Title: "t"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(b), `"Border":false`) {
+		t.Errorf("zero Border should serialize as false: %s", b)
+	}
+}

@@ -386,6 +386,22 @@ Two things to know:
   `MenuState` with an unkeyed literal (`menuet.MenuState{"title", nil,
   "image"}`) needs the field names added.
 
+## Status item border
+
+Set `MenuState.Border` to draw a thin rounded border around the status
+item. It is light on a dark menu bar and dark on a light one, and
+follows the bar when its appearance changes:
+
+```go
+menuet.App().SetMenuState(&menuet.MenuState{
+    Title:  "Focus 25:00",
+    Border: true,
+})
+```
+
+Like `ColorImage`, `Border` is a new field in `MenuState`, so an unkeyed
+`MenuState` literal needs the field names added.
+
 ## [Catalog](https://github.com/caseymrm/menuet/tree/master/cmd/catalog)
 
 The catalog app is useful for trying many of the possible combinations of features.
