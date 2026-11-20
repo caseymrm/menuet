@@ -4,7 +4,8 @@
     "Title": "Catalog",
     "Runs": null,
     "Image": "",
-    "ColorImage": false
+    "ColorImage": false,
+    "Border": false
   },
   "items": [
     {
@@ -274,6 +275,16 @@
         {
           "type": "regular",
           "text": "Color image",
+          "color": {
+            "R": 0,
+            "G": 0,
+            "B": 0,
+            "A": 0
+          }
+        },
+        {
+          "type": "regular",
+          "text": "Border",
           "color": {
             "R": 0,
             "G": 0,
@@ -2595,7 +2606,7 @@
                   "Shadow": null
                 },
                 {
-                  "Text": "10:43:26 AM",
+                  "Text": "10:16:34 PM",
                   "Color": {
                     "R": 0,
                     "G": 0,
@@ -2824,7 +2835,7 @@
               "type": "regular",
               "runs": [
                 {
-                  "Text": "/var/folders/h5/t85nd63d71x27_8gl5gw3l_w0000gn/T/menuet-catalog-screenshot.png",
+                  "Text": "/var/folders/q2/p1t6rgxj5fj32g1dc7dmd49r0000gn/T/menuet-catalog-screenshot.png",
                   "Color": {
                     "R": 0,
                     "G": 0,
